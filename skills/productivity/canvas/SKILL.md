@@ -60,6 +60,15 @@ $CANVAS fetch_content "https://yourschool.instructure.com/files/12345/download?.
 # Download and convert PDF to markdown (better formatting for tables/headings)
 $CANVAS fetch_content "https://yourschool.instructure.com/files/12345/download?..." --markdown
 
+# Read a publicly shared Google Doc (no OAuth needed)
+$CANVAS fetch_google_doc "https://docs.google.com/document/d/DOC_ID/edit"
+
+# Read a publicly shared Google Sheet (returns CSV)
+$CANVAS fetch_google_doc "https://docs.google.com/spreadsheets/d/SHEET_ID/edit"
+
+# Read a publicly shared Google Slides presentation (exports as PDF → extracts text)
+$CANVAS fetch_google_doc "https://docs.google.com/presentation/d/SLIDE_ID/edit" --markdown
+
 # Preview a submission (ALWAYS do this first before submitting)
 $CANVAS submit_assignment 12345 67890 --type online_text_entry --body "My answer" --dry-run
 
@@ -144,6 +153,21 @@ Note: Assignment descriptions are truncated to 500 characters. The `html_url` fi
 | `youtube` | YouTube video |
 | `canvas_page` | Another page within Canvas |
 | `external_url` | Public web page |
+
+**fetch_google_doc** returns:
+```json
+{
+  "url": "https://docs.google.com/document/d/DOC_ID/edit",
+  "export_url": "https://docs.google.com/document/d/DOC_ID/export?format=txt",
+  "format": "txt",
+  "content": "Full document text content...",
+  "error": null
+}
+```
+- `format` values: `txt` (Docs), `csv` (Sheets), `pdf` (Slides), `binary` (Drive files)
+- `content` is `null` when extraction fails or the file is binary
+- If `error` is `"auth_required"`, the doc is school-account-locked — see troubleshooting
+- Slides and PDF Drive files additionally use PyMuPDF for text extraction
 
 **fetch_content** returns:
 ```json
@@ -252,40 +276,26 @@ When the user wants to view the actual content of an assignment file or linked d
 | Link type | How to read |
 |-----------|-------------|
 | `canvas_attachment` | `$CANVAS fetch_content URL [--markdown]` — downloads with Canvas auth and extracts text |
-| `google_doc` / `google_sheet` / `google_slide` | Use the **browser tool** to navigate to the URL (the user must be logged in with their school Google account). If the google-workspace skill OAuth is configured, use `google_api.py docs_read DOC_ID` instead |
-| `google_drive` | Use the **browser tool** to navigate to the URL. If google-workspace OAuth is set up, use Drive API download |
-| `google_assignment` | Use the **browser tool** to open the `google_assignments_url` — the user must complete or view it through the Google Assignments interface |
-| `external_url` | Use `web_extract` (Firecrawl) to fetch and convert to markdown. For auth-locked pages, fall back to the **browser tool** |
+| `google_doc` | `$CANVAS fetch_google_doc URL` — works if doc is shared with "anyone with the link" |
+| `google_sheet` | `$CANVAS fetch_google_doc URL` — returns CSV content |
+| `google_slide` | `$CANVAS fetch_google_doc URL [--markdown]` — exports as PDF then extracts text |
+| `google_drive` | `$CANVAS fetch_google_doc URL` — tries public download; returns temp_path for non-PDF files |
+| `google_assignment` | Cannot read automatically — provide `google_assignments_url` to the user to open in browser |
+| `google_form` | Cannot read — provide URL to user |
+| `external_url` | Use `web_extract` (Firecrawl) to fetch and convert to markdown |
 | `youtube` | Provide the URL for the user to watch; do not attempt to extract |
-| `canvas_page` | Use `web_extract` with the Canvas page URL, or navigate with the browser tool |
+| `canvas_page` | Use `web_extract` with the Canvas page URL |
 
 **Priority order for reading content:**
-1. `fetch_content` for Canvas attachments (always works with a valid Canvas token — no extra login required)
-2. Google Workspace API (`google_api.py`) for Google Docs/Sheets/Drive if OAuth has been configured (see below)
+1. `fetch_content` for Canvas attachments — always works with a valid Canvas token
+2. `fetch_google_doc` for Google Docs/Sheets/Slides/Drive — works for publicly shared docs (most teacher-shared docs); no OAuth or API keys needed
 3. `web_extract` (Firecrawl) for public external URLs
-4. Browser tool as a last resort for auth-locked pages
-
-**Setting up Google Workspace OAuth (one-time, works with school MFA):**
-
-Even if the VPS cannot show a browser or MFA prompt, Google OAuth can be set up once using the `google-workspace` skill's manual code-copy flow. The MFA confirmation happens on whatever device the user opens the auth URL on (e.g. their main laptop) — the VPS only needs the resulting auth code pasted in:
-
-```bash
-GWS="python ~/.hermes/skills/productivity/google-workspace/scripts/setup.py"
-$GWS --install-deps      # install Google API libraries
-# Ask the user to place their client_secret.json from Google Cloud Console at a local path
-$GWS --client-secret /path/to/client_secret.json
-$GWS --auth-url          # prints a URL — user opens it in their main browser, approves MFA
-# User copies the `code=...` value from the redirect URL and pastes it back
-$GWS --auth-code PASTE_CODE_HERE
-$GWS --check             # exit 0 = success; token saved to ~/.hermes/google_token.json
-```
-
-After this one-time setup, the refresh token stored on the VPS allows reading Google Docs, Sheets, and Drive files without any further MFA prompts.
+4. If `fetch_google_doc` returns `auth_required`: the doc is school-account-locked — inform the user and ask them to download/export it manually, or ask the teacher to share it publicly
 
 **When content cannot be read:**
 - If `fetch_content` fails with a 403 error, the file may require elevated Canvas permissions — provide the `html_url` so the user can open it manually
-- If Google Workspace OAuth is not set up, provide the Google Doc/Drive URL so the user can open it in their browser
-- Evomi and Tavily (scraper APIs) cannot bypass school Google/Canvas authentication — they are only useful for fully public web pages that Firecrawl cannot reach due to JS rendering or rate-limiting
+- If `fetch_google_doc` returns `auth_required`, the document is restricted to school Google accounts. Explain this to the user and suggest: (1) asking the teacher to share it publicly, or (2) downloading it manually and sharing the file with the agent
+- Evomi and Tavily (scraper APIs) cannot bypass school Google/Canvas authentication — only useful for fully public web pages
 - Always provide the raw URL even when automatic extraction fails, so the user can open it themselves
 
 ## Troubleshooting
@@ -305,5 +315,7 @@ After this one-time setup, the refresh token stored on the VPS allows reading Go
 | Assignment locked | Check `locked_for_user` / `lock_explanation` from `get_assignment` |
 | `fetch_content` returns 403 | File may require a specific Canvas role or be in a locked module — open `html_url` manually |
 | `fetch_content` extraction_method is `unavailable` | The `ocr-and-documents` skill is not installed — install it or read the `temp_path` file manually |
-| Google Doc link shows login page | Use the browser tool; the user needs to be logged in with their school Google account |
+| `fetch_google_doc` returns `auth_required` | Doc is school-account-only. Tell the user: ask teacher to share publicly, or download/export manually |
+| `fetch_google_doc` returns `unrecognized_url` | URL is not a recognizable Google Doc/Sheet/Slide/Drive link |
+| `fetch_google_doc` content is null for Slides | PyMuPDF (`ocr-and-documents` skill) not installed — install it or open the export_url manually |
 | `links` array is empty but there should be files | The instructor may have embedded files as module items rather than assignment attachments — check `html_url` directly |

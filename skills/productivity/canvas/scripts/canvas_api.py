@@ -13,6 +13,7 @@ Usage:
   python canvas_api.py mark_done COURSE_ID ASSIGNMENT_ID [--notes TEXT]
   python canvas_api.py list_pending [COURSE_ID]
   python canvas_api.py list_done [COURSE_ID]
+  python canvas_api.py fetch_google_doc URL [--markdown]
 """
 
 import argparse
@@ -848,6 +849,199 @@ def fetch_content(args):
     print(json.dumps(result, indent=2))
 
 
+def _google_export_url(url: str):
+    """Return (export_url, format) for a Google URL, or ("", "") if unrecognized."""
+    # Google Docs: /document/d/{ID}/...
+    m = re.search(r'docs\.google\.com/document/d/([a-zA-Z0-9_-]+)', url)
+    if m:
+        return (f"https://docs.google.com/document/d/{m.group(1)}/export?format=txt", "txt")
+
+    # Google Sheets: /spreadsheets/d/{ID}/...
+    m = re.search(r'docs\.google\.com/spreadsheets/d/([a-zA-Z0-9_-]+)', url)
+    if m:
+        return (f"https://docs.google.com/spreadsheets/d/{m.group(1)}/export?format=csv", "csv")
+
+    # Google Slides: /presentation/d/{ID}/...
+    m = re.search(r'docs\.google\.com/presentation/d/([a-zA-Z0-9_-]+)', url)
+    if m:
+        return (f"https://docs.google.com/presentation/d/{m.group(1)}/export/pdf", "pdf")
+
+    # Google Drive file: /file/d/{ID}/...
+    m = re.search(r'drive\.google\.com/file/d/([a-zA-Z0-9_-]+)', url)
+    if not m:
+        # drive.google.com/open?id=... or uc?id=...
+        m = re.search(r'[?&]id=([a-zA-Z0-9_-]+)', url)
+    if m:
+        return (f"https://drive.google.com/uc?export=download&id={m.group(1)}", "binary")
+
+    return ("", "")
+
+
+def fetch_google_doc(args):
+    """Download a Google Doc/Sheet/Slide via its public export URL (no OAuth needed).
+
+    Works for documents shared with "anyone with the link". Returns extracted text
+    content (plain text for Docs, CSV for Sheets, PDF-extracted text for Slides).
+    If the document is restricted to school accounts, returns an auth_required error.
+    """
+    export_url, fmt = _google_export_url(args.url)
+    if not export_url:
+        print(
+            json.dumps({
+                "error": "unrecognized_url",
+                "message": "Could not extract a Google document ID from the URL.",
+                "url": args.url,
+            })
+        )
+        sys.exit(1)
+
+    req_headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        )
+    }
+
+    try:
+        resp = requests.get(
+            export_url, headers=req_headers, timeout=60, allow_redirects=True
+        )
+    except requests.RequestException as e:
+        print(
+            json.dumps({
+                "error": "network_error",
+                "message": str(e),
+                "url": args.url,
+            })
+        )
+        sys.exit(1)
+
+    content_type = resp.headers.get("Content-Type", "").split(";")[0].strip().lower()
+
+    # Detect Google login redirect — restricted docs redirect to an HTML login page
+    is_html = "text/html" in content_type
+    auth_required = resp.status_code in (401, 403)
+    if not auth_required and is_html and fmt in ("txt", "csv", "pdf"):
+        # For these formats we expect non-HTML; HTML means a login redirect
+        snippet = resp.content[:512].decode("utf-8", errors="replace").lower()
+        if "accounts.google.com" in snippet or "sign in" in snippet or "signin" in snippet:
+            auth_required = True
+    if auth_required:
+        print(
+            json.dumps({
+                "error": "auth_required",
+                "message": (
+                    "This document is restricted to school Google accounts and cannot "
+                    "be read automatically. Options: (1) Ask the teacher to share it "
+                    'publicly with "anyone with the link"; '
+                    "(2) Download it manually and share the file with the agent."
+                ),
+                "url": args.url,
+                "export_url": export_url,
+            })
+        )
+        sys.exit(1)
+
+    try:
+        resp.raise_for_status()
+    except requests.HTTPError as e:
+        print(
+            json.dumps({
+                "error": "http_error",
+                "message": f"HTTP {e.response.status_code}",
+                "url": args.url,
+                "export_url": export_url,
+            })
+        )
+        sys.exit(1)
+
+    result = {
+        "url": args.url,
+        "export_url": export_url,
+        "format": fmt,
+        "content": None,
+        "error": None,
+    }
+
+    if fmt == "txt":
+        result["content"] = resp.content.decode("utf-8", errors="replace")[:80_000]
+
+    elif fmt == "csv":
+        result["content"] = resp.content.decode("utf-8", errors="replace")[:80_000]
+
+    elif fmt == "pdf":
+        # Slides exported as PDF — save then extract with PyMuPDF
+        with tempfile.NamedTemporaryFile(
+            delete=False, suffix=".pdf", prefix="gdoc_"
+        ) as tf:
+            temp_path = tf.name
+            tf.write(resp.content)
+        if os.path.exists(_PYMUPDF_SCRIPT):
+            flags = ["--markdown"] if args.markdown else []
+            try:
+                proc = subprocess.run(
+                    [sys.executable, _PYMUPDF_SCRIPT, temp_path] + flags,
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                )
+                if proc.returncode == 0:
+                    result["content"] = proc.stdout
+                else:
+                    result["error"] = f"PyMuPDF error: {proc.stderr[:300]}"
+            except subprocess.TimeoutExpired:
+                result["error"] = "PyMuPDF extraction timed out"
+            finally:
+                try:
+                    os.unlink(temp_path)
+                except OSError:
+                    pass
+        else:
+            result["error"] = (
+                f"PyMuPDF script not found at {_PYMUPDF_SCRIPT}. "
+                "Install the ocr-and-documents skill."
+            )
+
+    elif fmt == "binary":
+        # Generic Drive file — save and extract if PDF, otherwise report temp path
+        suffix = ".pdf" if "pdf" in content_type else ""
+        with tempfile.NamedTemporaryFile(
+            delete=False, suffix=suffix, prefix="gdrive_"
+        ) as tf:
+            temp_path = tf.name
+            tf.write(resp.content)
+        result["content_type"] = content_type
+        result["temp_path"] = temp_path
+        if "pdf" in content_type and os.path.exists(_PYMUPDF_SCRIPT):
+            flags = ["--markdown"] if args.markdown else []
+            try:
+                proc = subprocess.run(
+                    [sys.executable, _PYMUPDF_SCRIPT, temp_path] + flags,
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                )
+                if proc.returncode == 0:
+                    result["content"] = proc.stdout
+                    try:
+                        os.unlink(temp_path)
+                        result.pop("temp_path", None)
+                    except OSError:
+                        pass
+                else:
+                    result["error"] = f"PyMuPDF error: {proc.stderr[:300]}"
+            except subprocess.TimeoutExpired:
+                result["error"] = "PyMuPDF extraction timed out; file saved to temp_path"
+        else:
+            result["error"] = (
+                f"Drive file saved to {temp_path} (content-type: {content_type}). "
+                "Use an appropriate tool to read it."
+            )
+
+    print(json.dumps(result, indent=2))
+
+
 # =========================================================================
 # CLI parser
 # =========================================================================
@@ -953,6 +1147,25 @@ def main():
         help="Use PyMuPDF markdown extraction for PDFs instead of plain text",
     )
     p.set_defaults(func=fetch_content)
+
+    # --- fetch_google_doc ---
+    p = sub.add_parser(
+        "fetch_google_doc",
+        help=(
+            "Download a Google Doc/Sheet/Slide via its public export URL "
+            "(no OAuth needed — works for publicly shared docs)"
+        ),
+    )
+    p.add_argument(
+        "url",
+        help="Google Docs/Sheets/Slides/Drive URL from the assignment links array",
+    )
+    p.add_argument(
+        "--markdown",
+        action="store_true",
+        help="Use PyMuPDF markdown extraction for Slides (exported as PDF)",
+    )
+    p.set_defaults(func=fetch_google_doc)
 
     args = parser.parse_args()
     args.func(args)
