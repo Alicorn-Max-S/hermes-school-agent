@@ -44,6 +44,7 @@ hermes [global-options] <command> [subcommand/options]
 | `hermes pairing` | Approve or revoke messaging pairing codes. |
 | `hermes skills` | Browse, install, publish, audit, and configure skills. |
 | `hermes honcho` | Manage Honcho cross-session memory integration. |
+| `hermes acp` | Run Hermes as an ACP server for editor integration. |
 | `hermes tools` | Configure enabled tools per platform. |
 | `hermes sessions` | Browse, export, prune, rename, and delete sessions. |
 | `hermes insights` | Show token/cost/activity analytics. |
@@ -245,6 +246,8 @@ Subcommands:
 | `install` | Install a skill. |
 | `inspect` | Preview a skill without installing it. |
 | `list` | List installed skills. |
+| `check` | Check installed hub skills for upstream updates. |
+| `update` | Reinstall hub skills with upstream changes when available. |
 | `audit` | Re-scan installed hub skills. |
 | `uninstall` | Remove a hub-installed skill. |
 | `publish` | Publish a skill to a registry. |
@@ -257,11 +260,22 @@ Common examples:
 ```bash
 hermes skills browse
 hermes skills browse --source official
-hermes skills search kubernetes
+hermes skills search react --source skills-sh
+hermes skills search https://mintlify.com/docs --source well-known
 hermes skills inspect official/security/1password
+hermes skills inspect skills-sh/vercel-labs/json-render/json-render-react
 hermes skills install official/migration/openclaw-migration
+hermes skills install skills-sh/anthropics/skills/pdf --force
+hermes skills check
+hermes skills update
 hermes skills config
 ```
+
+Notes:
+- `--force` can override non-dangerous policy blocks for third-party/community skills.
+- `--force` does not override a `dangerous` scan verdict.
+- `--source skills-sh` searches the public `skills.sh` directory.
+- `--source well-known` lets you point Hermes at a site exposing `/.well-known/skills/index.json`.
 
 ## `hermes honcho`
 
@@ -282,6 +296,29 @@ Subcommands:
 | `tokens` | Show or set token budgets for context and dialectic. |
 | `identity` | Seed or show the AI peer identity representation. |
 | `migrate` | Migration guide from openclaw-honcho to Hermes Honcho. |
+
+## `hermes acp`
+
+```bash
+hermes acp
+```
+
+Starts Hermes as an ACP (Agent Client Protocol) stdio server for editor integration.
+
+Related entrypoints:
+
+```bash
+hermes-acp
+python -m acp_adapter
+```
+
+Install support first:
+
+```bash
+pip install -e '.[acp]'
+```
+
+See [ACP Editor Integration](../user-guide/features/acp.md) and [ACP Internals](../developer-guide/acp-internals.md).
 
 ## `hermes tools`
 
