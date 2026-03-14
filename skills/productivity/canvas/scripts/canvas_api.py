@@ -18,9 +18,13 @@ Usage:
 import argparse
 import json
 import os
+import re
 import sqlite3
+import subprocess
 import sys
+import tempfile
 from datetime import datetime, timezone
+from html.parser import HTMLParser
 
 import requests
 
@@ -51,6 +55,110 @@ def _load_hermes_env_value(key: str) -> str:
 
 CANVAS_API_TOKEN = _load_hermes_env_value("CANVAS_API_TOKEN")
 CANVAS_BASE_URL = _load_hermes_env_value("CANVAS_BASE_URL").rstrip("/")
+
+# Path to the PyMuPDF extraction script (sibling skill)
+_PRODUCTIVITY_DIR = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
+_PYMUPDF_SCRIPT = os.path.join(
+    _PRODUCTIVITY_DIR, "ocr-and-documents", "scripts", "extract_pymupdf.py"
+)
+
+
+class _LinkExtractor(HTMLParser):
+    """Extract and categorise links from Canvas HTML assignment descriptions."""
+
+    def __init__(self, canvas_base: str = ""):
+        super().__init__()
+        self.links: list = []
+        self._canvas_base = canvas_base.lower()
+        self._in_a = False
+        self._current_href: str = ""
+        self._current_text: list = []
+
+    def handle_starttag(self, tag, attrs):
+        attrs_dict = dict(attrs)
+        if tag == "a":
+            href = attrs_dict.get("href", "")
+            if href and not href.startswith(("javascript:", "#", "mailto:")):
+                self._in_a = True
+                self._current_href = href
+                self._current_text = []
+        elif tag == "img":
+            src = attrs_dict.get("src", "")
+            if src and not src.startswith("data:"):
+                self.links.append({
+                    "url": src,
+                    "type": self._classify(src),
+                    "text": attrs_dict.get("alt", ""),
+                    "source": "image",
+                })
+        elif tag == "iframe":
+            src = attrs_dict.get("src", "")
+            if src:
+                self.links.append({
+                    "url": src,
+                    "type": self._classify(src),
+                    "text": "",
+                    "source": "embed",
+                })
+
+    def handle_data(self, data):
+        if self._in_a:
+            self._current_text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._in_a:
+            self.links.append({
+                "url": self._current_href,
+                "type": self._classify(self._current_href),
+                "text": "".join(self._current_text).strip(),
+                "source": "link",
+            })
+            self._in_a = False
+            self._current_href = ""
+            self._current_text = []
+
+    def _classify(self, url: str) -> str:
+        u = url.lower()
+        if "docs.google.com/document" in u:
+            return "google_doc"
+        if "docs.google.com/spreadsheets" in u:
+            return "google_sheet"
+        if "docs.google.com/presentation" in u:
+            return "google_slide"
+        if "docs.google.com/forms" in u:
+            return "google_form"
+        if "drive.google.com" in u:
+            return "google_drive"
+        if "assignments.google.com" in u or "classroomassignments" in u:
+            return "google_assignment"
+        if "youtube.com" in u or "youtu.be" in u:
+            return "youtube"
+        if self._canvas_base and self._canvas_base in u:
+            return "canvas_page"
+        if "/files/" in u and "instructure.com" in u:
+            return "canvas_file"
+        return "external_url"
+
+
+def _extract_links_from_html(html: str) -> list:
+    """Parse HTML and return a deduplicated list of categorised link dicts."""
+    if not html:
+        return []
+    parser = _LinkExtractor(canvas_base=CANVAS_BASE_URL)
+    try:
+        parser.feed(html)
+    except Exception:
+        return []
+    seen: set = set()
+    unique: list = []
+    for item in parser.links:
+        url = item.get("url", "")
+        if url and url not in seen:
+            seen.add(url)
+            unique.append(item)
+    return unique
 
 
 def _check_config():
@@ -221,19 +329,51 @@ def get_assignment(args):
         for att in raw_attachments
     ]
 
+    description_html = a.get("description") or ""
+
+    # Build unified links list: Canvas attachments + links from description HTML
+    links: list = []
+    seen_urls: set = set()
+    for att in attachments:
+        u = att.get("url", "")
+        if u and u not in seen_urls:
+            seen_urls.add(u)
+            links.append({
+                "url": u,
+                "type": "canvas_attachment",
+                "text": att.get("display_name", ""),
+                "source": "attachment",
+                "content_type": att.get("content_type", ""),
+                "size": att.get("size"),
+            })
+    for lnk in _extract_links_from_html(description_html):
+        u = lnk.get("url", "")
+        if u and u not in seen_urls:
+            seen_urls.add(u)
+            links.append(lnk)
+    ext_tool_url = (a.get("external_tool_tag_attributes") or {}).get("url", "")
+    if ext_tool_url and ext_tool_url not in seen_urls:
+        seen_urls.add(ext_tool_url)
+        link_type = "google_assignment" if _is_google_assignment(a) else "external_tool"
+        links.append({
+            "url": ext_tool_url,
+            "type": link_type,
+            "text": "External Tool",
+            "source": "external_tool",
+        })
+
     output = {
         "id": a["id"],
         "name": a.get("name", ""),
         "course_id": a.get("course_id"),
-        "description": a.get("description") or "",
+        "description": description_html,
         "due_at": a.get("due_at"),
         "points_possible": a.get("points_possible"),
         "submission_types": a.get("submission_types", []),
         "html_url": a.get("html_url", ""),
         "attachments": attachments,
-        "external_tool_url": (a.get("external_tool_tag_attributes") or {}).get(
-            "url", ""
-        ),
+        "links": links,
+        "external_tool_url": ext_tool_url,
         "google_assignments": _is_google_assignment(a),
         "google_assignments_url": _google_assignments_url(a),
         "locked_for_user": a.get("locked_for_user", False),
@@ -587,6 +727,127 @@ def list_done(args):
     print(json.dumps(output, indent=2))
 
 
+def fetch_content(args):
+    """Download a Canvas-authenticated file and extract its text content.
+
+    Uses the Canvas Bearer token to fetch the URL (required for Canvas file
+    attachments).  Returns extracted text for PDFs via PyMuPDF, raw text for
+    plain-text/HTML responses, and the saved temp file path for everything else.
+    """
+    _check_config()
+    url = args.url
+
+    try:
+        resp = requests.get(url, headers=_headers(), timeout=60, stream=True)
+        resp.raise_for_status()
+    except requests.HTTPError as e:
+        print(
+            json.dumps({
+                "error": "download_failed",
+                "message": f"HTTP {e.response.status_code}: {e.response.text[:300]}",
+                "url": url,
+            }),
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    content_type = resp.headers.get("Content-Type", "").split(";")[0].strip().lower()
+    content_disposition = resp.headers.get("Content-Disposition", "")
+
+    # Derive filename from headers or URL
+    filename = ""
+    if "filename=" in content_disposition:
+        m = re.search(r'filename\*?=["\']?(?:UTF-8\'\')?([^"\';\n]+)', content_disposition, re.IGNORECASE)
+        if m:
+            filename = m.group(1).strip().strip("\"'")
+    if not filename:
+        filename = url.rstrip("/").split("/")[-1].split("?")[0] or "canvas_file"
+
+    suffix = os.path.splitext(filename)[1].lower()
+    if not suffix:
+        # Infer extension from content-type
+        _ct_map = {
+            "application/pdf": ".pdf",
+            "text/plain": ".txt",
+            "text/html": ".html",
+            "application/msword": ".doc",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+        }
+        suffix = _ct_map.get(content_type, "")
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix, prefix="canvas_") as tf:
+        temp_path = tf.name
+        for chunk in resp.iter_content(chunk_size=16384):
+            tf.write(chunk)
+
+    file_size = os.path.getsize(temp_path)
+
+    result = {
+        "url": url,
+        "filename": filename,
+        "content_type": content_type,
+        "file_size": file_size,
+        "temp_path": temp_path,
+        "content": None,
+        "extraction_method": None,
+        "error": None,
+    }
+
+    is_pdf = "pdf" in content_type or suffix == ".pdf"
+    is_text = content_type.startswith("text/") or content_type in (
+        "application/json", "application/xml", "application/javascript"
+    )
+    is_html = "html" in content_type or suffix in (".html", ".htm")
+
+    if is_pdf:
+        if os.path.exists(_PYMUPDF_SCRIPT):
+            flags = ["--markdown"] if args.markdown else []
+            try:
+                proc = subprocess.run(
+                    [sys.executable, _PYMUPDF_SCRIPT, temp_path] + flags,
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                )
+                if proc.returncode == 0:
+                    result["content"] = proc.stdout
+                    result["extraction_method"] = "pymupdf_markdown" if args.markdown else "pymupdf_text"
+                else:
+                    result["error"] = f"PyMuPDF error: {proc.stderr[:300]}"
+                    result["extraction_method"] = "failed"
+            except subprocess.TimeoutExpired:
+                result["error"] = "PyMuPDF extraction timed out after 120s"
+                result["extraction_method"] = "failed"
+        else:
+            result["error"] = (
+                f"PyMuPDF script not found at {_PYMUPDF_SCRIPT}. "
+                "Install the ocr-and-documents skill or extract manually from temp_path."
+            )
+            result["extraction_method"] = "unavailable"
+    elif is_html:
+        with open(temp_path, encoding="utf-8", errors="replace") as f:
+            raw = f.read(200_000)
+        # Strip tags for a readable plain-text version
+        text = re.sub(r"<style[^>]*>.*?</style>", " ", raw, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r"<script[^>]*>.*?</script>", " ", text, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r"<[^>]+>", " ", text)
+        text = re.sub(r"\s+", " ", text).strip()
+        result["content"] = text[:50_000]
+        result["extraction_method"] = "html_stripped"
+    elif is_text:
+        with open(temp_path, encoding="utf-8", errors="replace") as f:
+            result["content"] = f.read(50_000)
+        result["extraction_method"] = "text"
+    else:
+        result["extraction_method"] = "saved_only"
+        result["error"] = (
+            f"No automatic text extraction for content type '{content_type}'. "
+            "File saved to temp_path — use an appropriate tool to read it."
+        )
+
+    print(json.dumps(result, indent=2))
+
+
 # =========================================================================
 # CLI parser
 # =========================================================================
@@ -679,6 +940,19 @@ def main():
     p = sub.add_parser("list_done", help="List completed assignments from local DB")
     p.add_argument("course_id", nargs="?", default=None, help="Optional course ID filter")
     p.set_defaults(func=list_done)
+
+    # --- fetch_content ---
+    p = sub.add_parser(
+        "fetch_content",
+        help="Download a Canvas file attachment and extract its text content",
+    )
+    p.add_argument("url", help="Canvas file attachment URL (requires Canvas Bearer auth)")
+    p.add_argument(
+        "--markdown",
+        action="store_true",
+        help="Use PyMuPDF markdown extraction for PDFs instead of plain text",
+    )
+    p.set_defaults(func=fetch_content)
 
     args = parser.parse_args()
     args.func(args)

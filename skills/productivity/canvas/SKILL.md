@@ -51,8 +51,14 @@ $CANVAS list_assignments 12345
 # List assignments ordered by due date
 $CANVAS list_assignments 12345 --order-by due_at
 
-# Get full details for a single assignment (with attachments and links)
+# Get full details for a single assignment (with attachments, links, and external tools)
 $CANVAS get_assignment 12345 67890
+
+# Download a Canvas file attachment and extract its text (PDF → plain text)
+$CANVAS fetch_content "https://yourschool.instructure.com/files/12345/download?..."
+
+# Download and convert PDF to markdown (better formatting for tables/headings)
+$CANVAS fetch_content "https://yourschool.instructure.com/files/12345/download?..." --markdown
 
 # Preview a submission (ALWAYS do this first before submitting)
 $CANVAS submit_assignment 12345 67890 --type online_text_entry --body "My answer" --dry-run
@@ -110,6 +116,12 @@ Note: Assignment descriptions are truncated to 500 characters. The `html_url` fi
   "attachments": [
     {"display_name": "rubric.pdf", "url": "https://...", "content_type": "application/pdf", "size": 204800}
   ],
+  "links": [
+    {"url": "https://.../files/123/download?...", "type": "canvas_attachment", "text": "rubric.pdf", "source": "attachment", "content_type": "application/pdf", "size": 204800},
+    {"url": "https://docs.google.com/document/d/ABC/edit", "type": "google_doc", "text": "Project Brief", "source": "link"},
+    {"url": "https://drive.google.com/file/d/XYZ/view", "type": "google_drive", "text": "Dataset", "source": "link"},
+    {"url": "https://example.com/resource", "type": "external_url", "text": "Reference", "source": "link"}
+  ],
   "external_tool_url": "",
   "google_assignments": false,
   "google_assignments_url": "",
@@ -117,6 +129,38 @@ Note: Assignment descriptions are truncated to 500 characters. The `html_url` fi
   "lock_explanation": ""
 }
 ```
+
+**Link types in the `links` array:**
+| type | Description |
+|------|-------------|
+| `canvas_attachment` | Direct Canvas file (PDF, doc, image) — use `fetch_content` to read |
+| `google_doc` | Google Docs document |
+| `google_sheet` | Google Sheets spreadsheet |
+| `google_slide` | Google Slides presentation |
+| `google_form` | Google Form |
+| `google_drive` | Generic Google Drive file |
+| `google_assignment` | Google Assignments (LTI) — open in browser |
+| `external_tool` | Other LTI external tool |
+| `youtube` | YouTube video |
+| `canvas_page` | Another page within Canvas |
+| `external_url` | Public web page |
+
+**fetch_content** returns:
+```json
+{
+  "url": "https://yourschool.instructure.com/files/12345/download?...",
+  "filename": "rubric.pdf",
+  "content_type": "application/pdf",
+  "file_size": 204800,
+  "temp_path": "/tmp/canvas_abc123.pdf",
+  "content": "--- Page 1/3 ---\n\nProject Rubric\n...",
+  "extraction_method": "pymupdf_text",
+  "error": null
+}
+```
+- `extraction_method` values: `pymupdf_text`, `pymupdf_markdown`, `html_stripped`, `text`, `saved_only`, `failed`, `unavailable`
+- `content` is `null` when extraction fails; use `temp_path` to access the raw file
+- For binary files (images, zip, etc.) the file is saved to `temp_path` with `extraction_method: "saved_only"`
 
 **submit_assignment --dry-run** returns:
 ```json
@@ -195,6 +239,55 @@ Canvas uses `Link` headers for pagination. The Python script handles pagination 
 - Canvas rate-limits to ~700 requests per 10 minutes; check `X-Rate-Limit-Remaining` header if hitting limits
 - Run `sync_assignments` before `list_pending` / `list_done` to ensure the local DB is up to date
 
+### Always show assignment links
+
+- After calling `get_assignment`, **always** display the `links` array to the user (even if only one link exists)
+- Format links clearly — show the link `text`, `type`, and clickable `url`
+- If `links` is empty and `attachments` is also empty, note this explicitly so the user knows the assignment has no attached resources
+
+### Reading assignment file content
+
+When the user wants to view the actual content of an assignment file or linked document, choose the right method based on link `type`:
+
+| Link type | How to read |
+|-----------|-------------|
+| `canvas_attachment` | `$CANVAS fetch_content URL [--markdown]` — downloads with Canvas auth and extracts text |
+| `google_doc` / `google_sheet` / `google_slide` | Use the **browser tool** to navigate to the URL (the user must be logged in with their school Google account). If the google-workspace skill OAuth is configured, use `google_api.py docs_read DOC_ID` instead |
+| `google_drive` | Use the **browser tool** to navigate to the URL. If google-workspace OAuth is set up, use Drive API download |
+| `google_assignment` | Use the **browser tool** to open the `google_assignments_url` — the user must complete or view it through the Google Assignments interface |
+| `external_url` | Use `web_extract` (Firecrawl) to fetch and convert to markdown. For auth-locked pages, fall back to the **browser tool** |
+| `youtube` | Provide the URL for the user to watch; do not attempt to extract |
+| `canvas_page` | Use `web_extract` with the Canvas page URL, or navigate with the browser tool |
+
+**Priority order for reading content:**
+1. `fetch_content` for Canvas attachments (always works with a valid Canvas token — no extra login required)
+2. Google Workspace API (`google_api.py`) for Google Docs/Sheets/Drive if OAuth has been configured (see below)
+3. `web_extract` (Firecrawl) for public external URLs
+4. Browser tool as a last resort for auth-locked pages
+
+**Setting up Google Workspace OAuth (one-time, works with school MFA):**
+
+Even if the VPS cannot show a browser or MFA prompt, Google OAuth can be set up once using the `google-workspace` skill's manual code-copy flow. The MFA confirmation happens on whatever device the user opens the auth URL on (e.g. their main laptop) — the VPS only needs the resulting auth code pasted in:
+
+```bash
+GWS="python ~/.hermes/skills/productivity/google-workspace/scripts/setup.py"
+$GWS --install-deps      # install Google API libraries
+# Ask the user to place their client_secret.json from Google Cloud Console at a local path
+$GWS --client-secret /path/to/client_secret.json
+$GWS --auth-url          # prints a URL — user opens it in their main browser, approves MFA
+# User copies the `code=...` value from the redirect URL and pastes it back
+$GWS --auth-code PASTE_CODE_HERE
+$GWS --check             # exit 0 = success; token saved to ~/.hermes/google_token.json
+```
+
+After this one-time setup, the refresh token stored on the VPS allows reading Google Docs, Sheets, and Drive files without any further MFA prompts.
+
+**When content cannot be read:**
+- If `fetch_content` fails with a 403 error, the file may require elevated Canvas permissions — provide the `html_url` so the user can open it manually
+- If Google Workspace OAuth is not set up, provide the Google Doc/Drive URL so the user can open it in their browser
+- Evomi and Tavily (scraper APIs) cannot bypass school Google/Canvas authentication — they are only useful for fully public web pages that Firecrawl cannot reach due to JS rendering or rate-limiting
+- Always provide the raw URL even when automatic extraction fails, so the user can open it themselves
+
 ## Troubleshooting
 
 | Problem | Fix |
@@ -210,3 +303,7 @@ Canvas uses `Link` headers for pagination. The Python script handles pagination 
 | `no_submission_required` error | Assignment has no submit button; use `mark_done` to track locally |
 | `not_found` on `mark_done` | Run `sync_assignments` first to populate the local DB |
 | Assignment locked | Check `locked_for_user` / `lock_explanation` from `get_assignment` |
+| `fetch_content` returns 403 | File may require a specific Canvas role or be in a locked module — open `html_url` manually |
+| `fetch_content` extraction_method is `unavailable` | The `ocr-and-documents` skill is not installed — install it or read the `temp_path` file manually |
+| Google Doc link shows login page | Use the browser tool; the user needs to be logged in with their school Google account |
+| `links` array is empty but there should be files | The instructor may have embedded files as module items rather than assignment attachments — check `html_url` directly |
