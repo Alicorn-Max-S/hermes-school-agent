@@ -8,6 +8,8 @@ metadata:
   hermes:
     tags: [Images, Vision, Analysis, PNG, JPG, Screenshot, OCR]
     related_skills: [file-analysis, document-analysis]
+    school: true
+    school_category: "File Analysis"
 ---
 
 # Image Analysis

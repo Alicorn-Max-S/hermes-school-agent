@@ -1,6 +1,6 @@
 ---
 name: arxiv
-description: Search and retrieve academic papers from arXiv using their free REST API. No API key needed. Search by keyword, author, category, or ID. Combine with webscrape or the ocr-and-documents skill to read full paper content.
+description: "Search and retrieve academic papers from arXiv — find papers by keyword, author, category, or ID. No API key needed. Trigger on mentions of research papers, academic articles, arXiv, preprints, scientific literature, or citations."
 version: 1.0.0
 author: Hermes Agent
 license: MIT
@@ -8,6 +8,8 @@ metadata:
   hermes:
     tags: [Research, Arxiv, Papers, Academic, Science, API]
     related_skills: [ocr-and-documents]
+    school: true
+    school_category: "Research & Web"
 ---
 
 # arXiv Research

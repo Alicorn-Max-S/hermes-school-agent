@@ -1,6 +1,6 @@
 ---
 name: notion
-description: Notion API for creating and managing pages, databases, and blocks via curl. Search, create, update, and query Notion workspaces directly from the terminal.
+description: "Notion workspace management — search pages, create and update pages, query databases, add blocks, and organize content. Trigger on mentions of Notion, wiki, knowledge base, or project databases."
 version: 1.0.0
 author: community
 license: MIT
@@ -8,6 +8,8 @@ metadata:
   hermes:
     tags: [Notion, Productivity, Notes, Database, API]
     homepage: https://developers.notion.com
+    school: true
+    school_category: "Notes & Organization"
 prerequisites:
   env_vars: [NOTION_API_KEY]
 ---

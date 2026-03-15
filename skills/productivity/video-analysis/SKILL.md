@@ -8,6 +8,8 @@ metadata:
   hermes:
     tags: [Video, Analysis, Frames, Transcription, Vision]
     related_skills: [file-analysis, image-analysis, audio-analysis]
+    school: true
+    school_category: "File Analysis"
 ---
 
 # Video Analysis

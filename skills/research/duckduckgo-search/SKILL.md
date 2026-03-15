@@ -1,6 +1,6 @@
 ---
 name: duckduckgo-search
-description: Free web search via DuckDuckGo — text, news, images, videos. No API key needed. Use the Python DDGS library or CLI to search, then webscrape for full content.
+description: "Free web search via DuckDuckGo — search text, news, images, and videos. No API key needed. Trigger on mentions of searching the web, looking something up, finding information online, fact-checking, or researching a topic."
 version: 1.2.0
 author: gamedevCloudy
 license: MIT
@@ -9,6 +9,8 @@ metadata:
     tags: [search, duckduckgo, web-search, free, fallback]
     related_skills: [arxiv]
     fallback_for_toolsets: [web]
+    school: true
+    school_category: "Research & Web"
 prerequisites:
   commands: [ddgs]
 ---

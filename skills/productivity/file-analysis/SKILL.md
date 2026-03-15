@@ -1,6 +1,6 @@
 ---
 name: file-analysis
-description: Analyze any file by auto-detecting its type and routing to the appropriate analysis skill. Supports images, documents, code, text, audio, video, and more.
+description: "Analyze any file by auto-detecting its type and routing to the right analysis skill. Supports PDFs, images, spreadsheets, code, audio, video, text, and more. Trigger when the user uploads a file, shares a file path, or asks to analyze, read, parse, or extract content from any file."
 version: 1.0.0
 author: Nous Research
 license: MIT
@@ -8,6 +8,8 @@ metadata:
   hermes:
     tags: [Files, Analysis, PDF, Images, Documents, CSV, Code, Vision, OCR, Audio, Video]
     related_skills: [image-analysis, document-analysis, code-analysis, text-analysis, audio-analysis, video-analysis, ocr-and-documents]
+    school: true
+    school_category: "File Analysis"
 ---
 
 # File Analysis Router

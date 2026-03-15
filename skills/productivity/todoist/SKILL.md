@@ -1,6 +1,6 @@
 ---
 name: todoist
-description: Todoist task management with intelligent scheduling, duration estimation, automatic labeling, and time tracking for accuracy improvement.
+description: "Todoist task and homework management — create tasks, set due dates, schedule study sessions, track assignments, estimate durations, auto-label by project, and log time for accuracy. Trigger on mentions of to-do lists, task planning, homework tracking, or time management."
 version: 1.0.0
 author: community
 license: MIT
@@ -9,6 +9,8 @@ prerequisites:
 metadata:
   hermes:
     tags: [Todoist, Tasks, Productivity, Scheduling, Time Management, Calendar]
+    school: true
+    school_category: "Homework & Assignments"
 ---
 
 # Todoist — Intelligent Task Management & Scheduling

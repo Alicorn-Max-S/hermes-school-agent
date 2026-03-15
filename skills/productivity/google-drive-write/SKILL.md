@@ -1,6 +1,6 @@
 ---
 name: google-drive-write
-description: Write and edit Google Drive content — update Google Sheets, append rows, and modify Drive files. Uses Google OAuth2 via the google-auth skill.
+description: "Write and edit Google Drive content — update Google Sheets cells, append rows, create documents, and modify Drive files. Uses Google OAuth2. Trigger on mentions of editing spreadsheets, updating shared docs, writing to Google Sheets, or saving to Drive."
 version: 1.0.0
 author: Nous Research
 license: MIT
@@ -9,6 +9,8 @@ metadata:
     tags: [Google, Drive, Sheets, Docs, Write, Edit]
     homepage: https://github.com/NousResearch/hermes-agent
     related_skills: [google-auth, google-drive]
+    school: true
+    school_category: "Google Workspace"
 ---
 
 # Google Drive Write

@@ -1,6 +1,6 @@
 ---
 name: google-calendar
-description: Google Calendar event management — create, edit, view, and delete events. Automatically checked when scheduling Todoist tasks to prevent overlap.
+description: "Google Calendar event management — create, edit, view, and delete events, check availability, and schedule around existing commitments. Automatically checked when scheduling Todoist tasks to prevent overlap. Trigger on mentions of calendar, scheduling, events, availability, class schedule, or time slots."
 version: 1.0.0
 author: Nous Research
 license: MIT
@@ -9,6 +9,8 @@ metadata:
     tags: [Google, Calendar, Scheduling, Events, Todoist]
     homepage: https://github.com/NousResearch/hermes-agent
     related_skills: [todoist, google-auth]
+    school: true
+    school_category: "Homework & Assignments"
 ---
 
 # Google Calendar

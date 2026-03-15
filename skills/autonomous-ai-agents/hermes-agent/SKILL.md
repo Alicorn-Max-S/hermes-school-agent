@@ -9,6 +9,8 @@ metadata:
     tags: [Agent, Hermes, Multi-Agent, Orchestration, Subprocess, Interactive]
     homepage: https://github.com/NousResearch/hermes-agent
     related_skills: [claude-code, codex]
+    school: true
+    school_category: "Coding & Projects"
 ---
 
 # Spawning Hermes Agent Instances

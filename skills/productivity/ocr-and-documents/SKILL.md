@@ -8,6 +8,8 @@ metadata:
   hermes:
     tags: [PDF, Documents, Research, Arxiv, Text-Extraction, OCR]
     related_skills: [powerpoint]
+    school: true
+    school_category: "File Analysis"
 ---
 
 # PDF & Document Extraction

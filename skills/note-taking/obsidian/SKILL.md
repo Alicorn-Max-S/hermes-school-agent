@@ -1,6 +1,10 @@
 ---
 name: obsidian
-description: Read, search, and create notes in the Obsidian vault.
+description: "Read, search, create, and edit notes in an Obsidian vault. Supports wikilinks, tags, and markdown. Trigger on mentions of Obsidian, vault, notes, knowledge management, or personal wiki."
+metadata:
+  hermes:
+    school: true
+    school_category: "Notes & Organization"
 ---
 
 # Obsidian Vault

@@ -8,6 +8,8 @@ metadata:
   hermes:
     tags: [debugging, troubleshooting, problem-solving, root-cause, investigation]
     related_skills: [test-driven-development, writing-plans, subagent-driven-development]
+    school: true
+    school_category: "Coding & Projects"
 ---
 
 # Systematic Debugging
