@@ -198,7 +198,7 @@ The CLI shows animated feedback as the agent works:
 ```
   ┊ 💻 terminal `ls -la` (0.3s)
   ┊ 🔍 web_search (1.2s)
-  ┊ 📄 web_extract (2.1s)
+  ┊ 📄 webscrape (2.1s)
 ```
 
 Cycle through display modes with `/verbose`: `off → new → all → verbose`.

@@ -96,7 +96,7 @@ TOOL_SELECTION_GUIDE = (
     "EDITING FILES: Use patch for targeted edits (not sed/terminal). Use write_file only for new files or full rewrites.\n"
     "SEARCHING: Use search_files for code/file search (not grep/find/terminal). Use target='files' instead of ls.\n"
     "TERMINAL: Reserve for builds, installs, git, processes, scripts — NOT for file I/O.\n"
-    "WEB: Use web_search for information lookup. Use web_extract to read URLs. Fall back to browser tools if these fail.\n"
+    "WEB: Use web_search for information lookup. Use webscrape to read URLs. Fall back to browser tools if these fail.\n"
     "DELEGATION: Use delegate_task for reasoning-heavy subtasks, parallel research, or tasks that would flood context.\n"
     "CODE EXECUTION: Use execute_code when you need 3+ chained tool calls with logic between them.\n"
     "MEMORY: Proactively save user preferences, environment facts, and lessons learned. Don't wait to be asked.\n"

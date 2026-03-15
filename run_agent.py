@@ -3826,7 +3826,7 @@ class AIAgent:
             elif self.quiet_mode and self._stream_callback is None:
                 face = random.choice(KawaiiSpinner.KAWAII_WAITING)
                 tool_emoji_map = {
-                    'web_search': '🔍', 'web_extract': '📄', 'web_crawl': '🕸️',
+                    'web_search': '🔍', 'webscrape': '📄', 'web_crawl': '🕸️',
                     'terminal': '💻', 'process': '⚙️',
                     'read_file': '📖', 'write_file': '✍️', 'patch': '🔧', 'search_files': '🔎',
                     'browser_navigate': '🌐', 'browser_snapshot': '📸',

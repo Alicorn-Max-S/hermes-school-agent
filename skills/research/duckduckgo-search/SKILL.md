@@ -1,6 +1,6 @@
 ---
 name: duckduckgo-search
-description: Free web search via DuckDuckGo — text, news, images, videos. No API key needed. Use the Python DDGS library or CLI to search, then web_extract for full content.
+description: Free web search via DuckDuckGo — text, news, images, videos. No API key needed. Use the Python DDGS library or CLI to search, then webscrape for full content.
 version: 1.2.0
 author: gamedevCloudy
 license: MIT
@@ -152,10 +152,10 @@ ddgs text -k "fastapi tutorial" -m 5 -o json
 
 ## Workflow: Search then Extract
 
-DuckDuckGo returns titles, URLs, and snippets — not full page content. To get full content, follow up with `web_extract`:
+DuckDuckGo returns titles, URLs, and snippets — not full page content. To get full content, follow up with `webscrape`:
 
 1. **Search** with ddgs to find relevant URLs
-2. **Extract** content using the `web_extract` tool (if available) or curl
+2. **Extract** content using the `webscrape` tool (if available) or curl
 
 ```python
 from ddgs import DDGS
@@ -165,13 +165,13 @@ with DDGS() as ddgs:
     for r in results:
         print(r["title"], "->", r["href"])
 
-# Then use web_extract tool on the best URL
+# Then use webscrape tool on the best URL
 ```
 
 ## Limitations
 
 - **Rate limiting**: DuckDuckGo may throttle after many rapid requests. Add a short delay between searches if needed.
-- **No content extraction**: ddgs returns snippets, not full page content. Use `web_extract` or curl for that.
+- **No content extraction**: ddgs returns snippets, not full page content. Use `webscrape` or curl for that.
 - **Results quality**: Generally good but less configurable than Firecrawl's search.
 - **Availability**: DuckDuckGo may block requests from some cloud IPs. If searches return empty, try different keywords or wait a few seconds.
 - **Field variability**: Return fields may vary between results or ddgs versions. Use `.get()` for optional fields to avoid KeyError.
@@ -185,7 +185,7 @@ with DDGS() as ddgs:
 
 ## Cross-Skill Chaining
 
-- **Auto-use chaining**: When search results contain URLs relevant to the user's query, automatically use `web_extract(urls=[...])` to fetch the top 2-3 most relevant results. If web_extract fails or times out, fall back to `browser_navigate`.
+- **Auto-use chaining**: When search results contain URLs relevant to the user's query, automatically use `webscrape(urls=[...])` to fetch the top 2-3 most relevant results. If webscrape fails or times out, fall back to `browser_navigate`.
 - **Propose to user**: After finding useful results, propose: "Would you like me to save these sources to memory for your project?" Use the clarify tool to offer this.
 
 ## Validated With

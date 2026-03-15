@@ -65,11 +65,11 @@ When using school skills, follow these automatic workflows:
 
 ### Auto-Use (do these automatically, don't wait for the user to ask)
 - **Canvas returns a PDF/DOCX attachment** → Download it, then use `skill_view("document-analysis")` to analyze the file contents immediately.
-- **Search results contain URLs** → Use `web_extract(urls=[...])` to fetch the top 2-3 most relevant results automatically. If web_extract fails, fall back to `browser_navigate`.
+- **Search results contain URLs** → Use `webscrape(urls=[...])` to fetch the top 2-3 most relevant results automatically. If webscrape fails, fall back to `browser_navigate`.
 - **A document contains images or charts** → Use `vision_analyze` to describe them automatically.
-- **Extracted content contains follow-up links relevant to the query** → Fetch up to 3 additional links with `web_extract`.
+- **Extracted content contains follow-up links relevant to the query** → Fetch up to 3 additional links with `webscrape`.
 - **OCR detects text in an image** → Extract and present the text immediately.
-- **An arxiv paper is found** → Use `web_extract` to fetch the abstract and key sections automatically.
+- **An arxiv paper is found** → Use `webscrape` to fetch the abstract and key sections automatically.
 - **After extracting study material from a document** → Offer to save it via the study skill for future practice sessions.
 
 ### Propose to User (offer these as follow-up actions via clarify tool)

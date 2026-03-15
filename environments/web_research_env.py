@@ -203,7 +203,7 @@ class WebResearchEnv(HermesAgentBaseEnv):
     RL environment for training multi-step web research skills.
 
     The model is given a factual question requiring 2-3 hops of web research
-    and must use web_search / web_extract tools to find and synthesize the answer.
+    and must use web_search / webscrape tools to find and synthesize the answer.
 
     Reward is multi-signal:
       60% — answer correctness (LLM judge)
@@ -332,7 +332,7 @@ class WebResearchEnv(HermesAgentBaseEnv):
             f"do not rely solely on your training data.\n\n"
             f"Question: {item['question']}\n\n"
             f"Requirements:\n"
-            f"- Use web_search and/or web_extract tools to find information\n"
+            f"- Use web_search and/or webscrape tools to find information\n"
             f"- Search at least 2 different sources\n"
             f"- Provide a concise, accurate answer (2-4 sentences)\n"
             f"- Cite the sources you used"
@@ -381,7 +381,7 @@ class WebResearchEnv(HermesAgentBaseEnv):
         )
 
         # ---- Signal 2: Web tool usage --------------------------------
-        web_tools = {"web_search", "web_extract", "search", "firecrawl"}
+        web_tools = {"web_search", "webscrape", "search", "firecrawl"}
         tool_used = 1.0 if any(t in web_tools for t in tools_used) else 0.0
 
         # ---- Signal 3: Efficiency ------------------------------------
@@ -428,7 +428,7 @@ class WebResearchEnv(HermesAgentBaseEnv):
         """Run evaluation on the held-out split using the full agent loop with tools.
 
         Each eval item runs through the same agent loop as training —
-        the model can use web_search, web_extract, etc. to research answers.
+        the model can use web_search, webscrape, etc. to research answers.
         This measures actual agentic research capability, not just knowledge.
         """
         import time

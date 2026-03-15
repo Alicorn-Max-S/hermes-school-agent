@@ -9,6 +9,7 @@ metadata:
     tags: [webscraping, scraping, extraction, free, firecrawl, research, web]
     related_skills: [duckduckgo-search, arxiv, domain-intel]
     fallback_for_toolsets: []
+    fallback_for_tools: [webscrape]
 prerequisites:
   commands: [curl, python3]
 ---
@@ -237,8 +238,8 @@ Use **only** when Tiers 1-2 fail due to: JavaScript rendering, anti-bot protecti
 ### Single page scrape
 
 ```python
-# Using the built-in web_extract tool (preferred — handles summarization automatically)
-web_extract(urls=["https://example.com/js-heavy-page"])
+# Using the built-in webscrape tool (preferred — handles summarization automatically)
+webscrape(urls=["https://example.com/js-heavy-page"])
 ```
 
 ### Single page scrape (direct API — when you need raw content)
@@ -298,7 +299,7 @@ Example:
 | **Set low limits** | `limit=3` to `limit=5` on crawls | Prevents runaway costs |
 | **Use URL filters** | `include_paths=["/docs/*"]` | Scrape only relevant pages |
 | **Exclude paths** | `exclude_paths=["/blog/*", "/archive/*"]` | Skip irrelevant sections |
-| **Scrape, don't crawl** | Use `web_extract` for known URLs | 1 credit vs N credits |
+| **Scrape, don't crawl** | Use `webscrape` for known URLs | 1 credit vs N credits |
 | **Cache results** | Save output to file, reuse later | Avoid duplicate scrapes |
 | **Self-host** | Set `FIRECRAWL_API_URL` | Zero API cost (server cost only) |
 | **Ask before retry** | Confirm with user before re-crawling | Prevents wasted credits |
@@ -310,7 +311,7 @@ The Hermes agent provides three built-in tools that wrap Firecrawl with LLM-powe
 | Tool | Use Case | Example |
 |------|----------|---------|
 | `web_search` | Find URLs by topic | `web_search("python FastAPI deployment")` |
-| `web_extract` | Get content from known URLs | `web_extract(urls=["https://..."])` |
+| `webscrape` | Get content from known URLs | `webscrape(urls=["https://..."])` |
 | `web_crawl` | Crawl a site with instructions | `web_crawl("docs.example.com", "Find API reference", limit=5)` |
 
 These tools automatically:
@@ -375,7 +376,7 @@ def scrape_url(url: str) -> str:
 
     # --- Tier 3: Firecrawl (paid fallback) ---
     # Only reaches here if free methods failed
-    return web_extract(urls=[url])
+    return webscrape(urls=[url])
 
 url = "https://example.com/target-page"
 content = scrape_url(url)
@@ -410,7 +411,7 @@ for url in urls:
 
 # Only send failures to Firecrawl (saves money)
 if firecrawl_fallback:
-    fc_result = web_extract(urls=firecrawl_fallback)
+    fc_result = webscrape(urls=firecrawl_fallback)
     # Parse and merge fc_result into results
 
 print(f"Free: {len(results)}, Firecrawl: {len(firecrawl_fallback)}")
@@ -476,4 +477,4 @@ def load_scrape(url: str, output_dir: str = "./scraped", max_age_hours: int = 24
 
 ## Cross-Skill Chaining
 
-- **Auto-use chaining**: When extracted content contains follow-up links relevant to the user's query, automatically fetch up to 3 additional links with `web_extract(urls=[...])` or the scraping tools described above.
+- **Auto-use chaining**: When extracted content contains follow-up links relevant to the user's query, automatically fetch up to 3 additional links with `webscrape(urls=[...])` or the scraping tools described above.

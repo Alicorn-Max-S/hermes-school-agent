@@ -29,7 +29,7 @@ from typing import List
 # Import the web tools to test (updated path after moving tools/)
 from tools.web_tools import (
     web_search_tool, 
-    web_extract_tool, 
+    webscrape_tool, 
     web_crawl_tool,
     check_firecrawl_api_key,
     check_auxiliary_model,
@@ -243,7 +243,7 @@ class WebToolsTester:
         
         return extracted_urls
     
-    async def test_web_extract(self, urls: List[str] = None):
+    async def test_webscrape(self, urls: List[str] = None):
         """Test web content extraction"""
         print_section("Test 2: Web Extract (without LLM)")
         
@@ -266,9 +266,9 @@ class WebToolsTester:
                     print(f"    - {url}")
                 
                 if self.verbose:
-                    print(f"  Calling web_extract_tool(urls={test_urls}, format='markdown', use_llm_processing=False)")
+                    print(f"  Calling webscrape_tool(urls={test_urls}, format='markdown', use_llm_processing=False)")
                 
-                result = await web_extract_tool(
+                result = await webscrape_tool(
                     test_urls,
                     format="markdown",
                     use_llm_processing=False
@@ -348,7 +348,7 @@ class WebToolsTester:
                     import traceback
                     print(f"    Traceback: {traceback.format_exc()}")
     
-    async def test_web_extract_with_llm(self, urls: List[str] = None):
+    async def test_webscrape_with_llm(self, urls: List[str] = None):
         """Test web extraction with LLM processing"""
         print_section("Test 3: Web Extract (with Gemini LLM)")
         
@@ -362,7 +362,7 @@ class WebToolsTester:
         try:
             print(f"\n  Extracting and processing: {test_url}")
             
-            result = await web_extract_tool(
+            result = await webscrape_tool(
                 [test_url],
                 format="markdown",
                 use_llm_processing=True,
@@ -531,11 +531,11 @@ class WebToolsTester:
         urls = self.test_web_search()
         
         # Test extraction
-        await self.test_web_extract(urls if urls else None)
+        await self.test_webscrape(urls if urls else None)
         
         # Test extraction with LLM
         if self.test_llm:
-            await self.test_web_extract_with_llm(urls if urls else None)
+            await self.test_webscrape_with_llm(urls if urls else None)
         
         # Test crawling
         await self.test_web_crawl()

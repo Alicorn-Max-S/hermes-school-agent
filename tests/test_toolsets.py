@@ -28,13 +28,13 @@ class TestGetToolset:
 class TestResolveToolset:
     def test_leaf_toolset(self):
         tools = resolve_toolset("web")
-        assert set(tools) == {"web_search", "web_extract"}
+        assert set(tools) == {"web_search", "webscrape"}
 
     def test_composite_toolset(self):
         tools = resolve_toolset("debugging")
         assert "terminal" in tools
         assert "web_search" in tools
-        assert "web_extract" in tools
+        assert "webscrape" in tools
 
     def test_cycle_detection(self):
         # Create a cycle: A includes B, B includes A
@@ -65,7 +65,7 @@ class TestResolveMultipleToolsets:
     def test_combines_and_deduplicates(self):
         tools = resolve_multiple_toolsets(["web", "terminal"])
         assert "web_search" in tools
-        assert "web_extract" in tools
+        assert "webscrape" in tools
         assert "terminal" in tools
         # No duplicates
         assert len(tools) == len(set(tools))

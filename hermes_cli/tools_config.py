@@ -76,7 +76,7 @@ def _prompt_yes_no(question: str, default: bool = True) -> bool:
 # Each entry: (toolset_name, label, description)
 # These map to keys in toolsets.py TOOLSETS dict.
 CONFIGURABLE_TOOLSETS = [
-    ("web",             "🔍 Web Search & Scraping",    "web_search, web_extract"),
+    ("web",             "🔍 Web Search & Scraping",    "web_search, webscrape"),
     ("browser",         "🌐 Browser Automation",       "navigate, click, type, scroll"),
     ("terminal",        "💻 Terminal & Processes",      "terminal, process"),
     ("file",            "📁 File Operations",           "read, write, patch, search"),

@@ -179,7 +179,7 @@ const demoSequence = [
   {
     type: "output",
     lines: [
-      '<span class="t-dim">  web_extract arxiv.org/abs/2402.03300                3.1s</span>',
+      '<span class="t-dim">  webscrape arxiv.org/abs/2402.03300                3.1s</span>',
     ],
   },
   { type: "pause", ms: 400 },
@@ -193,7 +193,7 @@ const demoSequence = [
   {
     type: "output",
     lines: [
-      '<span class="t-dim">  web_extract huggingface.co/blog/grpo                2.8s</span>',
+      '<span class="t-dim">  webscrape huggingface.co/blog/grpo                2.8s</span>',
     ],
   },
   { type: "pause", ms: 400 },

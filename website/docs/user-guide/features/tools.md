@@ -16,7 +16,7 @@ High-level categories:
 
 | Category | Examples | Description |
 |----------|----------|-------------|
-| **Web** | `web_search`, `web_extract` | Search the web and extract page content. |
+| **Web** | `web_search`, `webscrape` | Search the web and extract page content. |
 | **Terminal & Files** | `terminal`, `process`, `read_file`, `patch` | Execute commands and manipulate files. |
 | **Browser** | `browser_navigate`, `browser_snapshot`, `browser_vision` | Interactive browser automation with text and vision support. |
 | **Media** | `vision_analyze`, `image_generate`, `text_to_speech` | Multimodal analysis and generation. |

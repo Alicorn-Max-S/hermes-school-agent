@@ -8,7 +8,7 @@ providers without changing the function signatures.
 
 Available tools:
 - web_search_tool: Search the web for information
-- web_extract_tool: Extract content from specific web pages
+- webscrape_tool: Extract content from specific web pages
 - web_crawl_tool: Crawl websites with specific instructions
 
 Backend compatibility:
@@ -24,13 +24,13 @@ Debug Mode:
 - Captures all tool calls, results, and compression metrics
 
 Usage:
-    from web_tools import web_search_tool, web_extract_tool, web_crawl_tool
+    from web_tools import web_search_tool, webscrape_tool, web_crawl_tool
     
     # Search the web
     results = web_search_tool("Python machine learning libraries", limit=3)
     
     # Extract content from URLs  
-    content = web_extract_tool(["https://example.com"], format="markdown")
+    content = webscrape_tool(["https://example.com"], format="markdown")
     
     # Crawl a website
     crawl_data = web_crawl_tool("example.com", "Find contact information")
@@ -83,7 +83,7 @@ def _get_firecrawl_client():
 DEFAULT_MIN_LENGTH_FOR_SUMMARIZATION = 5000
 
 # Allow per-task override via env var
-DEFAULT_SUMMARIZER_MODEL = os.getenv("AUXILIARY_WEB_EXTRACT_MODEL", "").strip() or None
+DEFAULT_SUMMARIZER_MODEL = os.getenv("AUXILIARY_WEBSCRAPE_MODEL", "").strip() or None
 
 _debug = DebugSession("web_tools", env_var="WEB_TOOLS_DEBUG")
 
@@ -242,7 +242,7 @@ Create a markdown summary that captures all key information in a well-organized,
     for attempt in range(max_retries):
         try:
             call_kwargs = {
-                "task": "web_extract",
+                "task": "webscrape",
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
@@ -361,7 +361,7 @@ Create a single, unified markdown summary."""
 
     try:
         call_kwargs = {
-            "task": "web_extract",
+            "task": "webscrape",
             "messages": [
                 {"role": "system", "content": "You synthesize multiple summaries into one cohesive, comprehensive summary. Be thorough but concise."},
                 {"role": "user", "content": synthesis_prompt}
@@ -616,7 +616,50 @@ def web_search_tool(query: str, limit: int = 5, topic: str = "general") -> str:
         return json.dumps({"error": error_msg}, ensure_ascii=False)
 
 
-async def web_extract_tool(
+def _scrape_tier1_trafilatura(url: str) -> Optional[str]:
+    """Tier 1 (free): trafilatura — best for articles, docs, static pages."""
+    try:
+        import trafilatura
+        downloaded = trafilatura.fetch_url(url)
+        if downloaded:
+            result = trafilatura.extract(
+                downloaded,
+                include_links=True,
+                include_tables=True,
+                output_format="txt",
+            )
+            if result and len(result.strip()) > 100:
+                return result
+    except Exception as e:
+        logger.debug("Tier 1 (trafilatura) failed for %s: %s", url, e)
+    return None
+
+
+def _scrape_tier2_requests_bs4(url: str) -> Optional[str]:
+    """Tier 2 (free): requests + BeautifulSoup — custom headers, element extraction."""
+    try:
+        import requests as req
+        from bs4 import BeautifulSoup
+
+        headers = {
+            "User-Agent": "Mozilla/5.0 (compatible; HermesBot/1.0)",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        }
+        resp = req.get(url, headers=headers, timeout=20)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+        # Remove noisy elements
+        for tag in soup(["script", "style", "nav", "footer", "header", "aside"]):
+            tag.decompose()
+        text = soup.get_text(separator="\n", strip=True)
+        if text and len(text.strip()) > 100:
+            return text
+    except Exception as e:
+        logger.debug("Tier 2 (requests+BS4) failed for %s: %s", url, e)
+    return None
+
+
+async def webscrape_tool(
     urls: List[str], 
     format: str = None, 
     use_llm_processing: bool = True,
@@ -624,24 +667,23 @@ async def web_extract_tool(
     min_length: int = DEFAULT_MIN_LENGTH_FOR_SUMMARIZATION
 ) -> str:
     """
-    Extract content from specific web pages using available extraction API backend.
-    
-    This function provides a generic interface for web content extraction that
-    can work with multiple backends. Currently uses Firecrawl.
-    
+    Extract content from web pages using a tiered scraping approach.
+
+    Tiers are tried in order for each URL:
+      1. trafilatura (free) — articles, docs, static pages
+      2. requests + BeautifulSoup (free) — custom headers, element extraction
+      3. Firecrawl (paid fallback) — only if free tiers fail AND FIRECRAWL_API_KEY is set
+
     Args:
         urls (List[str]): List of URLs to extract content from
         format (str): Desired output format ("markdown" or "html", optional)
         use_llm_processing (bool): Whether to process content with LLM for summarization (default: True)
         model (str): The model to use for LLM processing (default: google/gemini-3-flash-preview)
         min_length (int): Minimum content length to trigger LLM processing (default: 5000)
-    
+
     Returns:
         str: JSON string containing extracted content. If LLM processing is enabled and successful,
              the 'content' field will contain the processed markdown summary instead of raw content.
-    
-    Raises:
-        Exception: If extraction fails or API key is not set
     """
     debug_call_data = {
         "parameters": {
@@ -661,22 +703,20 @@ async def web_extract_tool(
     }
     
     try:
-        logger.info("Extracting content from %d URL(s)", len(urls))
-        
-        # Determine requested formats for Firecrawl v2
+        logger.info("Scraping content from %d URL(s)", len(urls))
+
+        # Determine requested formats for Firecrawl v2 (used only in tier 3)
         formats: List[str] = []
         if format == "markdown":
             formats = ["markdown"]
         elif format == "html":
             formats = ["html"]
         else:
-            # Default: request markdown for LLM-readiness and include html as backup
             formats = ["markdown", "html"]
-        
-        # Always use individual scraping for simplicity and reliability
-        # Batch scraping adds complexity without much benefit for small numbers of URLs
+
+        has_firecrawl = bool(os.getenv("FIRECRAWL_API_KEY"))
         results: List[Dict[str, Any]] = []
-        
+
         from tools.interrupt import is_interrupted as _is_interrupted
         for url in urls:
             if _is_interrupted():
@@ -685,68 +725,98 @@ async def web_extract_tool(
 
             try:
                 logger.info("Scraping: %s", url)
-                scrape_result = _get_firecrawl_client().scrape(
-                    url=url,
-                    formats=formats
-                )
-                
-                # Process the result - properly handle object serialization
-                metadata = {}
-                title = ""
-                content_markdown = None
-                content_html = None
-                
-                # Extract data from the scrape result
-                if hasattr(scrape_result, 'model_dump'):
-                    # Pydantic model - use model_dump to get dict
-                    result_dict = scrape_result.model_dump()
-                    content_markdown = result_dict.get('markdown')
-                    content_html = result_dict.get('html')
-                    metadata = result_dict.get('metadata', {})
-                elif hasattr(scrape_result, '__dict__'):
-                    # Regular object with attributes
-                    content_markdown = getattr(scrape_result, 'markdown', None)
-                    content_html = getattr(scrape_result, 'html', None)
-                    
-                    # Handle metadata - convert to dict if it's an object
-                    metadata_obj = getattr(scrape_result, 'metadata', {})
-                    if hasattr(metadata_obj, 'model_dump'):
-                        metadata = metadata_obj.model_dump()
-                    elif hasattr(metadata_obj, '__dict__'):
-                        metadata = metadata_obj.__dict__
-                    elif isinstance(metadata_obj, dict):
-                        metadata = metadata_obj
-                    else:
-                        metadata = {}
-                elif isinstance(scrape_result, dict):
-                    # Already a dictionary
-                    content_markdown = scrape_result.get('markdown')
-                    content_html = scrape_result.get('html')
-                    metadata = scrape_result.get('metadata', {})
-                
-                # Ensure metadata is a dict (not an object)
-                if not isinstance(metadata, dict):
-                    if hasattr(metadata, 'model_dump'):
-                        metadata = metadata.model_dump()
-                    elif hasattr(metadata, '__dict__'):
-                        metadata = metadata.__dict__
-                    else:
-                        metadata = {}
-                
-                # Get title from metadata
-                title = metadata.get("title", "")
-                
-                # Choose content based on requested format
-                chosen_content = content_markdown if (format == "markdown" or (format is None and content_markdown)) else content_html or content_markdown or ""
-                
-                results.append({
-                    "url": metadata.get("sourceURL", url),
-                    "title": title,
-                    "content": chosen_content,
-                    "raw_content": chosen_content,
-                    "metadata": metadata  # Now guaranteed to be a dict
-                })
-                
+                chosen_content = None
+                tier_used = None
+
+                # --- Tier 1: trafilatura (free) ---
+                content = _scrape_tier1_trafilatura(url)
+                if content:
+                    chosen_content = content
+                    tier_used = "trafilatura"
+                    logger.info("Tier 1 (trafilatura) succeeded for %s", url)
+
+                # --- Tier 2: requests + BeautifulSoup (free) ---
+                if chosen_content is None:
+                    content = _scrape_tier2_requests_bs4(url)
+                    if content:
+                        chosen_content = content
+                        tier_used = "requests+bs4"
+                        logger.info("Tier 2 (requests+BS4) succeeded for %s", url)
+
+                # --- Tier 3: Firecrawl (paid fallback) ---
+                if chosen_content is None and has_firecrawl:
+                    logger.info("Free tiers failed, falling back to Firecrawl for %s", url)
+                    scrape_result = _get_firecrawl_client().scrape(
+                        url=url,
+                        formats=formats
+                    )
+
+                    # Process the result - handle object serialization
+                    metadata = {}
+                    content_markdown = None
+                    content_html = None
+
+                    if hasattr(scrape_result, 'model_dump'):
+                        result_dict = scrape_result.model_dump()
+                        content_markdown = result_dict.get('markdown')
+                        content_html = result_dict.get('html')
+                        metadata = result_dict.get('metadata', {})
+                    elif hasattr(scrape_result, '__dict__'):
+                        content_markdown = getattr(scrape_result, 'markdown', None)
+                        content_html = getattr(scrape_result, 'html', None)
+                        metadata_obj = getattr(scrape_result, 'metadata', {})
+                        if hasattr(metadata_obj, 'model_dump'):
+                            metadata = metadata_obj.model_dump()
+                        elif hasattr(metadata_obj, '__dict__'):
+                            metadata = metadata_obj.__dict__
+                        elif isinstance(metadata_obj, dict):
+                            metadata = metadata_obj
+                        else:
+                            metadata = {}
+                    elif isinstance(scrape_result, dict):
+                        content_markdown = scrape_result.get('markdown')
+                        content_html = scrape_result.get('html')
+                        metadata = scrape_result.get('metadata', {})
+
+                    if not isinstance(metadata, dict):
+                        if hasattr(metadata, 'model_dump'):
+                            metadata = metadata.model_dump()
+                        elif hasattr(metadata, '__dict__'):
+                            metadata = metadata.__dict__
+                        else:
+                            metadata = {}
+
+                    chosen_content = content_markdown if (format == "markdown" or (format is None and content_markdown)) else content_html or content_markdown or ""
+                    tier_used = "firecrawl"
+
+                    results.append({
+                        "url": metadata.get("sourceURL", url),
+                        "title": metadata.get("title", ""),
+                        "content": chosen_content,
+                        "raw_content": chosen_content,
+                        "metadata": metadata,
+                        "tier": tier_used,
+                    })
+                    continue
+
+                # Build result for free-tier successes (no Firecrawl metadata)
+                if chosen_content is not None:
+                    results.append({
+                        "url": url,
+                        "title": "",
+                        "content": chosen_content,
+                        "raw_content": chosen_content,
+                        "tier": tier_used,
+                    })
+                else:
+                    results.append({
+                        "url": url,
+                        "title": "",
+                        "content": "",
+                        "raw_content": "",
+                        "error": "All scraping tiers failed",
+                    })
+
             except Exception as scrape_err:
                 logger.debug("Scrape failed for %s: %s", url, scrape_err)
                 results.append({
@@ -864,7 +934,7 @@ async def web_extract_tool(
         debug_call_data["processing_applied"].append("base64_image_removal")
         
         # Log debug information
-        _debug.log_call("web_extract_tool", debug_call_data)
+        _debug.log_call("webscrape_tool", debug_call_data)
         _debug.save()
         
         return cleaned_result
@@ -874,7 +944,7 @@ async def web_extract_tool(
         logger.debug("%s", error_msg)
         
         debug_call_data["error"] = error_msg
-        _debug.log_call("web_extract_tool", debug_call_data)
+        _debug.log_call("webscrape_tool", debug_call_data)
         _debug.save()
         
         return json.dumps({"error": error_msg}, ensure_ascii=False)
@@ -1240,7 +1310,7 @@ if __name__ == "__main__":
         print("🐛 Debug mode disabled (set WEB_TOOLS_DEBUG=true to enable)")
     
     print("\nBasic usage:")
-    print("  from web_tools import web_search_tool, web_extract_tool, web_crawl_tool")
+    print("  from web_tools import web_search_tool, webscrape_tool, web_crawl_tool")
     print("  import asyncio")
     print("")
     print("  # Search (synchronous)")
@@ -1248,14 +1318,14 @@ if __name__ == "__main__":
     print("")
     print("  # Extract and crawl (asynchronous)")
     print("  async def main():")
-    print("      content = await web_extract_tool(['https://example.com'])")
+    print("      content = await webscrape_tool(['https://example.com'])")
     print("      crawl_data = await web_crawl_tool('example.com', 'Find docs')")
     print("  asyncio.run(main())")
     
     if nous_available:
         print("\nLLM-enhanced usage:")
         print("  # Content automatically processed for pages >5000 chars (default)")
-        print("  content = await web_extract_tool(['https://python.org/about/'])")
+        print("  content = await webscrape_tool(['https://python.org/about/'])")
         print("")
         print("  # Customize processing parameters")
         print("  crawl_data = await web_crawl_tool(")
@@ -1266,7 +1336,7 @@ if __name__ == "__main__":
         print("  )")
         print("")
         print("  # Disable LLM processing")
-        print("  raw_content = await web_extract_tool(['https://example.com'], use_llm_processing=False)")
+        print("  raw_content = await webscrape_tool(['https://example.com'], use_llm_processing=False)")
     
     print("\nDebug mode:")
     print("  # Enable debug logging")
@@ -1317,9 +1387,9 @@ WEB_SEARCH_SCHEMA = {
     }
 }
 
-WEB_EXTRACT_SCHEMA = {
-    "name": "web_extract",
-    "description": "Extract content from web page URLs. Returns page content in markdown format. Also works with PDF URLs (arxiv papers, documents, etc.) — pass the PDF link directly and it converts to markdown text. Pages under 5000 chars return full markdown; larger pages are LLM-summarized and capped at ~5000 chars per page. Pages over 2M chars are refused. If a URL fails or times out, use the browser tool to access it instead.",
+WEBSCRAPE_SCHEMA = {
+    "name": "webscrape",
+    "description": "Scrape content from web page URLs using a tiered approach: free tools first (trafilatura, requests+BeautifulSoup), with Firecrawl as a paid fallback. Returns page content in markdown/text format. Also works with PDF URLs (arxiv papers, documents, etc.). Pages under 5000 chars return full content; larger pages are LLM-summarized and capped at ~5000 chars per page. If a URL fails or times out, use the browser tool to access it instead.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -1345,12 +1415,12 @@ registry.register(
     requires_env=["FIRECRAWL_API_KEY"],
 )
 registry.register(
-    name="web_extract",
+    name="webscrape",
     toolset="web",
-    schema=WEB_EXTRACT_SCHEMA,
-    handler=lambda args, **kw: web_extract_tool(
+    schema=WEBSCRAPE_SCHEMA,
+    handler=lambda args, **kw: webscrape_tool(
         args.get("urls", [])[:5] if isinstance(args.get("urls"), list) else [], "markdown"),
-    check_fn=check_firecrawl_api_key,
-    requires_env=["FIRECRAWL_API_KEY"],
+    check_fn=lambda: True,
+    requires_env=[],
     is_async=True,
 )

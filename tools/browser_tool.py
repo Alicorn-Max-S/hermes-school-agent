@@ -94,8 +94,8 @@ def _get_vision_model() -> Optional[str]:
 
 
 def _get_extraction_model() -> Optional[str]:
-    """Model for page snapshot text summarization — same as web_extract."""
-    return os.getenv("AUXILIARY_WEB_EXTRACT_MODEL", "").strip() or None
+    """Model for page snapshot text summarization — same as webscrape."""
+    return os.getenv("AUXILIARY_WEBSCRAPE_MODEL", "").strip() or None
 
 
 def _is_local_mode() -> bool:
@@ -290,7 +290,7 @@ atexit.register(_stop_browser_cleanup_thread)
 BROWSER_TOOL_SCHEMAS = [
     {
         "name": "browser_navigate",
-        "description": "Navigate to a URL in the browser. Initializes the session and loads the page. Must be called before other browser tools. For simple information retrieval, prefer web_search or web_extract (faster, cheaper). Use browser tools when you need to interact with a page (click, fill forms, dynamic content).",
+        "description": "Navigate to a URL in the browser. Initializes the session and loads the page. Must be called before other browser tools. For simple information retrieval, prefer web_search or webscrape (faster, cheaper). Use browser tools when you need to interact with a page (click, fill forms, dynamic content).",
         "parameters": {
             "type": "object",
             "properties": {
@@ -980,7 +980,7 @@ def _extract_relevant_content(
 
     try:
         call_kwargs = {
-            "task": "web_extract",
+            "task": "webscrape",
             "messages": [{"role": "user", "content": extraction_prompt}],
             "max_tokens": 4000,
             "temperature": 0.1,

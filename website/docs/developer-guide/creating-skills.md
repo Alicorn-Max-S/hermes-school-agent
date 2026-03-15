@@ -12,7 +12,7 @@ Skills are the preferred way to add new capabilities to Hermes Agent. They're ea
 
 Make it a **Skill** when:
 - The capability can be expressed as instructions + shell commands + existing tools
-- It wraps an external CLI or API that the agent can call via `terminal` or `web_extract`
+- It wraps an external CLI or API that the agent can call via `terminal` or `webscrape`
 - It doesn't need custom Python integration or API key management baked into the agent
 - Examples: arXiv search, git workflows, Docker management, PDF processing, email via CLI tools
 
@@ -113,7 +113,7 @@ Legacy `prerequisites.env_vars` remains supported as a backward-compatible alias
 
 ### No External Dependencies
 
-Prefer stdlib Python, curl, and existing Hermes tools (`web_extract`, `terminal`, `read_file`). If a dependency is needed, document installation steps in the skill.
+Prefer stdlib Python, curl, and existing Hermes tools (`webscrape`, `terminal`, `read_file`). If a dependency is needed, document installation steps in the skill.
 
 ### Progressive Disclosure
 

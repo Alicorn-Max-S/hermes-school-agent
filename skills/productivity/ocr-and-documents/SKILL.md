@@ -1,6 +1,6 @@
 ---
 name: ocr-and-documents
-description: Extract text from PDFs and scanned documents. Use web_extract for remote URLs, pymupdf for local text-based PDFs, marker-pdf for OCR/scanned docs. For DOCX use python-docx, for PPTX see the powerpoint skill.
+description: Extract text from PDFs and scanned documents. Use webscrape for remote URLs, pymupdf for local text-based PDFs, marker-pdf for OCR/scanned docs. For DOCX use python-docx, for PPTX see the powerpoint skill.
 version: 2.3.0
 author: Hermes Agent
 license: MIT
@@ -18,16 +18,16 @@ This skill covers **PDFs and scanned documents**.
 
 ## Step 1: Remote URL Available?
 
-If the document has a URL, **always try `web_extract` first**:
+If the document has a URL, **always try `webscrape` first**:
 
 ```
-web_extract(urls=["https://arxiv.org/pdf/2402.03300"])
-web_extract(urls=["https://example.com/report.pdf"])
+webscrape(urls=["https://arxiv.org/pdf/2402.03300"])
+webscrape(urls=["https://example.com/report.pdf"])
 ```
 
 This handles PDF-to-markdown conversion via Firecrawl with no local dependencies.
 
-Only use local extraction when: the file is local, web_extract fails, or you need batch processing.
+Only use local extraction when: the file is local, webscrape fails, or you need batch processing.
 
 ## Step 2: Choose Local Extractor
 
@@ -51,7 +51,7 @@ Only use local extraction when: the file is local, web_extract fails, or you nee
 **Decision**: Use pymupdf unless you need OCR, equations, forms, or complex layout analysis.
 
 If the user needs marker capabilities but the system lacks ~5GB free disk:
-> "This document needs OCR/advanced extraction (marker-pdf), which requires ~5GB for PyTorch and models. Your system has [X]GB free. Options: free up space, provide a URL so I can use web_extract, or I can try pymupdf which works for text-based PDFs but not scanned documents or equations."
+> "This document needs OCR/advanced extraction (marker-pdf), which requires ~5GB for PyTorch and models. Your system has [X]GB free. Options: free up space, provide a URL so I can use webscrape, or I can try pymupdf which works for text-based PDFs but not scanned documents or equations."
 
 ---
 
@@ -113,10 +113,10 @@ marker /path/to/folder --workers 4    # Batch
 
 ```
 # Abstract only (fast)
-web_extract(urls=["https://arxiv.org/abs/2402.03300"])
+webscrape(urls=["https://arxiv.org/abs/2402.03300"])
 
 # Full paper
-web_extract(urls=["https://arxiv.org/pdf/2402.03300"])
+webscrape(urls=["https://arxiv.org/pdf/2402.03300"])
 
 # Search
 web_search(query="arxiv GRPO reinforcement learning 2026")
@@ -147,7 +147,7 @@ If `vision_analyze` fails, try a different model:
 
 ## Notes
 
-- `web_extract` is always first choice for URLs
+- `webscrape` is always first choice for URLs
 - pymupdf is the safe default — instant, no models, works everywhere
 - marker-pdf is for OCR, scanned docs, equations, complex layouts — install only when needed
 - **pdf_to_images + vision_analyze** is the fallback when both text extractors fail — always try this

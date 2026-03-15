@@ -239,7 +239,7 @@ memory(action="add", target="memory", content="file-analysis-vision-model-succes
 
 ## Auto-Use Chaining
 
-- When the document contains images or charts, automatically use `vision_analyze` on them to describe their content. When the document contains URLs, use `web_extract` to fetch them.
+- When the document contains images or charts, automatically use `vision_analyze` on them to describe their content. When the document contains URLs, use `webscrape` to fetch them.
 - To load the OCR and documents skill for cross-referencing, use `skill_view("ocr-and-documents")` explicitly rather than just referencing it by name.
 
 ## Post-Analysis Proposal

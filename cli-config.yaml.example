@@ -273,7 +273,7 @@ compression:
 #     model: ""              # e.g. "google/gemini-2.5-flash", "openai/gpt-4o"
 #
 #   # Web page scraping / summarization + browser page text extraction
-#   web_extract:
+#   webscrape:
 #     provider: "auto"
 #     model: ""
 
@@ -442,7 +442,7 @@ platform_toolsets:
 # ─────────────────────────────────────────────────────────────────────────────
 #
 # INDIVIDUAL TOOLSETS (compose your own):
-#   web          - web_search, web_extract
+#   web          - web_search, webscrape
 #   search       - web_search only (no scraping)
 #   terminal     - terminal, process
 #   file         - read_file, write_file, patch, search
@@ -472,7 +472,7 @@ platform_toolsets:
 #   safe         - web + vision + moa (no terminal access)
 #   all          - Everything available
 #
-#   web          - Web search and content extraction (web_search, web_extract)
+#   web          - Web search and content extraction (web_search, webscrape)
 #   search       - Web search only, no scraping (web_search)
 #   terminal     - Command execution and process management (terminal, process)
 #   file         - File operations: read, write, patch, search

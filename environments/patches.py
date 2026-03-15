@@ -3,7 +3,7 @@ Monkey patches for making hermes-agent tools work inside async frameworks (Atrop
 
 Problem:
     Some tools use asyncio.run() internally (e.g., mini-swe-agent's Modal backend,
-    web_extract). This crashes when called from inside Atropos's event loop because
+    webscrape). This crashes when called from inside Atropos's event loop because
     asyncio.run() can't be nested.
 
 Solution:

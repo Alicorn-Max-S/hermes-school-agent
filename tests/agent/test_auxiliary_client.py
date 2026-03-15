@@ -26,7 +26,7 @@ def _clean_env(monkeypatch):
         "OPENAI_MODEL", "LLM_MODEL", "NOUS_INFERENCE_BASE_URL",
         # Per-task provider/model overrides
         "AUXILIARY_VISION_PROVIDER", "AUXILIARY_VISION_MODEL",
-        "AUXILIARY_WEB_EXTRACT_PROVIDER", "AUXILIARY_WEB_EXTRACT_MODEL",
+        "AUXILIARY_WEBSCRAPE_PROVIDER", "AUXILIARY_WEBSCRAPE_MODEL",
         "CONTEXT_COMPRESSION_PROVIDER", "CONTEXT_COMPRESSION_MODEL",
     ):
         monkeypatch.delenv(key, raising=False)
@@ -277,8 +277,8 @@ class TestGetAuxiliaryProvider:
         assert _get_auxiliary_provider("vision") == "openrouter"
 
     def test_main_provider(self, monkeypatch):
-        monkeypatch.setenv("AUXILIARY_WEB_EXTRACT_PROVIDER", "main")
-        assert _get_auxiliary_provider("web_extract") == "main"
+        monkeypatch.setenv("AUXILIARY_WEBSCRAPE_PROVIDER", "main")
+        assert _get_auxiliary_provider("webscrape") == "main"
 
 
 class TestResolveForcedProvider:
@@ -383,11 +383,11 @@ class TestTaskSpecificOverrides:
             client, model = get_text_auxiliary_client("compression")
         assert model == "gemini-3-flash"  # forced to Nous, not OpenRouter
 
-    def test_web_extract_task_override(self, monkeypatch):
-        monkeypatch.setenv("AUXILIARY_WEB_EXTRACT_PROVIDER", "openrouter")
+    def test_webscrape_task_override(self, monkeypatch):
+        monkeypatch.setenv("AUXILIARY_WEBSCRAPE_PROVIDER", "openrouter")
         monkeypatch.setenv("OPENROUTER_API_KEY", "or-key")
         with patch("agent.auxiliary_client.OpenAI"):
-            client, model = get_text_auxiliary_client("web_extract")
+            client, model = get_text_auxiliary_client("webscrape")
         assert model == "google/gemini-3-flash-preview"
 
     def test_task_without_override_uses_auto(self, monkeypatch):

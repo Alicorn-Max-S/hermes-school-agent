@@ -87,7 +87,7 @@ Navigate to https://github.com/NousResearch
 ```
 
 :::tip
-For simple information retrieval, prefer `web_search` or `web_extract` — they are faster and cheaper. Use browser tools when you need to **interact** with a page (click buttons, fill forms, handle dynamic content).
+For simple information retrieval, prefer `web_search` or `webscrape` — they are faster and cheaper. Use browser tools when you need to **interact** with a page (click buttons, fill forms, handle dynamic content).
 :::
 
 ### `browser_snapshot`

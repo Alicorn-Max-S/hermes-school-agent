@@ -29,7 +29,7 @@ TOOL_KIND_MAP: Dict[str, ToolKind] = {
     "execute_code": "execute",
     # Web / fetch
     "web_search": "fetch",
-    "web_extract": "fetch",
+    "webscrape": "fetch",
     # Browser
     "browser_navigate": "fetch",
     "browser_click": "execute",
@@ -80,7 +80,7 @@ def build_tool_title(tool_name: str, args: Dict[str, Any]) -> str:
         return f"search: {args.get('pattern', '?')}"
     if tool_name == "web_search":
         return f"web search: {args.get('query', '?')}"
-    if tool_name == "web_extract":
+    if tool_name == "webscrape":
         urls = args.get("urls", [])
         if urls:
             return f"extract: {urls[0]}" + (f" (+{len(urls)-1})" if len(urls) > 1 else "")

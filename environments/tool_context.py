@@ -360,7 +360,7 @@ class ToolContext:
         except json.JSONDecodeError:
             return {"error": result}
 
-    def web_extract(self, urls: List[str]) -> Dict[str, Any]:
+    def webscrape(self, urls: List[str]) -> Dict[str, Any]:
         """
         Extract content from URLs.
 
@@ -370,7 +370,7 @@ class ToolContext:
         Returns:
             Dict with extracted content
         """
-        result = handle_function_call("web_extract", {"urls": urls})
+        result = handle_function_call("webscrape", {"urls": urls})
         try:
             return json.loads(result)
         except json.JSONDecodeError:

@@ -25,7 +25,7 @@ This is the most common question for new contributors. The answer is almost alwa
 ### Make it a Skill when:
 
 - The capability can be expressed as instructions + shell commands + existing tools
-- It wraps an external CLI or API that the agent can call via `terminal` or `web_extract`
+- It wraps an external CLI or API that the agent can call via `terminal` or `webscrape`
 - It doesn't need custom Python integration or API key management baked into the agent
 - Examples: arXiv search, git workflows, Docker management, PDF processing, email via CLI tools
 
@@ -147,7 +147,7 @@ hermes-agent/
 │   ├── approval.py               # Dangerous command detection + per-session approval
 │   ├── terminal_tool.py          # Terminal orchestration (sudo, env lifecycle, backends)
 │   ├── file_operations.py        # read_file, write_file, search, patch, etc.
-│   ├── web_tools.py              # web_search, web_extract (Firecrawl + Gemini summarization)
+│   ├── web_tools.py              # web_search, webscrape (Firecrawl + Gemini summarization)
 │   ├── vision_tools.py           # Image analysis via multimodal models
 │   ├── delegate_tool.py          # Subagent spawning and parallel task execution
 │   ├── code_execution_tool.py    # Sandboxed Python with RPC tool access
@@ -455,7 +455,7 @@ See `skills/gifs/gif-search/` and `skills/email/himalaya/` for examples.
 
 ### Skill guidelines
 
-- **No external dependencies unless absolutely necessary.** Prefer stdlib Python, curl, and existing Hermes tools (`web_extract`, `terminal`, `read_file`).
+- **No external dependencies unless absolutely necessary.** Prefer stdlib Python, curl, and existing Hermes tools (`webscrape`, `terminal`, `read_file`).
 - **Progressive disclosure.** Put the most common workflow first. Edge cases and advanced usage go at the bottom.
 - **Include helper scripts** for XML/JSON parsing or complex logic — don't expect the LLM to write parsers inline every time.
 - **Test it.** Run `hermes --toolsets skills -q "Use the X skill to do Y"` and verify the agent follows the instructions correctly.

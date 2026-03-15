@@ -18,16 +18,16 @@ The `execute_code` tool lets the agent write Python scripts that call Hermes too
 
 ```python
 # The agent can write scripts like:
-from hermes_tools import web_search, web_extract
+from hermes_tools import web_search, webscrape
 
 results = web_search("Python 3.13 features", limit=5)
 for r in results["data"]["web"]:
-    content = web_extract([r["url"]])
+    content = webscrape([r["url"]])
     # ... filter and process ...
 print(summary)
 ```
 
-**Available tools in sandbox:** `web_search`, `web_extract`, `read_file`, `write_file`, `search_files`, `patch`, `terminal` (foreground only).
+**Available tools in sandbox:** `web_search`, `webscrape`, `read_file`, `write_file`, `search_files`, `patch`, `terminal` (foreground only).
 
 ## When the Agent Uses This
 
@@ -60,14 +60,14 @@ print(json.dumps(configs, indent=2))
 ### Multi-Step Web Research
 
 ```python
-from hermes_tools import web_search, web_extract
+from hermes_tools import web_search, webscrape
 import json
 
 # Search, extract, and summarize in one turn
 results = web_search("Rust async runtime comparison 2025", limit=5)
 summaries = []
 for r in results["data"]["web"]:
-    page = web_extract([r["url"]])
+    page = webscrape([r["url"]])
     for p in page.get("results", []):
         if p.get("content"):
             summaries.append({

@@ -17,7 +17,7 @@ This page documents the built-in Hermes tool registry as it exists in code. Avai
 | `browser_close` | Close the browser session and release resources. Call this when done with browser tasks to free up Browserbase session quota. | — |
 | `browser_console` | Get browser console output and JavaScript errors from the current page. Returns console.log/warn/error/info messages and uncaught JS exceptions. Use this to detect silent JavaScript errors, failed API calls, and application warnings. Requi… | — |
 | `browser_get_images` | Get a list of all images on the current page with their URLs and alt text. Useful for finding images to analyze with the vision tool. Requires browser_navigate to be called first. | — |
-| `browser_navigate` | Navigate to a URL in the browser. Initializes the session and loads the page. Must be called before other browser tools. For simple information retrieval, prefer web_search or web_extract (faster, cheaper). Use browser tools when you need… | — |
+| `browser_navigate` | Navigate to a URL in the browser. Initializes the session and loads the page. Must be called before other browser tools. For simple information retrieval, prefer web_search or webscrape (faster, cheaper). Use browser tools when you need… | — |
 | `browser_press` | Press a keyboard key. Useful for submitting forms (Enter), navigating (Tab), or keyboard shortcuts. Requires browser_navigate to be called first. | — |
 | `browser_scroll` | Scroll the page in a direction. Use this to reveal more content that may be below or above the current viewport. Requires browser_navigate to be called first. | — |
 | `browser_snapshot` | Get a text-based snapshot of the current page's accessibility tree. Returns interactive elements with ref IDs (like @e1, @e2) for browser_click and browser_type. full=false (default): compact view with interactive elements. full=true: comp… | — |
@@ -159,5 +159,5 @@ This page documents the built-in Hermes tool registry as it exists in code. Avai
 
 | Tool | Description | Requires environment |
 |------|-------------|----------------------|
-| `web_extract` | Extract content from web page URLs. Returns page content in markdown format. Also works with PDF URLs (arxiv papers, documents, etc.) — pass the PDF link directly and it converts to markdown text. Pages under 5000 chars return full markdow… | FIRECRAWL_API_KEY |
+| `webscrape` | Extract content from web page URLs. Returns page content in markdown format. Also works with PDF URLs (arxiv papers, documents, etc.) — pass the PDF link directly and it converts to markdown text. Pages under 5000 chars return full markdow… | FIRECRAWL_API_KEY |
 | `web_search` | Search the web for information on any topic. Returns up to 5 relevant results with titles, URLs, and descriptions. | FIRECRAWL_API_KEY |
