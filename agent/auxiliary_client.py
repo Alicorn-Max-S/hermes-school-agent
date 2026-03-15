@@ -28,7 +28,7 @@ CONTEXT_COMPRESSION_PROVIDER) can force a specific provider for each task:
 Default "auto" follows the chains above.
 
 Per-task model overrides (e.g. AUXILIARY_VISION_MODEL,
-AUXILIARY_WEB_EXTRACT_MODEL) let callers use a different model slug
+AUXILIARY_WEBSCRAPE_MODEL) let callers use a different model slug
 than the provider's default.
 """
 
@@ -743,11 +743,11 @@ def get_text_auxiliary_client(task: str = "") -> Tuple[Optional[OpenAI], Optiona
     """Return (client, default_model_slug) for text-only auxiliary tasks.
 
     Args:
-        task: Optional task name ("compression", "web_extract") to check
+        task: Optional task name ("compression", "webscrape") to check
               for a task-specific provider override.
 
     Callers may override the returned model with a per-task env var
-    (e.g. CONTEXT_COMPRESSION_MODEL, AUXILIARY_WEB_EXTRACT_MODEL).
+    (e.g. CONTEXT_COMPRESSION_MODEL, AUXILIARY_WEBSCRAPE_MODEL).
     """
     forced = _get_auxiliary_provider(task)
     if forced != "auto":
@@ -989,7 +989,7 @@ def call_llm(
     handles auth, request formatting, and model-specific arg adjustments.
 
     Args:
-        task: Auxiliary task name ("compression", "vision", "web_extract",
+        task: Auxiliary task name ("compression", "vision", "webscrape",
               "session_search", "skills_hub", "mcp", "flush_memories").
               Reads provider:model from config/env. Ignored if provider is set.
         provider: Explicit provider override.

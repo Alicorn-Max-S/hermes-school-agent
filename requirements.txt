@@ -18,6 +18,8 @@ PyJWT[crypto]
 
 # Web tools
 firecrawl-py
+trafilatura
+beautifulsoup4
 
 # Image generation
 fal-client

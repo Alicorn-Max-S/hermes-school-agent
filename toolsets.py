@@ -30,7 +30,7 @@ from typing import List, Dict, Any, Set, Optional
 # Edit this once to update all platforms simultaneously.
 _HERMES_CORE_TOOLS = [
     # Web
-    "web_search", "web_extract",
+    "web_search", "webscrape",
     # Terminal + process management
     "terminal", "process",
     # File manipulation
@@ -73,7 +73,7 @@ TOOLSETS = {
     # Basic toolsets - individual tool categories
     "web": {
         "description": "Web research and content extraction tools",
-        "tools": ["web_search", "web_extract"],
+        "tools": ["web_search", "webscrape"],
         "includes": []  # No other toolsets included
     },
     
@@ -208,7 +208,7 @@ TOOLSETS = {
         "description": "School-focused toolset for homework, research, coding, and learning",
         "tools": [
             # Web research
-            "web_search", "web_extract",
+            "web_search", "webscrape",
             # Terminal + process management
             "terminal", "process",
             # File manipulation
@@ -259,7 +259,7 @@ TOOLSETS = {
     "hermes-acp": {
         "description": "Editor integration (VS Code, Zed, JetBrains) — coding-focused tools without messaging, audio, or clarify UI",
         "tools": [
-            "web_search", "web_extract",
+            "web_search", "webscrape",
             "terminal", "process",
             "read_file", "write_file", "patch", "search_files",
             "vision_analyze",

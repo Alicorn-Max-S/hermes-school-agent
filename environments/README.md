@@ -94,7 +94,7 @@ Available methods:
 - **Terminal**: `terminal(command, timeout)` -- run shell commands
 - **Files**: `read_file(path)`, `write_file(path, content)`, `search(query, path)`
 - **Transfers**: `upload_file()`, `upload_dir()`, `download_file()`, `download_dir()` -- binary-safe file transfers between host and sandbox
-- **Web**: `web_search(query)`, `web_extract(urls)`
+- **Web**: `web_search(query)`, `webscrape(urls)`
 - **Browser**: `browser_navigate(url)`, `browser_snapshot()`
 - **Generic**: `call_tool(name, args)` -- call any hermes-agent tool by name
 - **Cleanup**: `cleanup()` -- release all resources (called automatically after `compute_reward`)

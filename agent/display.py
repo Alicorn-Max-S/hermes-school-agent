@@ -73,7 +73,7 @@ def build_tool_preview(tool_name: str, args: dict, max_len: int = 40) -> str | N
     if not args:
         return None
     primary_args = {
-        "terminal": "command", "web_search": "query", "web_extract": "urls",
+        "terminal": "command", "web_search": "query", "webscrape": "urls",
         "read_file": "path", "write_file": "path", "patch": "path",
         "search_files": "pattern", "browser_navigate": "url",
         "browser_click": "ref", "browser_type": "text",
@@ -433,7 +433,7 @@ def get_cute_tool_message(
 
     if tool_name == "web_search":
         return _wrap(f"┊ 🔍 search    {_trunc(args.get('query', ''), 42)}  {dur}")
-    if tool_name == "web_extract":
+    if tool_name == "webscrape":
         urls = args.get("urls", [])
         if urls:
             url = urls[0] if isinstance(urls, list) else str(urls)

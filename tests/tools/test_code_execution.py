@@ -50,7 +50,7 @@ def _mock_handle_function_call(function_name, function_args, task_id=None, user_
         return json.dumps({"matches": [{"file": "test.py", "line": 1, "text": "match"}]})
     if function_name == "patch":
         return json.dumps({"status": "ok", "replacements": 1})
-    if function_name == "web_extract":
+    if function_name == "webscrape":
         return json.dumps("# Extracted content\nSome text from the page.")
     return json.dumps({"error": f"Unknown tool in mock: {function_name}"})
 
@@ -330,7 +330,7 @@ class TestStubSchemaDrift(unittest.TestCase):
         # Import the registry and trigger tool registration
         from tools.registry import registry
         import tools.file_tools  # noqa: F401 - registers read_file, write_file, patch, search_files
-        import tools.web_tools  # noqa: F401 - registers web_search, web_extract
+        import tools.web_tools  # noqa: F401 - registers web_search, webscrape
 
         for tool_name, (func_name, sig, doc, args_expr) in _TOOL_STUBS.items():
             entry = registry._tools.get(tool_name)
@@ -429,7 +429,7 @@ class TestBuildExecuteCodeSchema(unittest.TestCase):
         self.assertIn("terminal(", desc)
         self.assertIn("read_file(", desc)
         self.assertNotIn("web_search(", desc)
-        self.assertNotIn("web_extract(", desc)
+        self.assertNotIn("webscrape(", desc)
         self.assertNotIn("write_file(", desc)
 
     def test_single_tool(self):
@@ -473,7 +473,7 @@ class TestBuildExecuteCodeSchema(unittest.TestCase):
             sandbox_enabled = SANDBOX_ALLOWED_TOOLS & tools_to_include
             dynamic_schema = build_execute_code_schema(sandbox_enabled)
 
-        SANDBOX_ALLOWED_TOOLS = {web_search, web_extract, read_file, write_file,
+        SANDBOX_ALLOWED_TOOLS = {web_search, webscrape, read_file, write_file,
                                   search_files, patch, terminal}
         tools_to_include  = {"execute_code"}
         intersection      = empty set

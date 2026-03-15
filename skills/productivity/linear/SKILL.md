@@ -290,7 +290,7 @@ Combine filters with `or: [...]` for OR logic (default is AND within a filter ob
 
 ## Important Notes
 
-- Always use `terminal` tool with `curl` for API calls — do NOT use `web_extract` or `browser`
+- Always use `terminal` tool with `curl` for API calls — do NOT use `webscrape` or `browser`
 - Always check the `errors` array in GraphQL responses — HTTP 200 can still contain errors
 - If `stateId` is omitted when creating issues, Linear defaults to the first backlog state
 - The `description` field supports Markdown

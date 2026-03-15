@@ -117,7 +117,7 @@ def _build_child_progress_callback(task_index: int, parent_agent, task_count: in
         if spinner:
             short = (preview[:35] + "...") if preview and len(preview) > 35 else (preview or "")
             tool_emojis = {
-                "terminal": "💻", "web_search": "🔍", "web_extract": "📄",
+                "terminal": "💻", "web_search": "🔍", "webscrape": "📄",
                 "read_file": "📖", "write_file": "✍️", "patch": "🔧",
                 "search_files": "🔎", "list_directory": "📂",
                 "browser_navigate": "🌐", "browser_click": "👆",

@@ -42,7 +42,7 @@ SANDBOX_AVAILABLE = sys.platform != "win32"
 # and the session's enabled tools determines which stubs are generated.
 SANDBOX_ALLOWED_TOOLS = frozenset([
     "web_search",
-    "web_extract",
+    "webscrape",
     "read_file",
     "write_file",
     "search_files",
@@ -75,8 +75,8 @@ _TOOL_STUBS = {
         '"""Search the web. Returns dict with data.web list of {url, title, description}."""',
         '{"query": query, "limit": limit}',
     ),
-    "web_extract": (
-        "web_extract",
+    "webscrape": (
+        "webscrape",
         "urls: list",
         '"""Extract content from URLs. Returns dict with results list of {url, title, content, error}."""',
         '{"urls": urls}',
@@ -149,7 +149,7 @@ _sock = None
 def json_parse(text: str):
     """Parse JSON tolerant of control characters (strict=False).
     Use this instead of json.loads() when parsing output from terminal()
-    or web_extract() that may contain raw tabs/newlines in strings."""
+    or webscrape() that may contain raw tabs/newlines in strings."""
     return json.loads(text, strict=False)
 
 
@@ -669,8 +669,8 @@ _TOOL_DOC_LINES = [
     ("web_search",
      "  web_search(query: str, limit: int = 5) -> dict\n"
      "    Returns {\"data\": {\"web\": [{\"url\", \"title\", \"description\"}, ...]}}"),
-    ("web_extract",
-     "  web_extract(urls: list[str]) -> dict\n"
+    ("webscrape",
+     "  webscrape(urls: list[str]) -> dict\n"
      "    Returns {\"results\": [{\"url\", \"title\", \"content\", \"error\"}, ...]} where content is markdown"),
     ("read_file",
      "  read_file(path: str, offset: int = 1, limit: int = 500) -> dict\n"
@@ -694,7 +694,7 @@ def build_execute_code_schema(enabled_sandbox_tools: set = None) -> dict:
     """Build the execute_code schema with description listing only enabled tools.
 
     When tools are disabled via ``hermes tools`` (e.g. web is turned off),
-    the schema description should NOT mention web_search / web_extract —
+    the schema description should NOT mention web_search / webscrape —
     otherwise the model thinks they are available and keeps trying to use them.
     """
     if enabled_sandbox_tools is None:

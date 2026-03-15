@@ -151,7 +151,7 @@ DEFAULT_CONFIG = {
             "provider": "auto",    # auto | openrouter | nous | codex | custom
             "model": "",           # e.g. "google/gemini-2.5-flash", "gpt-4o"
         },
-        "web_extract": {
+        "webscrape": {
             "provider": "auto",
             "model": "",
         },
@@ -412,7 +412,7 @@ OPTIONAL_ENV_VARS = {
         "description": "Firecrawl API key for web search and scraping",
         "prompt": "Firecrawl API key",
         "url": "https://firecrawl.dev/",
-        "tools": ["web_search", "web_extract"],
+        "tools": ["web_search", "webscrape"],
         "password": True,
         "category": "tool",
     },
@@ -1234,7 +1234,7 @@ def show_config():
     auxiliary = config.get('auxiliary', {})
     aux_tasks = {
         "Vision":      auxiliary.get('vision', {}),
-        "Web extract": auxiliary.get('web_extract', {}),
+        "Web extract": auxiliary.get('webscrape', {}),
     }
     has_overrides = any(
         t.get('provider', 'auto') != 'auto' or t.get('model', '')

@@ -93,7 +93,7 @@ When you resume a session, Hermes displays a compact recap of the previous conve
 │   ● You: What is Python?                                                     │
 │   ◆ Hermes: Python is a high-level programming language.                     │
 │   ● You: How do I install it?                                                │
-│   ◆ Hermes: [3 tool calls: web_search, web_extract, terminal]                │
+│   ◆ Hermes: [3 tool calls: web_search, webscrape, terminal]                │
 │   ◆ Hermes: You can download Python from python.org...                       │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ```

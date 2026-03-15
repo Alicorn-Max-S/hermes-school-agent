@@ -79,7 +79,7 @@ def _tool_call_history():
                 {
                     "id": "call_2",
                     "type": "function",
-                    "function": {"name": "web_extract", "arguments": '{"urls":["https://example.com"]}'},
+                    "function": {"name": "webscrape", "arguments": '{"urls":["https://example.com"]}'},
                 },
             ],
         },
@@ -160,7 +160,7 @@ class TestDisplayResumedHistory:
 
         assert "2 tool calls" in output
         assert "web_search" in output
-        assert "web_extract" in output
+        assert "webscrape" in output
 
     def test_long_user_message_truncated(self):
         cli = _make_cli()

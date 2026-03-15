@@ -3,7 +3,7 @@
 Session Search Tool - Long-Term Conversation Recall
 
 Searches past session transcripts in SQLite via FTS5, then summarizes the top
-matching sessions using a cheap/fast model (same pattern as web_extract).
+matching sessions using a cheap/fast model (same pattern as webscrape).
 Returns focused summaries of past conversations rather than raw transcripts,
 keeping the main model's context window clean.
 

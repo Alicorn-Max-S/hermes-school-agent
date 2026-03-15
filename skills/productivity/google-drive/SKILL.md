@@ -21,7 +21,7 @@ Three methods are available — try them in order:
 2. **API Mode** (preferred for authenticated access): Uses Google OAuth2 via the `google-auth` skill
 3. **Browser SSO Mode** (fallback): Uses browser automation with persistent login — works for school/enterprise accounts that block Developer Console access
 
-**IMPORTANT**: All tool references in this skill (`browser_navigate`, `browser_snapshot`, `browser_click`, `browser_type`, `browser_press`, `web_extract`, `clarify`, `memory`) are **agent tools** — invoke them as tool calls, NOT as Python imports or function calls in `execute_code`.
+**IMPORTANT**: All tool references in this skill (`browser_navigate`, `browser_snapshot`, `browser_click`, `browser_type`, `browser_press`, `webscrape`, `clarify`, `memory`) are **agent tools** — invoke them as tool calls, NOT as Python imports or function calls in `execute_code`.
 
 ## Scripts
 

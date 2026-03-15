@@ -363,7 +363,7 @@ def load_cli_config() -> Dict[str, Any]:
             os.environ[env_var] = str(compression_config[config_key])
     
     # Apply auxiliary model overrides to environment variables.
-    # Vision and web_extract each have their own provider + model pair.
+    # Vision and webscrape each have their own provider + model pair.
     # (Compression is handled in the compression section above.)
     # Only set env vars for non-empty / non-default values so auto-detection
     # still works.
@@ -371,7 +371,7 @@ def load_cli_config() -> Dict[str, Any]:
     auxiliary_task_env = {
         # config key → (provider env var, model env var)
         "vision":      ("AUXILIARY_VISION_PROVIDER",      "AUXILIARY_VISION_MODEL"),
-        "web_extract": ("AUXILIARY_WEB_EXTRACT_PROVIDER",  "AUXILIARY_WEB_EXTRACT_MODEL"),
+        "webscrape": ("AUXILIARY_WEBSCRAPE_PROVIDER",  "AUXILIARY_WEBSCRAPE_MODEL"),
     }
     
     for task_key, (prov_env, model_env) in auxiliary_task_env.items():

@@ -100,13 +100,13 @@ if _config_path.exists():
             for _cfg_key, _env_var in _compression_env_map.items():
                 if _cfg_key in _compression_cfg:
                     os.environ[_env_var] = str(_compression_cfg[_cfg_key])
-        # Auxiliary model overrides (vision, web_extract).
+        # Auxiliary model overrides (vision, webscrape).
         # Each task has provider + model; bridge non-default values to env vars.
         _auxiliary_cfg = _cfg.get("auxiliary", {})
         if _auxiliary_cfg and isinstance(_auxiliary_cfg, dict):
             _aux_task_env = {
                 "vision":      ("AUXILIARY_VISION_PROVIDER",      "AUXILIARY_VISION_MODEL"),
-                "web_extract": ("AUXILIARY_WEB_EXTRACT_PROVIDER",  "AUXILIARY_WEB_EXTRACT_MODEL"),
+                "webscrape": ("AUXILIARY_WEBSCRAPE_PROVIDER",  "AUXILIARY_WEBSCRAPE_MODEL"),
             }
             for _task_key, (_prov_env, _model_env) in _aux_task_env.items():
                 _task_cfg = _auxiliary_cfg.get(_task_key, {})
@@ -3733,7 +3733,7 @@ class GatewayRunner:
                 "terminal": "💻",
                 "process": "⚙️",
                 "web_search": "🔍",
-                "web_extract": "📄",
+                "webscrape": "📄",
                 "read_file": "📖",
                 "write_file": "✍️",
                 "patch": "🔧",

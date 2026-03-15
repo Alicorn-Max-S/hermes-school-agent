@@ -565,7 +565,7 @@ auxiliary:
     model: ""                  # e.g. "openai/gpt-4o", "google/gemini-2.5-flash"
 
   # Web page summarization + browser page text extraction
-  web_extract:
+  webscrape:
     provider: "auto"
     model: ""                  # e.g. "google/gemini-2.5-flash"
 ```
@@ -650,8 +650,8 @@ You can also configure auxiliary models via environment variables instead of `co
 |---------|---------------------|
 | Vision provider | `AUXILIARY_VISION_PROVIDER` |
 | Vision model | `AUXILIARY_VISION_MODEL` |
-| Web extract provider | `AUXILIARY_WEB_EXTRACT_PROVIDER` |
-| Web extract model | `AUXILIARY_WEB_EXTRACT_MODEL` |
+| Web extract provider | `AUXILIARY_WEBSCRAPE_PROVIDER` |
+| Web extract model | `AUXILIARY_WEBSCRAPE_MODEL` |
 | Compression provider | `CONTEXT_COMPRESSION_PROVIDER` |
 | Compression model | `CONTEXT_COMPRESSION_MODEL` |
 

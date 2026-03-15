@@ -18,7 +18,7 @@ for the AI agent to access all capabilities.
 # Export all tools for easy importing
 from .web_tools import (
     web_search_tool,
-    web_extract_tool,
+    webscrape_tool,
     web_crawl_tool,
     check_firecrawl_api_key
 )
@@ -164,7 +164,7 @@ def check_file_requirements():
 __all__ = [
     # Web tools
     'web_search_tool',
-    'web_extract_tool',
+    'webscrape_tool',
     'web_crawl_tool',
     'check_firecrawl_api_key',
     # Terminal tools (mini-swe-agent backend)

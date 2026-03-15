@@ -25,7 +25,7 @@ def _run_auxiliary_bridge(config_dict, monkeypatch):
     # Clear env vars
     for key in (
         "AUXILIARY_VISION_PROVIDER", "AUXILIARY_VISION_MODEL",
-        "AUXILIARY_WEB_EXTRACT_PROVIDER", "AUXILIARY_WEB_EXTRACT_MODEL",
+        "AUXILIARY_WEBSCRAPE_PROVIDER", "AUXILIARY_WEBSCRAPE_MODEL",
         "CONTEXT_COMPRESSION_PROVIDER", "CONTEXT_COMPRESSION_MODEL",
     ):
         monkeypatch.delenv(key, raising=False)
@@ -48,7 +48,7 @@ def _run_auxiliary_bridge(config_dict, monkeypatch):
     if auxiliary_cfg and isinstance(auxiliary_cfg, dict):
         aux_task_env = {
             "vision":      ("AUXILIARY_VISION_PROVIDER",      "AUXILIARY_VISION_MODEL"),
-            "web_extract": ("AUXILIARY_WEB_EXTRACT_PROVIDER",  "AUXILIARY_WEB_EXTRACT_MODEL"),
+            "webscrape": ("AUXILIARY_WEBSCRAPE_PROVIDER",  "AUXILIARY_WEBSCRAPE_MODEL"),
         }
         for task_key, (prov_env, model_env) in aux_task_env.items():
             task_cfg = auxiliary_cfg.get(task_key, {})
@@ -72,13 +72,13 @@ class TestAuxiliaryConfigBridge:
         config = {
             "auxiliary": {
                 "vision": {"provider": "openrouter", "model": ""},
-                "web_extract": {"provider": "auto", "model": ""},
+                "webscrape": {"provider": "auto", "model": ""},
             }
         }
         _run_auxiliary_bridge(config, monkeypatch)
         assert os.environ.get("AUXILIARY_VISION_PROVIDER") == "openrouter"
         # auto should not be set
-        assert os.environ.get("AUXILIARY_WEB_EXTRACT_PROVIDER") is None
+        assert os.environ.get("AUXILIARY_WEBSCRAPE_PROVIDER") is None
 
     def test_vision_model_bridged(self, monkeypatch):
         config = {
@@ -91,15 +91,15 @@ class TestAuxiliaryConfigBridge:
         # auto provider should not be set
         assert os.environ.get("AUXILIARY_VISION_PROVIDER") is None
 
-    def test_web_extract_bridged(self, monkeypatch):
+    def test_webscrape_bridged(self, monkeypatch):
         config = {
             "auxiliary": {
-                "web_extract": {"provider": "nous", "model": "gemini-2.5-flash"},
+                "webscrape": {"provider": "nous", "model": "gemini-2.5-flash"},
             }
         }
         _run_auxiliary_bridge(config, monkeypatch)
-        assert os.environ.get("AUXILIARY_WEB_EXTRACT_PROVIDER") == "nous"
-        assert os.environ.get("AUXILIARY_WEB_EXTRACT_MODEL") == "gemini-2.5-flash"
+        assert os.environ.get("AUXILIARY_WEBSCRAPE_PROVIDER") == "nous"
+        assert os.environ.get("AUXILIARY_WEBSCRAPE_MODEL") == "gemini-2.5-flash"
 
     def test_compression_provider_bridged(self, monkeypatch):
         config = {
@@ -142,14 +142,14 @@ class TestAuxiliaryConfigBridge:
         config = {
             "auxiliary": {
                 "vision": {"provider": "openrouter", "model": ""},
-                "web_extract": {"provider": "auto", "model": "custom-llm"},
+                "webscrape": {"provider": "auto", "model": "custom-llm"},
             }
         }
         _run_auxiliary_bridge(config, monkeypatch)
         assert os.environ.get("AUXILIARY_VISION_PROVIDER") == "openrouter"
         assert os.environ.get("AUXILIARY_VISION_MODEL") is None
-        assert os.environ.get("AUXILIARY_WEB_EXTRACT_PROVIDER") is None
-        assert os.environ.get("AUXILIARY_WEB_EXTRACT_MODEL") == "custom-llm"
+        assert os.environ.get("AUXILIARY_WEBSCRAPE_PROVIDER") is None
+        assert os.environ.get("AUXILIARY_WEBSCRAPE_MODEL") == "custom-llm"
 
     def test_all_tasks_with_overrides(self, monkeypatch):
         config = {
@@ -159,7 +159,7 @@ class TestAuxiliaryConfigBridge:
             },
             "auxiliary": {
                 "vision": {"provider": "openrouter", "model": "google/gemini-2.5-flash"},
-                "web_extract": {"provider": "nous", "model": "gemini-3-flash"},
+                "webscrape": {"provider": "nous", "model": "gemini-3-flash"},
             }
         }
         _run_auxiliary_bridge(config, monkeypatch)
@@ -167,8 +167,8 @@ class TestAuxiliaryConfigBridge:
         assert os.environ.get("CONTEXT_COMPRESSION_MODEL") == "local-model"
         assert os.environ.get("AUXILIARY_VISION_PROVIDER") == "openrouter"
         assert os.environ.get("AUXILIARY_VISION_MODEL") == "google/gemini-2.5-flash"
-        assert os.environ.get("AUXILIARY_WEB_EXTRACT_PROVIDER") == "nous"
-        assert os.environ.get("AUXILIARY_WEB_EXTRACT_MODEL") == "gemini-3-flash"
+        assert os.environ.get("AUXILIARY_WEBSCRAPE_PROVIDER") == "nous"
+        assert os.environ.get("AUXILIARY_WEBSCRAPE_MODEL") == "gemini-3-flash"
 
     def test_whitespace_in_values_stripped(self, monkeypatch):
         config = {
@@ -184,7 +184,7 @@ class TestAuxiliaryConfigBridge:
         config = {"auxiliary": {}}
         _run_auxiliary_bridge(config, monkeypatch)
         assert os.environ.get("AUXILIARY_VISION_PROVIDER") is None
-        assert os.environ.get("AUXILIARY_WEB_EXTRACT_PROVIDER") is None
+        assert os.environ.get("AUXILIARY_WEBSCRAPE_PROVIDER") is None
 
 
 # ── Gateway bridge parity test ───────────────────────────────────────────────
@@ -200,8 +200,8 @@ class TestGatewayBridgeCodeParity:
         # Check for key patterns that indicate the bridge is present
         assert "AUXILIARY_VISION_PROVIDER" in content
         assert "AUXILIARY_VISION_MODEL" in content
-        assert "AUXILIARY_WEB_EXTRACT_PROVIDER" in content
-        assert "AUXILIARY_WEB_EXTRACT_MODEL" in content
+        assert "AUXILIARY_WEBSCRAPE_PROVIDER" in content
+        assert "AUXILIARY_WEBSCRAPE_MODEL" in content
 
     def test_gateway_has_compression_provider(self):
         """Gateway must bridge compression.summary_provider."""
@@ -257,9 +257,9 @@ class TestDefaultConfigShape:
         assert vision["provider"] == "auto"
         assert vision["model"] == ""
 
-    def test_web_extract_task_structure(self):
+    def test_webscrape_task_structure(self):
         from hermes_cli.config import DEFAULT_CONFIG
-        web = DEFAULT_CONFIG["auxiliary"]["web_extract"]
+        web = DEFAULT_CONFIG["auxiliary"]["webscrape"]
         assert "provider" in web
         assert "model" in web
         assert web["provider"] == "auto"

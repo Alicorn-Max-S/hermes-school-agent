@@ -27,6 +27,8 @@ dependencies = [
   "prompt_toolkit",
   # Tools
   "firecrawl-py",
+  "trafilatura",
+  "beautifulsoup4",
   "fal-client",
   # Text-to-speech (Edge TTS is free, no API key needed)
   "edge-tts",

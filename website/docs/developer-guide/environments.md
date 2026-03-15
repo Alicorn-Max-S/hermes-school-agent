@@ -142,7 +142,7 @@ Available methods:
 | **Terminal** | `terminal(command, timeout)` |
 | **Files** | `read_file(path)`, `write_file(path, content)`, `search(query, path)` |
 | **Transfers** | `upload_file()`, `upload_dir()`, `download_file()`, `download_dir()` |
-| **Web** | `web_search(query)`, `web_extract(urls)` |
+| **Web** | `web_search(query)`, `webscrape(urls)` |
 | **Browser** | `browser_navigate(url)`, `browser_snapshot()` |
 | **Generic** | `call_tool(name, args)` — escape hatch for any hermes-agent tool |
 | **Cleanup** | `cleanup()` — release all resources |
