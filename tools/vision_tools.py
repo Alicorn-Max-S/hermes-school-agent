@@ -45,6 +45,60 @@ logger = logging.getLogger(__name__)
 _debug = DebugSession("vision_tools", env_var="VISION_TOOLS_DEBUG")
 
 
+# ---------------------------------------------------------------------------
+# Image format conversion helpers
+# ---------------------------------------------------------------------------
+
+def _load_convert_image():
+    """Lazily load the convert function from the image-analysis skill."""
+    import importlib.util
+    script = Path(__file__).parent.parent / "skills" / "productivity" / "image-analysis" / "scripts" / "convert_image.py"
+    if not script.exists():
+        return None
+    spec = importlib.util.spec_from_file_location("convert_image", script)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.convert
+
+
+_EXOTIC_EXTENSIONS = frozenset({
+    '.heic', '.heif', '.tiff', '.tif', '.avif', '.svg',
+    '.raw', '.cr2', '.nef', '.dng', '.psd', '.eps', '.ico',
+})
+
+
+def _prompt_vision_model(failed_model: str = "") -> Optional[str]:
+    """Prompt user to pick a vision model using the hermes-model style picker.
+
+    Reuses ``_prompt_model_selection`` from ``hermes_cli/auth.py`` with
+    the current provider's model catalog.  Returns a model ID or
+    ``None`` when the user chooses to skip.
+    """
+    print(f"\n  Vision analysis failed{f' with model: {failed_model}' if failed_model else ''}.")
+    print("  Not all models support image input. Pick a model to use for vision:\n")
+
+    try:
+        from hermes_cli.auth import _prompt_model_selection, get_active_provider
+        from hermes_cli.models import provider_model_ids, provider_label, model_ids
+    except ImportError:
+        logger.warning("hermes_cli not available for model selection")
+        return None
+
+    current_provider = get_active_provider() or "openrouter"
+    models = provider_model_ids(current_provider)
+    if not models:
+        models = model_ids()
+        current_provider = "openrouter"
+
+    label = provider_label(current_provider)
+
+    return _prompt_model_selection(
+        model_ids=models,
+        current_model=failed_model,
+        provider_label=label,
+    )
+
+
 def _validate_image_url(url: str) -> bool:
     """
     Basic validation of image URL format.
@@ -146,7 +200,9 @@ def _determine_mime_type(image_path: Path) -> str:
         '.gif': 'image/gif',
         '.bmp': 'image/bmp',
         '.webp': 'image/webp',
-        '.svg': 'image/svg+xml'
+        '.svg': 'image/svg+xml',
+        '.tiff': 'image/tiff',
+        '.tif': 'image/tiff'
     }
     return mime_types.get(extension, 'image/jpeg')
 
@@ -258,7 +314,25 @@ async def vision_analyze_tool(
             raise ValueError(
                 "Invalid image source. Provide an HTTP/HTTPS URL or a valid local file path."
             )
-        
+
+        # --- Exotic format conversion (HEIC, TIFF, SVG, AVIF, etc.) ---
+        if temp_image_path.suffix.lower() in _EXOTIC_EXTENSIONS:
+            convert_fn = _load_convert_image()
+            if convert_fn is not None:
+                converted_output = Path(f"./temp_vision_images/converted_{uuid.uuid4()}.png")
+                converted_output.parent.mkdir(parents=True, exist_ok=True)
+                conv_result = convert_fn(str(temp_image_path), str(converted_output))
+                if conv_result.get("success"):
+                    logger.info("Converted %s to PNG (%s)", temp_image_path.suffix, conv_result.get("method"))
+                    if should_cleanup and temp_image_path.exists():
+                        temp_image_path.unlink()
+                    temp_image_path = converted_output
+                    should_cleanup = True
+                else:
+                    logger.warning("Format conversion failed: %s — trying original", conv_result.get("error"))
+            else:
+                logger.warning("convert_image.py not found — trying original format")
+
         # Get image file size for logging
         image_size_bytes = temp_image_path.stat().st_size
         image_size_kb = image_size_bytes / 1024
@@ -296,45 +370,99 @@ async def vision_analyze_tool(
         ]
         
         logger.info("Processing image with vision model...")
-        
-        # Call the vision API via centralized router
-        call_kwargs = {
-            "task": "vision",
-            "messages": messages,
-            "temperature": 0.1,
-            "max_tokens": 2000,
-        }
-        if model:
-            call_kwargs["model"] = model
-        response = await async_call_llm(**call_kwargs)
-        
+
+        # ---- Vision API call with automatic model fallback ----
+        # Phase 1: try primary model, then saved fallback (if different)
+        _vision_hints = (
+            "does not support", "not support image", "invalid_request",
+            "content_policy", "image_url", "multimodal",
+            "unrecognized request argument", "image input",
+        )
+        primary_model = model
+        saved_fallback = os.getenv("AUXILIARY_VISION_MODEL_FALLBACK", "").strip() or None
+        models_to_try = [primary_model]
+        if saved_fallback and saved_fallback != primary_model:
+            models_to_try.append(saved_fallback)
+
+        analysis = None
+        last_error = None
+        failed_model_name = str(primary_model or "default")
+
+        for i, try_model in enumerate(models_to_try):
+            try:
+                call_kwargs = {
+                    "task": "vision",
+                    "messages": messages,
+                    "temperature": 0.1,
+                    "max_tokens": 2000,
+                }
+                if try_model:
+                    call_kwargs["model"] = try_model
+                response = await async_call_llm(**call_kwargs)
+                analysis = response.choices[0].message.content.strip()
+                debug_call_data["model_used"] = try_model
+                break
+            except Exception as model_err:
+                err_str = str(model_err).lower()
+                is_vision_err = any(hint in err_str for hint in _vision_hints)
+                last_error = model_err
+                failed_model_name = str(try_model or "default")
+                if is_vision_err and i < len(models_to_try) - 1:
+                    logger.warning("Model %s failed (vision error) — trying fallback", try_model)
+                    continue
+                if not is_vision_err:
+                    raise  # Non-vision error — don't enter picker
+                break
+
+        # Phase 2: interactive picker loop — keep showing until success or Skip
+        while analysis is None and last_error is not None:
+            chosen = _prompt_vision_model(failed_model=failed_model_name)
+            if not chosen:
+                raise last_error  # User chose Skip
+
+            try:
+                call_kwargs = {
+                    "task": "vision",
+                    "messages": messages,
+                    "temperature": 0.1,
+                    "max_tokens": 2000,
+                    "model": chosen,
+                }
+                response = await async_call_llm(**call_kwargs)
+                analysis = response.choices[0].message.content.strip()
+                debug_call_data["model_used"] = chosen
+                os.environ["AUXILIARY_VISION_MODEL_FALLBACK"] = chosen
+                logger.info("Saved %s as vision fallback model", chosen)
+            except Exception as retry_err:
+                print(f"\n  Model '{chosen}' also failed: {retry_err}")
+                last_error = retry_err
+                failed_model_name = chosen
+                continue  # Show picker again
+
         # Extract the analysis
-        analysis = response.choices[0].message.content.strip()
         analysis_length = len(analysis)
-        
+
         logger.info("Image analysis completed (%s characters)", analysis_length)
-        
+
         # Prepare successful response
         result = {
             "success": True,
             "analysis": analysis or "There was a problem with the request and the image could not be analyzed."
         }
-        
+
         debug_call_data["success"] = True
         debug_call_data["analysis_length"] = analysis_length
-        
+
         # Log debug information
         _debug.log_call("vision_analyze_tool", debug_call_data)
         _debug.save()
-        
+
         return json.dumps(result, indent=2, ensure_ascii=False)
-        
+
     except Exception as e:
         error_msg = f"Error analyzing image: {str(e)}"
         logger.error("%s", error_msg, exc_info=True)
 
-        # Detect vision capability errors — give the model a clear message
-        # so it can inform the user instead of a cryptic API error.
         err_str = str(e).lower()
         vision_capability_error = any(hint in err_str for hint in (
             "does not support", "not support image", "invalid_request",
@@ -344,8 +472,8 @@ async def vision_analyze_tool(
 
         if vision_capability_error:
             analysis = (
-                f"{model} does not support vision or our request was not "
-                f"accepted by the server. Error: {e}"
+                f"Vision analysis failed — the current model does not support "
+                f"image input. Error: {e}"
             )
         else:
             analysis = (
@@ -353,39 +481,16 @@ async def vision_analyze_tool(
                 f"be analyzed. Error: {e}"
             )
 
-        # Build fallback instructions so the agent knows what to do next.
-        fallback_hint = (
-            "\n\n--- VISION FALLBACK REQUIRED ---\n"
-            "Do NOT give up or tell the user vision is unavailable. Follow these steps:\n"
-            "1. Check memory for a previously successful vision model:\n"
-            '   memory(action="search", target="memory", query="file-analysis-vision-model-success")\n'
-            "2. Ask the user which model to try using clarify():\n"
-            '   clarify("Vision analysis failed with the current model. '
-            'Which vision model should I try instead?",\n'
-            '          [<models from memory if any>, '
-            '"google/gemini-2.5-flash", "google/gemini-2.5-pro", '
-            '"Enter a custom model ID", "Skip vision analysis"])\n'
-            "3. Set the chosen model and retry:\n"
-            '   terminal: export AUXILIARY_VISION_MODEL="chosen_model_id"\n'
-            "   Then call vision_analyze again with the same image.\n"
-            "4. On success, save the working model to memory:\n"
-            '   memory(action="add", target="memory", '
-            'content="file-analysis-vision-model-success: MODEL_ID")\n'
-            "5. Loop until the user picks a working model or chooses Skip.\n"
-            "--- END FALLBACK ---"
-        )
-
-        # Prepare error response
         result = {
             "success": False,
             "error": error_msg,
-            "analysis": analysis + fallback_hint,
+            "analysis": analysis,
         }
-        
+
         debug_call_data["error"] = error_msg
         _debug.log_call("vision_analyze_tool", debug_call_data)
         _debug.save()
-        
+
         return json.dumps(result, indent=2, ensure_ascii=False)
     
     finally:
@@ -488,11 +593,9 @@ VISION_ANALYZE_SCHEMA = {
     "description": (
         "Analyze images using AI vision. Provides a comprehensive description "
         "and answers a specific question about the image content. "
-        "IMPORTANT: If this tool returns success=false, you MUST follow the "
-        "vision fallback procedure in the response — check memory for a "
-        "previously working model, then use clarify() to ask the user which "
-        "model to try, set AUXILIARY_VISION_MODEL, and retry. Never give up "
-        "after a single failure."
+        "Supports exotic formats (HEIC, TIFF, SVG, AVIF, etc.) via automatic "
+        "conversion. If the vision model doesn't support images, prompts the "
+        "user to pick a vision-capable model."
     ),
     "parameters": {
         "type": "object",
@@ -504,6 +607,11 @@ VISION_ANALYZE_SCHEMA = {
             "question": {
                 "type": "string",
                 "description": "Your specific question or request about the image to resolve. The AI will automatically provide a complete image description AND answer your specific question."
+            },
+            "fallback_models": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Optional list of fallback model IDs to try if the primary model fails (e.g. ['google/gemini-3-flash-preview'])."
             }
         },
         "required": ["image_url", "question"]
