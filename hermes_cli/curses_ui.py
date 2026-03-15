@@ -6,8 +6,6 @@ text-based numbered fallback for terminals without curses support.
 """
 from typing import List, Set
 
-from hermes_cli.colors import Colors, color
-
 
 def curses_checklist(
     title: str,
@@ -15,6 +13,7 @@ def curses_checklist(
     selected: Set[int],
     *,
     cancel_returns: Set[int] | None = None,
+    separators: Set[int] | None = None,
 ) -> Set[int]:
     """Curses multi-select checklist. Returns set of selected indices.
 
@@ -23,9 +22,12 @@ def curses_checklist(
         items: Display labels for each row.
         selected: Indices that start checked (pre-selected).
         cancel_returns: Returned on ESC/q. Defaults to the original *selected*.
+        separators: Indices that are non-selectable section headers.
     """
     if cancel_returns is None:
         cancel_returns = set(selected)
+    if separators is None:
+        separators = set()
 
     try:
         import curses
@@ -40,7 +42,11 @@ def curses_checklist(
                 curses.init_pair(1, curses.COLOR_GREEN, -1)
                 curses.init_pair(2, curses.COLOR_YELLOW, -1)
                 curses.init_pair(3, 8, -1)  # dim gray
+
+            # Start cursor on first non-separator item
             cursor = 0
+            while cursor in separators and cursor < len(items):
+                cursor += 1
             scroll_offset = 0
 
             while True:
@@ -74,14 +80,22 @@ def curses_checklist(
                     y = draw_i + 3
                     if y >= max_y - 1:
                         break
-                    check = "✓" if i in chosen else " "
-                    arrow = "→" if i == cursor else " "
-                    line = f" {arrow} [{check}] {items[i]}"
-                    attr = curses.A_NORMAL
-                    if i == cursor:
+
+                    if i in separators:
+                        # Render separator as a non-selectable header
+                        line = f"     {items[i]}"
                         attr = curses.A_BOLD
                         if curses.has_colors():
-                            attr |= curses.color_pair(1)
+                            attr |= curses.color_pair(2)
+                    else:
+                        check = "✓" if i in chosen else " "
+                        arrow = "→" if i == cursor else " "
+                        line = f" {arrow} [{check}] {items[i]}"
+                        attr = curses.A_NORMAL
+                        if i == cursor:
+                            attr = curses.A_BOLD
+                            if curses.has_colors():
+                                attr |= curses.color_pair(1)
                     try:
                         stdscr.addnstr(y, 0, line, max_x - 1, attr)
                     except curses.error:
@@ -92,10 +106,15 @@ def curses_checklist(
 
                 if key in (curses.KEY_UP, ord("k")):
                     cursor = (cursor - 1) % len(items)
+                    while cursor in separators:
+                        cursor = (cursor - 1) % len(items)
                 elif key in (curses.KEY_DOWN, ord("j")):
                     cursor = (cursor + 1) % len(items)
+                    while cursor in separators:
+                        cursor = (cursor + 1) % len(items)
                 elif key == ord(" "):
-                    chosen.symmetric_difference_update({cursor})
+                    if cursor not in separators:
+                        chosen.symmetric_difference_update({cursor})
                 elif key in (curses.KEY_ENTER, 10, 13):
                     result_holder[0] = set(chosen)
                     return
@@ -107,7 +126,7 @@ def curses_checklist(
         return result_holder[0] if result_holder[0] is not None else cancel_returns
 
     except Exception:
-        return _numbered_fallback(title, items, selected, cancel_returns)
+        return _numbered_fallback(title, items, selected, cancel_returns, separators)
 
 
 def _numbered_fallback(
@@ -115,23 +134,31 @@ def _numbered_fallback(
     items: List[str],
     selected: Set[int],
     cancel_returns: Set[int],
+    separators: Set[int] | None = None,
 ) -> Set[int]:
     """Text-based toggle fallback for terminals without curses."""
+    from hermes_cli.colors import Colors, color
+
+    if separators is None:
+        separators = set()
     chosen = set(selected)
     print(color(f"\n  {title}", Colors.YELLOW))
     print(color("  Toggle by number, Enter to confirm.\n", Colors.DIM))
 
     while True:
         for i, label in enumerate(items):
-            marker = color("[✓]", Colors.GREEN) if i in chosen else "[ ]"
-            print(f"  {marker} {i + 1:>2}. {label}")
+            if i in separators:
+                print(color(f"\n  {label}", Colors.YELLOW))
+            else:
+                marker = color("[✓]", Colors.GREEN) if i in chosen else "[ ]"
+                print(f"  {marker} {i + 1:>2}. {label}")
         print()
         try:
             val = input(color("  Toggle # (or Enter to confirm): ", Colors.DIM)).strip()
             if not val:
                 break
             idx = int(val) - 1
-            if 0 <= idx < len(items):
+            if 0 <= idx < len(items) and idx not in separators:
                 chosen.symmetric_difference_update({idx})
         except (ValueError, KeyboardInterrupt, EOFError):
             return cancel_returns

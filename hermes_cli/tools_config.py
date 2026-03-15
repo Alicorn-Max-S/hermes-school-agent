@@ -76,30 +76,34 @@ def _prompt_yes_no(question: str, default: bool = True) -> bool:
 # Each entry: (toolset_name, label, description)
 # These map to keys in toolsets.py TOOLSETS dict.
 CONFIGURABLE_TOOLSETS = [
+    # ── School-Essential Tools ──
     ("web",             "🔍 Web Search & Scraping",    "web_search, webscrape"),
     ("browser",         "🌐 Browser Automation",       "navigate, click, type, scroll"),
-    ("terminal",        "💻 Terminal & Processes",      "terminal, process"),
     ("file",            "📁 File Operations",           "read, write, patch, search"),
-    ("code_execution",  "⚡ Code Execution",            "execute_code"),
-    ("vision",          "👁️  Vision / Image Analysis",  "vision_analyze"),
-    ("image_gen",       "🎨 Image Generation",          "image_generate"),
-    ("moa",             "🧠 Mixture of Agents",         "mixture_of_agents"),
-    ("tts",             "🔊 Text-to-Speech",            "text_to_speech"),
     ("skills",          "📚 Skills",                    "list, view, manage"),
+    ("vision",          "👁️  Vision / Image Analysis",  "vision_analyze"),
+    ("code_execution",  "⚡ Code Execution",            "execute_code"),
+    ("delegation",      "👥 Task Delegation",           "delegate_task"),
     ("todo",            "📋 Task Planning",             "todo"),
     ("memory",          "💾 Memory",                    "persistent memory across sessions"),
     ("session_search",  "🔎 Session Search",            "search past conversations"),
     ("clarify",         "❓ Clarifying Questions",      "clarify"),
-    ("delegation",      "👥 Task Delegation",           "delegate_task"),
+    ("terminal",        "💻 Terminal & Processes",      "terminal, process"),
     ("cronjob",         "⏰ Cron Jobs",                 "schedule, list, remove"),
+    # ── Additional Tools ──
+    ("image_gen",       "🎨 Image Generation",          "image_generate"),
+    ("moa",             "🧠 Mixture of Agents",         "mixture_of_agents"),
+    ("tts",             "🔊 Text-to-Speech",            "text_to_speech"),
     ("rl",              "🧪 RL Training",               "Tinker-Atropos training tools"),
     ("homeassistant",    "🏠 Home Assistant",           "smart home device control"),
 ]
 
+_SCHOOL_ESSENTIAL_COUNT = 13
+
 # Toolsets that are OFF by default for new installs.
 # They're still in _HERMES_CORE_TOOLS (available at runtime if enabled),
 # but the setup checklist won't pre-select them for first-time users.
-_DEFAULT_OFF_TOOLSETS = {"moa", "homeassistant", "rl"}
+_DEFAULT_OFF_TOOLSETS = {"moa", "homeassistant", "rl", "image_gen", "tts"}
 
 # Platform display config
 PLATFORMS = {
@@ -467,16 +471,29 @@ def _prompt_toolset_checklist(platform_label: str, enabled: Set[str]) -> Set[str
     """Multi-select checklist of toolsets. Returns set of selected toolset keys."""
     from hermes_cli.curses_ui import curses_checklist
 
-    labels = []
-    for ts_key, ts_label, ts_desc in CONFIGURABLE_TOOLSETS:
+    labels: list[str] = []
+    separators: set[int] = set()
+    index_map: dict[int, int] = {}  # expanded index -> CONFIGURABLE_TOOLSETS index
+
+    # Insert "School-Essential Tools" separator
+    separators.add(len(labels))
+    labels.append("── School-Essential Tools ──")
+
+    for orig_i, (ts_key, ts_label, ts_desc) in enumerate(CONFIGURABLE_TOOLSETS):
+        # Insert "Additional Tools" separator before the first non-essential tool
+        if orig_i == _SCHOOL_ESSENTIAL_COUNT:
+            separators.add(len(labels))
+            labels.append("── Additional Tools ──")
+
         suffix = ""
         if not _toolset_has_keys(ts_key) and (TOOL_CATEGORIES.get(ts_key) or TOOLSET_ENV_REQUIREMENTS.get(ts_key)):
             suffix = "  [no API key]"
+        index_map[len(labels)] = orig_i
         labels.append(f"{ts_label}  ({ts_desc}){suffix}")
 
     pre_selected = {
-        i for i, (ts_key, _, _) in enumerate(CONFIGURABLE_TOOLSETS)
-        if ts_key in enabled
+        exp_i for exp_i, orig_i in index_map.items()
+        if CONFIGURABLE_TOOLSETS[orig_i][0] in enabled
     }
 
     chosen = curses_checklist(
@@ -484,8 +501,9 @@ def _prompt_toolset_checklist(platform_label: str, enabled: Set[str]) -> Set[str
         labels,
         pre_selected,
         cancel_returns=pre_selected,
+        separators=separators,
     )
-    return {CONFIGURABLE_TOOLSETS[i][0] for i in chosen}
+    return {CONFIGURABLE_TOOLSETS[index_map[i]][0] for i in chosen if i in index_map}
 
 
 # ─── Provider-Aware Configuration ────────────────────────────────────────────
