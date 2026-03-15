@@ -122,12 +122,37 @@ web_extract(urls=["https://arxiv.org/pdf/2402.03300"])
 web_search(query="arxiv GRPO reinforcement learning 2026")
 ```
 
+## Step 3: Vision AI Fallback (when pymupdf and marker-pdf both fail)
+
+If text extraction returns empty/garbled content (scanned PDF, image-only pages) AND marker-pdf is not available or fails:
+
+**Convert PDF pages to images, then use vision AI:**
+```bash
+python3 ~/.hermes/skills/productivity/document-analysis/scripts/pdf_to_images.py "document.pdf" /tmp/pdf_pages/ --pages 0-4
+```
+
+Then analyze each page with vision:
+```
+vision_analyze(image_url="/tmp/pdf_pages/page_001.png", question="Extract all text and content from this page")
+```
+
+Repeat for each page. This works for any scanned/image-based PDF.
+
+If `vision_analyze` fails, try a different model:
+- Check memory: `memory(action="search", target="memory", query="file-analysis-vision-model-success")`
+- Ask user: `clarify("Which vision model should I try?", [previous_models..., "Enter custom model ID", "Skip"])`
+- Set model: `export AUXILIARY_VISION_MODEL="chosen_model"` via terminal, then retry
+
+**NEVER give up and tell the user to "use OCR software" — the pdf_to_images + vision_analyze fallback should always be attempted.**
+
 ## Notes
 
 - `web_extract` is always first choice for URLs
 - pymupdf is the safe default — instant, no models, works everywhere
 - marker-pdf is for OCR, scanned docs, equations, complex layouts — install only when needed
+- **pdf_to_images + vision_analyze** is the fallback when both text extractors fail — always try this
 - Both helper scripts accept `--help` for full usage
 - marker-pdf downloads ~2.5GB of models to `~/.cache/huggingface/` on first use
 - For Word docs: `pip install python-docx` (better than OCR — parses actual structure)
 - For PowerPoint: see the `powerpoint` skill (uses python-pptx)
+- For all other file types: see the `document-analysis` and `file-analysis` skills

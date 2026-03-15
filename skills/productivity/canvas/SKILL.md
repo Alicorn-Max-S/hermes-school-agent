@@ -9,6 +9,7 @@ prerequisites:
 metadata:
   hermes:
     tags: [Canvas, LMS, Education, Courses, Assignments, Submissions]
+    related_skills: [file-analysis, document-analysis, image-analysis, ocr-and-documents, google-drive]
 ---
 
 # Canvas LMS — Course & Assignment Access
@@ -183,6 +184,74 @@ curl -s -X POST -H "Authorization: Bearer $CANVAS_API_TOKEN" \
 ```
 
 Canvas uses `Link` headers for pagination. The Python script handles pagination automatically.
+
+## Analyzing Assignment Attachments
+
+When `get_assignment` returns attachments (PDFs, documents, images), **always analyze them** — don't just list them. Follow this workflow:
+
+### Step 1: Download the attachment
+```bash
+curl -L -o /tmp/FILENAME "ATTACHMENT_URL"
+```
+
+### Step 2: Detect file type and route to analysis
+
+```bash
+python3 ~/.hermes/skills/productivity/file-analysis/scripts/detect_filetype.py "/tmp/FILENAME"
+```
+
+### Step 3: Analyze based on type
+
+**For PDFs** (most common attachment type):
+
+1. **Try text extraction first** (FREE, local):
+   ```bash
+   python3 ~/.hermes/skills/productivity/ocr-and-documents/scripts/extract_pymupdf.py /tmp/FILENAME --markdown
+   ```
+   If this returns meaningful text → present the content. Done!
+
+2. **If text is empty/garbled (scanned/image-based PDF)** — convert pages to images and use vision AI:
+   ```bash
+   python3 ~/.hermes/skills/productivity/document-analysis/scripts/pdf_to_images.py /tmp/FILENAME /tmp/pdf_pages/ --pages 0-4
+   ```
+   Then analyze each page image:
+   ```
+   vision_analyze(image_url="/tmp/pdf_pages/page_001.png", question="Extract all text and content from this page")
+   ```
+   Repeat for each page. Combine results into coherent text.
+
+3. **If vision_analyze also fails** — use the model retry loop:
+   - Check memory: `memory(action="search", target="memory", query="file-analysis-vision-model-success")`
+   - Ask user: `clarify("Vision analysis failed. Which model should I try?", [previous_models..., "Enter custom model ID", "Skip"])`
+   - Set model: run `export AUXILIARY_VISION_MODEL="chosen_model"` via terminal
+   - Retry vision_analyze
+   - On success: save model to memory
+
+**For images** (PNG, JPG, etc.):
+```
+vision_analyze(image_url="/tmp/FILENAME", question="Describe and extract all content from this image")
+```
+
+**For documents** (DOCX, XLSX, PPTX):
+Use the corresponding extraction script from the `document-analysis` skill:
+```bash
+# DOCX
+python3 ~/.hermes/skills/productivity/document-analysis/scripts/extract_docx.py /tmp/FILENAME --format markdown
+# XLSX
+python3 ~/.hermes/skills/productivity/document-analysis/scripts/extract_xlsx.py /tmp/FILENAME --format summary
+# PPTX
+python3 ~/.hermes/skills/productivity/document-analysis/scripts/extract_pptx.py /tmp/FILENAME
+```
+
+**For Google Drive links** in assignment descriptions:
+Use the `google-drive` skill to access the file, then route through the analysis above.
+
+### Important
+- **NEVER** just list attachments and tell the user to "use OCR software" — always attempt analysis
+- The pdf_to_images + vision_analyze fallback works for scanned/image-based PDFs
+- Present the extracted content directly to the user, summarized if needed
+
+---
 
 ## Rules
 
