@@ -81,7 +81,7 @@ from hermes_constants import OPENROUTER_BASE_URL, OPENROUTER_MODELS_URL
 from agent.prompt_builder import (
     DEFAULT_AGENT_IDENTITY, PLATFORM_HINTS,
     MEMORY_GUIDANCE, SESSION_SEARCH_GUIDANCE, SKILLS_GUIDANCE,
-    TOOL_SELECTION_GUIDE,
+    TOOL_SELECTION_GUIDE, SCHOOL_SKILLS_SUMMARY,
 )
 from agent.model_metadata import (
     fetch_model_metadata, get_model_context_length,
@@ -1878,6 +1878,7 @@ class AIAgent:
             skills_prompt = ""
         if skills_prompt:
             prompt_parts.append(skills_prompt)
+            prompt_parts.append(SCHOOL_SKILLS_SUMMARY)
 
         if not self.skip_context_files:
             context_files_prompt = build_context_files_prompt()

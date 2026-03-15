@@ -103,13 +103,54 @@ TOOL_SELECTION_GUIDE = (
     "SESSION SEARCH: Search past conversations when user references prior work or you suspect relevant history exists.\n"
     "VISION: Use vision_analyze for screenshots, diagrams, images — read_file cannot handle binary/image files.\n"
     "TODO: Use for tasks with 3+ steps. Mark items completed immediately.\n"
-    "SKILLS: Check available skills before starting complex tasks — use skill_view(\"school\") for a student-focused index.\n\n"
+    "SKILLS — School-specific guidance:\n"
+    "  canvas-lms: Assignments, syllabi, grades, course info — load when user mentions Canvas, homework, or due dates.\n"
+    "  file-analysis / document-analysis: Uploaded PDFs, DOCX, XLSX, images — load when user shares a file to analyze.\n"
+    "  google-drive: Google Docs/Sheets/Slides — load when user references Drive files or asks to fetch shared docs.\n"
+    "  todoist: Task management — load when user wants to track assignments, create to-do lists, or manage deadlines.\n"
+    "  google-calendar: Scheduling — load when user asks about class schedules, exam dates, or time management.\n"
+    "  study: Study plans, flashcards, review sessions — load when user asks for help studying or reviewing material.\n"
+    "  Use skills_list() to discover additional non-school skills if none of the above match.\n\n"
     "Common mistakes to avoid:\n"
     "- Using terminal for cat/grep/sed/find when dedicated tools exist\n"
     "- Writing full files when a patch would suffice\n"
     "- Not using execute_code when chaining 3+ tool calls\n"
     "- Not searching session history when user references past work\n"
     "- Not saving useful discoveries to memory"
+)
+
+SCHOOL_SKILLS_SUMMARY = (
+    "## School Skills — Task Planning, Auto-Chain, and Offer-to-User Rules\n\n"
+    "### Task Planning Rules\n"
+    "When the user describes an academic task (homework, essay, exam prep, scheduling):\n"
+    "1. Identify which school skills are needed by scanning <school_skills> categories.\n"
+    "2. Break the task into ordered steps, each mapped to a skill (e.g., fetch assignment → canvas-lms, "
+    "analyze rubric → file-analysis, build study plan → study).\n"
+    "3. Present the plan to the user before executing. If the user approves, execute steps in order.\n"
+    "4. After each step, summarize what was done and what comes next.\n\n"
+    "### Auto-Chain Rules\n"
+    "Certain skill combinations should be chained automatically without asking:\n"
+    "- canvas-lms → file-analysis: When an assignment includes attached documents, auto-load file-analysis.\n"
+    "- canvas-lms → todoist: After fetching assignments with due dates, offer to create Todoist tasks.\n"
+    "- file-analysis → study: After analyzing study material (lecture notes, textbook excerpts), offer study skill.\n"
+    "- google-calendar → todoist: When scheduling study sessions, sync deadlines to Todoist.\n"
+    "- google-drive → file-analysis: When a Drive file is fetched, auto-analyze its contents.\n"
+    "Do NOT chain more than 3 skills without user confirmation.\n\n"
+    "### Offer-to-User Rules\n"
+    "After completing a school skill, proactively offer related follow-ups:\n"
+    "- After fetching assignments: 'Would you like me to create a study plan or add these to your task list?'\n"
+    "- After analyzing a document: 'Want me to generate flashcards or a summary for review?'\n"
+    "- After creating a study plan: 'Should I schedule study sessions on your calendar?'\n"
+    "- After checking grades: 'Would you like to focus on areas where you scored lowest?'\n"
+    "Only offer if the follow-up is genuinely useful. Do not spam offers.\n\n"
+    "### Creating New School Skills\n"
+    "When saving a new skill with skill_manage that is school-related:\n"
+    "1. Set metadata.hermes.school: true in the SKILL.md frontmatter.\n"
+    "2. Set metadata.hermes.school_category to one of the existing categories "
+    "(e.g., 'Homework & Assignments', 'File Analysis', 'Notes & Organization', "
+    "'Task Management', 'Calendar & Scheduling', 'Study & Review') or create a new one.\n"
+    "3. The skill will automatically appear in the <school_skills> section on next prompt build.\n"
+    "4. No Python code changes are needed — detection is purely from frontmatter metadata."
 )
 
 PLATFORM_HINTS = {
@@ -295,61 +336,45 @@ def build_skills_system_prompt(
         return _skills_cache["result"]
 
     # Collect skills with descriptions, grouped by category.
-    # Each entry: (skill_name, description)
-    # Supports sub-categories: skills/mlops/training/axolotl/SKILL.md
-    # -> category "mlops/training", skill "axolotl"
-    skills_by_category: dict[str, list[tuple[str, str]]] = {}
+    # School skills (metadata.hermes.school == true) are grouped by school_category.
+    # Non-school skills are hidden from the system prompt entirely.
+    school_skills_by_category: dict[str, list[tuple[str, str]]] = {}
+    has_any_skill = False
     for skill_file in skills_dir.rglob("SKILL.md"):
-        is_compatible, _, desc = _parse_skill_file(skill_file)
+        is_compatible, frontmatter, desc = _parse_skill_file(skill_file)
         if not is_compatible:
             continue
         # Skip skills whose conditional activation rules exclude them
         conditions = _read_skill_conditions(skill_file)
         if not _skill_should_show(conditions, available_tools, available_toolsets):
             continue
+
+        has_any_skill = True
+
+        # Check school metadata from frontmatter
+        hermes_meta = frontmatter.get("metadata", {}).get("hermes", {})
+        is_school = hermes_meta.get("school", False)
+        if not is_school:
+            continue  # Non-school skills hidden from system prompt
+
+        school_category = hermes_meta.get("school_category", "General")
         rel_path = skill_file.relative_to(skills_dir)
         parts = rel_path.parts
         if len(parts) >= 2:
-            # Category is everything between skills_dir and the skill folder
-            # e.g. parts = ("mlops", "training", "axolotl", "SKILL.md")
-            #   → category = "mlops/training", skill_name = "axolotl"
-            # e.g. parts = ("github", "github-auth", "SKILL.md")
-            #   → category = "github", skill_name = "github-auth"
             skill_name = parts[-2]
-            category = "/".join(parts[:-2]) if len(parts) > 2 else parts[0]
         else:
-            category = "general"
             skill_name = skill_file.parent.name
-        skills_by_category.setdefault(category, []).append((skill_name, desc))
+        school_skills_by_category.setdefault(school_category, []).append((skill_name, desc))
 
-    if not skills_by_category:
+    if not has_any_skill:
         return ""
 
-    # Read category-level descriptions from DESCRIPTION.md
-    # Checks both the exact category path and parent directories
-    category_descriptions = {}
-    for category in skills_by_category:
-        cat_path = Path(category)
-        desc_file = skills_dir / cat_path / "DESCRIPTION.md"
-        if desc_file.exists():
-            try:
-                content = desc_file.read_text(encoding="utf-8")
-                match = re.search(r"^---\s*\n.*?description:\s*(.+?)\s*\n.*?^---", content, re.MULTILINE | re.DOTALL)
-                if match:
-                    category_descriptions[category] = match.group(1).strip()
-            except Exception as e:
-                logger.debug("Could not read skill description %s: %s", desc_file, e)
-
+    # Build school skills section
     index_lines = []
-    for category in sorted(skills_by_category.keys()):
-        cat_desc = category_descriptions.get(category, "")
-        if cat_desc:
-            index_lines.append(f"  {category}: {cat_desc}")
-        else:
-            index_lines.append(f"  {category}:")
-        # Deduplicate and sort skills within each category
+    for category in sorted(school_skills_by_category.keys()):
+        index_lines.append(f"  {category}:")
         seen = set()
-        for name, desc in sorted(skills_by_category[category], key=lambda x: x[0]):
+        for name, desc in sorted(school_skills_by_category[category], key=lambda x: x[0]):
             if name in seen:
                 continue
             seen.add(name)
@@ -358,17 +383,22 @@ def build_skills_system_prompt(
             else:
                 index_lines.append(f"    - {name}")
 
+    school_section = ""
+    if index_lines:
+        school_section = (
+            "<school_skills>\n"
+            + "\n".join(index_lines) + "\n"
+            "</school_skills>\n"
+        )
+
     result = (
         "## Skills (mandatory)\n"
-        "Before replying, scan the skills below. If one clearly matches your task, "
-        "load it with skill_view(name) and follow its instructions. "
-        "If a skill has issues, fix it with skill_manage(action='patch').\n"
+        "Before replying, scan these skills. If one matches your task, "
+        "load it with skill_view(name).\n"
         "\n"
-        "<available_skills>\n"
-        + "\n".join(index_lines) + "\n"
-        "</available_skills>\n"
-        "\n"
-        "If none match, proceed normally without loading a skill."
+        + school_section
+        + "\n"
+        "Use skills_list() to discover additional non-school skills if needed."
     )
 
     # Cache for subsequent calls within the same session
