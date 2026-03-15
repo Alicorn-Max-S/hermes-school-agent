@@ -154,7 +154,11 @@ For any field NOT explicitly provided by the user, estimate it:
 - Complex tasks (coding project, research, essay writing, studying a chapter): **90–120 min**
 - Deep work (major project milestone, exam prep, thesis writing, full study session): **120–240 min**
 
+**IMPORTANT:** A task can only have a duration if it also has a specific start time (`--due-datetime`). Do NOT set `--duration` on tasks that only have a date (`--due-date`) or natural language due (`--due-string` without a time). If the user provides a duration but no start time, you must also find and assign a start time (see Step 4) before creating the task.
+
 Before estimating, check your memory for past duration corrections. Search for entries containing "duration accuracy" — these record how long similar tasks actually took in the past. Adjust your estimate based on this user-specific data.
+
+**Breaking Up Large Tasks** — If a task would take more than **240 minutes** (4 hours), break it into smaller subtasks instead of creating one giant task. For example, "Write research paper" should become separate tasks like "Write introduction", "Write methodology section", "Write results & analysis", etc. Each subtask should have its own duration, priority, and scheduling. Present the breakdown to the user for confirmation before creating.
 
 **Priority** — Infer from urgency and importance cues:
 - 1 (normal): Routine tasks, no deadline pressure
@@ -162,13 +166,15 @@ Before estimating, check your memory for past duration corrections. Search for e
 - 3 (high): Important with a clear deadline approaching
 - 4 (urgent): Overdue, due today, or explicitly urgent
 
-**Labels** — First run `$TODOIST list_labels` to see the user's existing labels. Prefer reusing existing labels over creating new categories. Infer label from context:
+**Labels** — First run `$TODOIST list_labels` to see the user's existing labels. Reuse existing labels whenever they fit. Infer label from context:
 - Academic/homework/studying → look for "school", "homework", "study" labels
 - Work/professional → look for "work", "meeting" labels
 - Personal/errands → look for "personal", "errands" labels
 - Health/exercise → look for "health", "fitness" labels
 
-If no matching label exists, suggest creating one or skip labeling.
+If no matching label exists, **create a new one** — don't skip labeling just because the label doesn't exist yet. Simply include the new label name in `--labels` and Todoist will create it automatically.
+
+**Projects** — Run `$TODOIST list_projects` to see existing projects. Assign tasks to the most relevant project. If no suitable project exists, you can create a new one. Organizing tasks into projects helps the user keep related work together (e.g. a "School" project for all academic tasks, a "Home" project for chores).
 
 **Deadline** — Only set if the user explicitly mentions a deadline ("due Friday", "by end of week", "submit by March 20"). Do NOT set a deadline if none is mentioned.
 
@@ -254,7 +260,8 @@ Use the memory tool: add "Label preference: user prefers '[correct_label]' for [
 ## Rules
 
 - `list_tasks`, `get_task`, `list_projects`, `list_labels`, `get_scheduled` are **read-only**
-- `create_task` **MUST** always include `--duration` — estimate if the user doesn't provide one
+- `create_task` **MUST** always include `--duration` — estimate if the user doesn't provide one. However, `--duration` requires `--due-datetime` (a specific start time) — never set duration without a start time
+- Tasks estimated at more than **240 minutes** should be broken into smaller subtasks
 - `delete_task` **MUST** be confirmed with the user before execution
 - If you estimated any of duration/priority/labels/deadline, you **MUST** confirm with the user before creating
 - On first use, verify auth by running `$TODOIST list_projects` — if it fails with 401/403, guide the user through setup
