@@ -39,6 +39,63 @@ URL to scrape
 
 ---
 
+## How to Detect When to Escalate Tiers
+
+After attempting a free scrape (Tier 1 or 2), inspect the result for these signals before deciding to escalate:
+
+### Signs you need to move from Tier 1 to Tier 2
+
+| Signal | What You See | Why |
+|--------|-------------|-----|
+| **Empty or near-empty output** | `trafilatura.extract()` returns `None` or `< 100 chars` | Page may need custom headers or specific element targeting |
+| **Boilerplate only** | Output is just nav links, footer text, cookie banners | trafilatura's content detection missed the main body |
+| **Encoding garbage** | `Ã©`, `â€™`, mojibake characters | Need `resp.encoding = resp.apparent_encoding` in requests |
+| **403 / 406 response** | HTTP error from curl/trafilatura | Site requires browser-like headers or cookies |
+
+### Signs you need to move from Tier 2 to Tier 3 (Firecrawl)
+
+| Signal | What You See | Why |
+|--------|-------------|-----|
+| **"Enable JavaScript" message** | Body contains text like "Please enable JavaScript", "This app requires JS", or `<noscript>` content only | Page is a JavaScript SPA/framework (React, Vue, Angular, Next.js) |
+| **Empty `<body>` with JS bundles** | HTML has `<script src="app.bundle.js">` but `<div id="root"></div>` is empty | Content is rendered client-side, not in server HTML |
+| **Dashboard / web app UI** | URL points to a dashboard, admin panel, or interactive tool (Grafana, Retool, Notion, Figma) | These are fully JS-rendered applications |
+| **Cloudflare / anti-bot challenge** | Response contains "Checking your browser", "cf-browser-verification", 403 with challenge page | Anti-bot protection requires a real browser environment |
+| **CAPTCHA page** | Response contains CAPTCHA HTML instead of content | Bot detection triggered |
+| **Infinite scroll / lazy load** | Only first few items appear, rest require scrolling | Content loaded dynamically via JS |
+| **Login wall / paywall** | Redirect to login page or "Subscribe to read" overlay | Firecrawl may handle some; others need authentication |
+
+### Quick detection snippet
+
+Run this after a Tier 2 attempt to check if Firecrawl is needed:
+
+```python
+def needs_firecrawl(html: str) -> tuple[bool, str]:
+    """Check if HTML content suggests JS rendering is required."""
+    html_lower = html.lower()
+    checks = [
+        ("please enable javascript" in html_lower, "JS required message detected"),
+        ("this app requires javascript" in html_lower, "JS required message detected"),
+        ('<div id="root"></div>' in html or '<div id="app"></div>' in html, "Empty SPA root element"),
+        ("cf-browser-verification" in html_lower, "Cloudflare challenge detected"),
+        ("checking your browser" in html_lower, "Anti-bot challenge detected"),
+        (len(html.strip()) < 500 and "<script" in html_lower, "Minimal HTML with JS bundles"),
+        ('<noscript>' in html_lower and len(html) < 2000, "Noscript-only content"),
+    ]
+    for condition, reason in checks:
+        if condition:
+            return True, reason
+    return False, ""
+
+# Usage after Tier 2:
+resp = requests.get(url, headers=headers, timeout=15)
+should_escalate, reason = needs_firecrawl(resp.text)
+if should_escalate:
+    print(f"Escalating to Firecrawl: {reason}")
+    # Proceed to Tier 3
+```
+
+---
+
 ## Tier 1: curl + trafilatura (Free)
 
 Best for: blogs, news articles, documentation, wikis, static sites.
@@ -200,20 +257,51 @@ print(result.markdown[:3000])
 
 ```python
 # Using the built-in web_crawl tool
-# IMPORTANT: Always set a limit to control costs
-web_crawl("example.com", "Extract pricing information", limit=5)
+# IMPORTANT: Always set a limit to control costs. NEVER exceed 10.
+web_crawl("example.com", "Extract pricing information", limit=3)
 ```
+
+### Crawl Limit Guidelines
+
+**The limit must ALWAYS be 10 or less.** Choose the smallest limit that gets the job done:
+
+| Task Type | Recommended Limit | Rationale |
+|-----------|-------------------|-----------|
+| **Single fact lookup** (pricing, contact info, one answer) | `limit=1` to `limit=2` | You only need 1-2 pages |
+| **Specific section** (API docs for one endpoint, single tutorial) | `limit=3` to `limit=5` | A few pages cover a focused topic |
+| **Broad topic survey** (entire API reference, full docs section) | `limit=5` to `limit=8` | Enough to capture most of a section |
+| **Maximum coverage** (comprehensive site audit, full docs) | `limit=10` | Hard ceiling — never go higher |
+
+**If you need more than 10 pages**, break the task into multiple targeted crawls with filters:
+```python
+# Instead of limit=20 across a whole site, do two focused crawls:
+web_crawl("docs.example.com", "API authentication", limit=5, include_paths=["/auth/*"])
+web_crawl("docs.example.com", "API endpoints", limit=5, include_paths=["/api/*"])
+```
+
+### When Firecrawl Limit is Reached
+
+**IMPORTANT: If a Firecrawl crawl completes and you did not get enough content to fulfill the user's request, you MUST ask the user before re-running or increasing the limit.** Do not silently re-run Firecrawl — each run costs credits.
+
+Tell the user:
+1. How many pages were crawled and what was found
+2. What is still missing
+3. Ask if they want to run another crawl (with a specific new limit and/or adjusted filters)
+
+Example:
+> "I crawled 5 pages from docs.example.com and found the authentication docs, but the rate-limiting section wasn't included. Would you like me to run another crawl targeting `/api/rate-limits/*` with limit=3?"
 
 ### Cost optimization tips for Firecrawl
 
 | Strategy | How | Savings |
 |----------|-----|---------|
-| **Set low limits** | `limit=5` on crawls | Prevents runaway costs |
+| **Set low limits** | `limit=3` to `limit=5` on crawls | Prevents runaway costs |
 | **Use URL filters** | `include_paths=["/docs/*"]` | Scrape only relevant pages |
 | **Exclude paths** | `exclude_paths=["/blog/*", "/archive/*"]` | Skip irrelevant sections |
 | **Scrape, don't crawl** | Use `web_extract` for known URLs | 1 credit vs N credits |
 | **Cache results** | Save output to file, reuse later | Avoid duplicate scrapes |
 | **Self-host** | Set `FIRECRAWL_API_URL` | Zero API cost (server cost only) |
+| **Ask before retry** | Confirm with user before re-crawling | Prevents wasted credits |
 
 ### Firecrawl via built-in tools (recommended)
 
@@ -223,7 +311,7 @@ The Hermes agent provides three built-in tools that wrap Firecrawl with LLM-powe
 |------|----------|---------|
 | `web_search` | Find URLs by topic | `web_search("python FastAPI deployment")` |
 | `web_extract` | Get content from known URLs | `web_extract(urls=["https://..."])` |
-| `web_crawl` | Crawl a site with instructions | `web_crawl("docs.example.com", "Find API reference", limit=10)` |
+| `web_crawl` | Crawl a site with instructions | `web_crawl("docs.example.com", "Find API reference", limit=5)` |
 
 These tools automatically:
 - Summarize content via LLM to reduce token usage
@@ -377,9 +465,11 @@ def load_scrape(url: str, output_dir: str = "./scraped", max_age_hours: int = 24
 
 ## Pitfalls
 
-- **Don't jump to Firecrawl first.** Most public pages work fine with curl or trafilatura. Try free tools before spending credits.
-- **Don't crawl without limits.** Always pass `limit=` when using `web_crawl`. An unbounded crawl on a large site will burn through credits.
+- **Don't jump to Firecrawl first.** Most public pages work fine with curl or trafilatura. Try free tools before spending credits. Check the "How to Detect When to Escalate Tiers" section to confirm escalation is warranted.
+- **Don't crawl without limits.** Always pass `limit=` when using `web_crawl`. The limit must be **10 or less** — no exceptions.
+- **Don't silently re-run Firecrawl.** If a crawl didn't return enough content, **ask the user** before running another one. Each run costs credits. Explain what was found and what's missing.
 - **Don't forget User-Agent headers.** Some sites block requests without a browser-like User-Agent. Always set one in Tier 2.
 - **Don't scrape the same URL twice.** Cache results to disk (see Saving Scraped Content above) to avoid redundant Firecrawl calls.
 - **Don't ignore encoding.** Use `resp.encoding = resp.apparent_encoding` with requests if you see garbled text.
 - **Don't parse HTML with regex for complex extraction.** Use BeautifulSoup — regex on HTML is fragile and error-prone.
+- **Don't guess if a page needs Firecrawl.** Run the `needs_firecrawl()` detection check (see above) after Tier 2 fails — don't assume based on the URL alone.
