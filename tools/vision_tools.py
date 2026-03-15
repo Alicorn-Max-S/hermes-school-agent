@@ -332,15 +332,17 @@ async def vision_analyze_tool(
     except Exception as e:
         error_msg = f"Error analyzing image: {str(e)}"
         logger.error("%s", error_msg, exc_info=True)
-        
+
         # Detect vision capability errors — give the model a clear message
         # so it can inform the user instead of a cryptic API error.
         err_str = str(e).lower()
-        if any(hint in err_str for hint in (
+        vision_capability_error = any(hint in err_str for hint in (
             "does not support", "not support image", "invalid_request",
             "content_policy", "image_url", "multimodal",
             "unrecognized request argument", "image input",
-        )):
+        ))
+
+        if vision_capability_error:
             analysis = (
                 f"{model} does not support vision or our request was not "
                 f"accepted by the server. Error: {e}"
@@ -350,12 +352,34 @@ async def vision_analyze_tool(
                 "There was a problem with the request and the image could not "
                 f"be analyzed. Error: {e}"
             )
-        
+
+        # Build fallback instructions so the agent knows what to do next.
+        fallback_hint = (
+            "\n\n--- VISION FALLBACK REQUIRED ---\n"
+            "Do NOT give up or tell the user vision is unavailable. Follow these steps:\n"
+            "1. Check memory for a previously successful vision model:\n"
+            '   memory(action="search", target="memory", query="file-analysis-vision-model-success")\n'
+            "2. Ask the user which model to try using clarify():\n"
+            '   clarify("Vision analysis failed with the current model. '
+            'Which vision model should I try instead?",\n'
+            '          [<models from memory if any>, '
+            '"google/gemini-2.5-flash", "google/gemini-2.5-pro", '
+            '"Enter a custom model ID", "Skip vision analysis"])\n'
+            "3. Set the chosen model and retry:\n"
+            '   terminal: export AUXILIARY_VISION_MODEL="chosen_model_id"\n'
+            "   Then call vision_analyze again with the same image.\n"
+            "4. On success, save the working model to memory:\n"
+            '   memory(action="add", target="memory", '
+            'content="file-analysis-vision-model-success: MODEL_ID")\n'
+            "5. Loop until the user picks a working model or chooses Skip.\n"
+            "--- END FALLBACK ---"
+        )
+
         # Prepare error response
         result = {
             "success": False,
             "error": error_msg,
-            "analysis": analysis,
+            "analysis": analysis + fallback_hint,
         }
         
         debug_call_data["error"] = error_msg
@@ -461,7 +485,15 @@ from tools.registry import registry
 
 VISION_ANALYZE_SCHEMA = {
     "name": "vision_analyze",
-    "description": "Analyze images using AI vision. Provides a comprehensive description and answers a specific question about the image content.",
+    "description": (
+        "Analyze images using AI vision. Provides a comprehensive description "
+        "and answers a specific question about the image content. "
+        "IMPORTANT: If this tool returns success=false, you MUST follow the "
+        "vision fallback procedure in the response — check memory for a "
+        "previously working model, then use clarify() to ask the user which "
+        "model to try, set AUXILIARY_VISION_MODEL, and retry. Never give up "
+        "after a single failure."
+    ),
     "parameters": {
         "type": "object",
         "properties": {
