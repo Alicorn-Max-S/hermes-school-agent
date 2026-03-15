@@ -81,3 +81,8 @@ When using school skills, follow these automatic workflows:
 - **After analyzing CSV/data with text-analysis** → "Would you like me to run this in Jupyter for deeper analysis or graphing?"
 - **After a study session ends** → "Would you like me to schedule your next study session in Todoist?"
 - **After checking Canvas assignments** → "Would you like to study for any of these upcoming assignments?"
+
+### Planning Best Practices
+- **Todoist** is the go-to tool for all tasks and assignments — homework tracking, deadline management, and study planning. Todoist automatically syncs to Google Calendar, so there is no need to manually create calendar entries for tasks.
+- **Google Calendar** is for events only — classes, meetings, school events, and appointments. Do not use Google Calendar for tasks or assignments.
+- When Canvas shows upcoming assignments, proactively suggest adding them to Todoist for tracking.
