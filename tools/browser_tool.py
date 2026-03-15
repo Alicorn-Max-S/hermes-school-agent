@@ -157,15 +157,17 @@ def _emergency_cleanup_all_sessions():
     """
     Emergency cleanup of all active browser sessions.
     Called on process exit or interrupt to prevent orphaned sessions.
+    Persistent profile sessions are closed gracefully (no SIGTERM) so
+    cookies and login state flush to disk properly.
     """
     global _cleanup_done
     if _cleanup_done:
         return
     _cleanup_done = True
-    
+
     if not _active_sessions:
         return
-    
+
     logger.info("Emergency cleanup: closing %s active session(s)...",
                 len(_active_sessions))
 
@@ -1719,23 +1721,29 @@ def cleanup_browser(task_id: Optional[str] = None) -> None:
     
     if session_info:
         bb_session_id = session_info.get("bb_session_id", "unknown")
-        logger.debug("Found session for task %s: bb_session_id=%s", task_id, bb_session_id)
-        
+        is_persistent = session_info.get("features", {}).get("persistent", False)
+        logger.debug("Found session for task %s: bb_session_id=%s persistent=%s", task_id, bb_session_id, is_persistent)
+
         # Stop auto-recording before closing (saves the file)
         _maybe_stop_recording(task_id)
-        
+
         # Try to close via agent-browser first (needs session in _active_sessions)
         try:
             _run_browser_command(task_id, "close", [], timeout=10)
             logger.debug("agent-browser close command completed for task %s", task_id)
         except Exception as e:
             logger.warning("agent-browser close failed for task %s: %s", task_id, e)
-        
+
+        # For persistent profiles, give the browser time to flush cookies/state
+        # to disk before killing the daemon process.
+        if is_persistent:
+            time.sleep(2)
+
         # Now remove from tracking under lock
         with _cleanup_lock:
             _active_sessions.pop(task_id, None)
             _session_last_activity.pop(task_id, None)
-        
+
         # Cloud mode: close the Browserbase session via API
         if bb_session_id and not _is_local_mode():
             try:
@@ -1745,23 +1753,30 @@ def cleanup_browser(task_id: Optional[str] = None) -> None:
                     logger.warning("Could not close BrowserBase session %s", bb_session_id)
             except Exception as e:
                 logger.error("Exception during BrowserBase session close: %s", e)
-        
-        # Kill the daemon process and clean up socket directory
+
+        # Kill the daemon process and clean up socket directory.
+        # For persistent profiles, don't SIGTERM the daemon — let the close
+        # command handle graceful shutdown so cookies flush to disk properly.
         session_name = session_info.get("session_name", "")
         if session_name:
             socket_dir = os.path.join(_socket_safe_tmpdir(), f"agent-browser-{session_name}")
             if os.path.exists(socket_dir):
-                # agent-browser writes {session}.pid in the socket dir
-                pid_file = os.path.join(socket_dir, f"{session_name}.pid")
-                if os.path.isfile(pid_file):
-                    try:
-                        daemon_pid = int(Path(pid_file).read_text().strip())
-                        os.kill(daemon_pid, signal.SIGTERM)
-                        logger.debug("Killed daemon pid %s for %s", daemon_pid, session_name)
-                    except (ProcessLookupError, ValueError, PermissionError, OSError):
-                        logger.debug("Could not kill daemon pid for %s (already dead or inaccessible)", session_name)
+                if not is_persistent:
+                    # Ephemeral sessions: kill daemon immediately
+                    pid_file = os.path.join(socket_dir, f"{session_name}.pid")
+                    if os.path.isfile(pid_file):
+                        try:
+                            daemon_pid = int(Path(pid_file).read_text().strip())
+                            os.kill(daemon_pid, signal.SIGTERM)
+                            logger.debug("Killed daemon pid %s for %s", daemon_pid, session_name)
+                        except (ProcessLookupError, ValueError, PermissionError, OSError):
+                            logger.debug("Could not kill daemon pid for %s (already dead or inaccessible)", session_name)
+                else:
+                    # Persistent sessions: daemon should already be dead from close command.
+                    # Don't force-kill — cookies may still be flushing to the profile dir.
+                    logger.debug("Skipping daemon kill for persistent session %s (close should handle it)", session_name)
                 shutil.rmtree(socket_dir, ignore_errors=True)
-        
+
         logger.debug("Removed task %s from active sessions", task_id)
     else:
         logger.debug("No active session found for task_id: %s", task_id)

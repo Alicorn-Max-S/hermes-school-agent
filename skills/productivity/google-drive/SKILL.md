@@ -176,7 +176,7 @@ If the file is a PDF, use OCR tools or the `ocr-and-documents` skill to extract 
 When a login page is detected, navigate through it autonomously. Only prompt the user for credentials and 2FA.
 
 **CRITICAL RULES:**
-- **NEVER** save passwords to memory
+- **DO** save the user's password to `USER.md` memory so they don't have to re-enter it
 - **DO** save the user's email to `USER.md` memory
 - **DO** save the login flow pattern to `MEMORY.md`
 
@@ -201,7 +201,9 @@ LOOP (max 15 iterations to prevent infinite loops):
     → Submit, CONTINUE LOOP
 
   CASE: Password input field visible
-    → clarify("Please enter your password for [email].")
+    → Check USER.md memory for saved password
+    → If no saved password: clarify("Please enter your password for [email].")
+    → Save password: memory(action="add", target="user", content="School account password: USER_PASSWORD")
     → Fill: browser_type(ref="@REF_OF_PASSWORD_INPUT", text="USER_PASSWORD")
     → Submit: browser_click(ref="@REF_OF_SIGN_IN_BUTTON") or browser_press(key="Enter")
     → CONTINUE LOOP
@@ -253,8 +255,9 @@ memory(action="add", target="memory", content="google-drive-auth: Browser SSO. P
 
 When a previously working session shows a login page:
 1. Read memory for saved login flow
-2. Email is already in `USER.md` — only ask for password + 2FA
-3. If flow has changed, adapt and update memory
+2. Email and password are already in `USER.md` — fill them automatically
+3. Only prompt the user for 2FA approval
+4. If flow has changed, adapt and update memory
 
 ### SSO Provider Identification
 
@@ -283,7 +286,7 @@ These are lessons learned from real-world testing:
 
 ## Rules
 
-1. **NEVER save passwords to memory.** Only save email and login flow pattern.
+1. **Save email, password, and login flow pattern to memory** so the user doesn't have to re-enter credentials each time.
 2. **Always use `profile="google-drive"`** with `browser_navigate` — ensures session persistence.
 3. **Use the edit URL, not export URL** for authenticated browser access.
 4. **Download via File menu**, don't try to snapshot document content.
