@@ -1,7 +1,7 @@
 ---
 name: google-drive
 description: Read content from Google Drive links (Docs, Sheets, PDFs). Supports both Google API (OAuth2) and browser-based SSO authentication for school/enterprise accounts that cannot access the Google Developer Console.
-version: 1.0.0
+version: 1.1.0
 author: Nous Research
 license: MIT
 metadata:
@@ -15,17 +15,19 @@ metadata:
 
 Read content from Google Drive links. Three methods are available — try them in order:
 
-1. **Direct Fetch** (fastest): Use `web_extract` to grab content from the export URL — works for publicly shared files, no auth needed
+1. **Direct Fetch** (fastest): `curl` the export URL — works for publicly shared files, no auth needed
 2. **API Mode**: Uses Google Workspace OAuth2 (requires Google Developer Console access)
-3. **Browser SSO Mode**: Uses browser automation with persistent login sessions — works for school/enterprise accounts that block Developer Console access
+3. **Browser SSO Mode**: Uses browser automation with persistent login — works for school/enterprise accounts that block Developer Console access
+
+**IMPORTANT**: All tool references in this skill (`browser_navigate`, `browser_snapshot`, `browser_click`, `browser_type`, `browser_press`, `web_extract`, `clarify`, `memory`) are **agent tools** — invoke them as tool calls, NOT as Python imports or function calls in `execute_code`.
 
 ## Scripts
 
-- `scripts/gdrive_read.py` — URL parser and export URL builder
+- `scripts/gdrive_read.py` — URL parser and URL builder (export, edit, view URLs)
 
 ## How to Read a Google Drive Link
 
-When a user shares a Google Drive link, **always start here** — follow this flow in order:
+When a user shares a Google Drive link, **always start here**:
 
 ### Step 0: Parse the URL
 
@@ -34,25 +36,22 @@ GDRIVE="python3 ~/.hermes/skills/productivity/google-drive/scripts/gdrive_read.p
 $GDRIVE parse "THE_DRIVE_URL"
 ```
 
-This returns JSON with `file_id`, `file_type`, `export_url`, and `view_url`.
+Returns JSON with `file_id`, `file_type`, `export_url`, `edit_url`, and `view_url`.
 
-### Step 1: Try Direct Fetch via Terminal (No Auth Needed)
+### Step 1: Try Direct Fetch (No Auth Needed)
 
-Try fetching the export URL directly using `curl` in the terminal. This works for files shared as "Anyone with the link":
+Try fetching the export URL directly. This works for files shared as "Anyone with the link":
 
 ```bash
 curl -sL "EXPORT_URL_FROM_STEP_0"
 ```
 
-- If this returns the **document content** (actual text / CSV data, not HTML) → done! Return the content to the user.
-- If this returns **HTML containing "Sign in"** or a Google login page → the file requires authentication. Continue to Step 2.
-
-**Alternatively**, if you have the `web_extract` tool available, you can use it instead of curl:
-Use the `web_extract` **tool** (not a Python import — call it as a tool): `web_extract(urls=["EXPORT_URL"], format="markdown")`
+- If this returns **document content** (actual text / CSV data, not HTML) → done!
+- If this returns **HTML containing "Sign in"** or a login page → requires authentication. Continue to Step 2.
 
 ### Step 2: Check Memory for Auth Method
 
-Look in your memory for an existing `google-drive-auth` entry. If found, skip to the appropriate method (API or Browser SSO) below.
+Look in your memory for an existing `google-drive-auth` entry. If found, skip to the appropriate method below.
 
 ### Step 3: Check Existing Google Workspace Auth
 
@@ -62,74 +61,55 @@ python3 ~/.hermes/skills/productivity/google-workspace/scripts/setup.py --check 
 
 If output is `AUTHENTICATED`, use **Method A (API Mode)** below. Save to memory:
 ```
-memory(action="add", target="memory", content="google-drive-auth: API mode via google-workspace skill. Already authenticated.")
+memory(action="add", target="memory", content="google-drive-auth: API mode via google-workspace skill.")
 ```
 
 ### Step 4: Check if Browser Tools Are Available
 
-Before trying browser SSO, check if the `browser_navigate` **tool** is in your available tools list. **Do NOT try to import it as Python — it is an agent tool you call directly.**
+Check if `browser_navigate` is in your available tools list.
 
-If `browser_navigate` is NOT in your tools list, tell the user:
-
-> "Browser tools aren't available in this environment. To enable browser-based Google Drive access, run these commands in a terminal:
-> ```
-> cd /path/to/hermes-agent && npm install && npx agent-browser install --with-deps
-> ```
-> Then restart the agent. Alternatively, you can make the document publicly accessible (Share → Anyone with the link → Viewer)."
-
-If browser tools ARE available, continue.
+If NOT available, tell the user:
+> "Browser tools aren't available. To enable browser-based Google Drive access, run:
+> `cd /path/to/hermes-agent && npm install && npx agent-browser install --with-deps`
+> Then restart the agent. Or make the document publicly accessible (Share → Anyone with the link)."
 
 ### Step 5: Ask About Developer Console Access
 
-Use the `clarify` **tool** (not a Python function — call it as a tool):
-
 ```
-clarify("The file requires authentication. Can you access the Google Developer Console (console.cloud.google.com) with your Google account? If you're using a school or enterprise account, you may not have access.", ["Yes, I can access it", "No, I cannot / I'm not sure"])
+clarify("The file requires authentication. Can you access the Google Developer Console (console.cloud.google.com)? School/enterprise accounts often cannot.", ["Yes, I can access it", "No, I cannot / I'm not sure"])
 ```
 
-- If **yes**: guide them through the google-workspace skill setup (load that skill with `skill_view("google-workspace")`), then use API mode.
-- If **no**: proceed with **Method B (Browser SSO Mode)** below.
-
-**IMPORTANT**: All tool references in this skill (like `browser_navigate`, `browser_snapshot`, `browser_click`, `browser_type`, `browser_press`, `web_extract`, `clarify`, `memory`) are **agent tools** — invoke them as tool calls, NOT as Python imports or function calls in `execute_code`.
+- **Yes**: guide through google-workspace skill setup, then use API mode.
+- **No**: proceed with **Method B (Browser SSO Mode)** below.
 
 ---
 
 ## Method A: API Mode
 
-Delegate to the existing google-workspace skill's `google_api.py` for content reading.
-
-### Setup
+Delegate to the existing google-workspace skill. See `skill_view("google-workspace")` for full setup and usage.
 
 ```bash
 GAPI="python3 ~/.hermes/skills/productivity/google-workspace/scripts/google_api.py"
 ```
 
-### Reading Content
-
-First, parse the URL to get the file ID:
-
-```bash
-GDRIVE="python3 ~/.hermes/skills/productivity/google-drive/scripts/gdrive_read.py"
-$GDRIVE parse "THE_DRIVE_URL"
-```
-
-This returns JSON with `file_id`, `file_type`, `export_url`, and `view_url`.
-
-Then use the appropriate API command:
-
 - **Google Docs**: `$GAPI docs get FILE_ID`
 - **Google Sheets**: `$GAPI sheets get FILE_ID "Sheet1!A:Z"`
-- **Other files**: `$GAPI drive search "name = 'filename'"` to find, then download
+- **Other files**: `$GAPI drive search "name = 'filename'"` then download
 
 ---
 
 ## Method B: Browser SSO Mode
 
-Uses the browser with a persistent profile (`google-drive`) to log in through school/enterprise SSO. Once logged in, the session typically persists for 90 days.
+Uses the browser with a persistent profile (`google-drive`) for school/enterprise SSO login. Sessions typically persist ~90 days.
 
-### Reading Content
+### How to Read Content (Browser Mode)
 
-Follow this procedure every time the user shares a Google Drive link:
+**IMPORTANT — Lessons from real-world testing:**
+- **Export URLs do NOT work** in the browser — they trigger downloads that the browser blocks (ERR_ABORTED)
+- **Google Docs content is Canvas-rendered** — `browser_snapshot()` on a Doc view page returns NO document text (it's drawn on a `<canvas>` element, invisible to the DOM)
+- **The working method**: Navigate to the **edit URL**, use the **File menu → Download** to save as a readable format, then read the downloaded file from disk
+
+**Step-by-step procedure:**
 
 **1. Parse the URL:**
 
@@ -138,92 +118,127 @@ GDRIVE="python3 ~/.hermes/skills/productivity/google-drive/scripts/gdrive_read.p
 $GDRIVE parse "THE_DRIVE_URL"
 ```
 
-This returns JSON with `file_id`, `file_type`, `export_url`, and `view_url`.
-
-**2. Navigate with persistent profile:**
-
-For Google Docs and Sheets, use the **export URL** to get clean text/CSV content. For other files, use the **view URL**.
+**2. Navigate to the EDIT URL with persistent profile:**
 
 ```
-browser_navigate(url=export_url_or_view_url, profile="google-drive")
+browser_navigate(url=edit_url, profile="google-drive")
 ```
 
-**3. Check if login is needed:**
+**3. Take a snapshot to check state:**
 
 ```
 browser_snapshot()
 ```
 
-Analyze the snapshot:
+- If you see the **document editor** (Google Docs toolbar, sheet grid, etc.) → proceed to Step 4
+- If you see a **login page** → run the **SSO Login Flow** below, then come back here
+- If you see **"You need access"** → tell the user the file isn't shared with their account
 
-- If it contains the **file content** (document text, CSV data, etc.) → proceed to content extraction below
-- If it shows a **login page** → run the **SSO Login Flow** below
-- If it shows a **"You need access" page** → tell the user the file isn't shared with their account
+**4. Download the content via File menu:**
 
-**4. Extract content:**
+The download method depends on the file type:
 
-- **Google Docs** (export as txt): The page content IS the document text. Read it from the snapshot.
-- **Google Sheets** (export as csv): The page content IS the CSV data. Read it from the snapshot.
-- **PDFs / other files**: Use `browser_snapshot(full=True)` on the Drive viewer. If the snapshot is insufficient, use `browser_vision(question="Extract all text content from this document")`.
-- For long documents, use `browser_scroll(direction="down")` and take additional snapshots.
+**For Google Docs:**
+```
+browser_click(ref="@REF_OF_FILE_MENU")          # Click "File" in the menu bar
+```
+Then take a snapshot, find "Download" submenu, click it, then select a format:
+- **Plain text (.txt)** — simplest, best for reading content
+- **Markdown (.md)** — preserves formatting if available
+- **PDF (.pdf)** — preserves layout
+
+```
+browser_click(ref="@REF_OF_DOWNLOAD")            # Click "Download" submenu
+browser_click(ref="@REF_OF_FORMAT")               # Click desired format (e.g., "Plain text (.txt)")
+```
+
+**For Google Sheets:**
+Same File → Download flow, choose **CSV (.csv)** or **TSV (.tsv)**.
+
+**For Google Slides:**
+Same File → Download flow, choose **Plain text (.txt)** or **PDF (.pdf)**.
+
+**5. Read the downloaded file:**
+
+Downloads land in `~/Downloads/` (or `/root/Downloads/` for root users). Filenames have spaces replaced with underscores or may keep original names.
+
+```bash
+ls -t ~/Downloads/ | head -5                      # Find the most recent download
+cat ~/Downloads/FILENAME                           # Read the content
+```
+
+If the file is a PDF, use OCR tools or the `ocr-and-documents` skill to extract text.
+
+**6. Return the content to the user.**
 
 ### SSO Login Flow (AI-Driven)
 
-When a login page is detected, navigate through it autonomously. Only prompt the user when you need actual credentials or 2FA confirmation.
+When a login page is detected, navigate through it autonomously. Only prompt the user for credentials and 2FA.
 
 **CRITICAL RULES:**
 - **NEVER** save passwords to memory
-- **DO** save the user's email to `USER.md` memory (with their permission)
-- **DO** save the login flow pattern to `MEMORY.md` so you know what to expect next time
+- **DO** save the user's email to `USER.md` memory
+- **DO** save the login flow pattern to `MEMORY.md`
 
 **Login Loop:**
 
 ```
-LOOP (max 10 iterations to prevent infinite loops):
+LOOP (max 15 iterations to prevent infinite loops):
   1. Take browser_snapshot()
-  2. Analyze what the current page is:
+  2. Analyze the current page:
 
-  CASE: Email/username input field visible
+  CASE: Google "Choose an account" or "Sign in" page (accounts.google.com)
     → Check USER.md memory for saved email
     → If no saved email: clarify("What is your email address for this Google/school account?")
-    → Save email to memory: memory(action="add", target="user", content="Google/school email: USER_EMAIL")
+    → Save email: memory(action="add", target="user", content="Google/school email: USER_EMAIL")
     → Fill email: browser_type(ref="@REF_OF_EMAIL_INPUT", text="USER_EMAIL")
     → Submit: browser_click(ref="@REF_OF_NEXT_BUTTON") or browser_press(key="Enter")
-    → Wait briefly, CONTINUE LOOP
+    → CONTINUE LOOP
+
+  CASE: SSO redirect — Microsoft login page (login.microsoftonline.com)
+    → The email may need to be re-entered on the Microsoft page
+    → Fill email again using saved email from memory
+    → Submit, CONTINUE LOOP
 
   CASE: Password input field visible
-    → clarify("Please enter your password for [email/account].")
-    → Fill password: browser_type(ref="@REF_OF_PASSWORD_INPUT", text="USER_PASSWORD")
+    → clarify("Please enter your password for [email].")
+    → Fill: browser_type(ref="@REF_OF_PASSWORD_INPUT", text="USER_PASSWORD")
     → Submit: browser_click(ref="@REF_OF_SIGN_IN_BUTTON") or browser_press(key="Enter")
-    → Wait briefly, CONTINUE LOOP
+    → CONTINUE LOOP
 
-  CASE: 2FA / MFA prompt (authenticator app, push notification, SMS code, etc.)
-    → Identify the 2FA method from the page content
-    → If push notification (e.g., Microsoft Authenticator "Approve sign-in"):
-        clarify("Please approve the sign-in request on your phone (Microsoft Authenticator / your authentication app), then tell me when done.", ["Done - I approved it", "I need more time", "Cancel login"])
-        If "I need more time" → wait 10 seconds, CONTINUE LOOP
-        If "Cancel login" → abort and tell user
-    → If code entry (TOTP, SMS):
-        clarify("Please enter the verification code from your authenticator app / SMS.")
+  CASE: 2FA / MFA prompt
+    → Identify the 2FA method from the page:
+    → If NUMBER MATCHING (e.g., Microsoft Authenticator shows a number):
+        Take browser_snapshot() to read the number displayed on screen
+        clarify("Please approve the sign-in on your phone. The number to match is: [NUMBER]", ["Done - I approved it", "I need more time", "Cancel"])
+    → If PUSH NOTIFICATION (approve/deny without number):
+        clarify("Please approve the sign-in request on your phone, then tell me when done.", ["Done - I approved it", "I need more time", "Cancel"])
+    → If CODE ENTRY (TOTP, SMS):
+        clarify("Please enter the verification code from your authenticator app or SMS.")
         Fill code: browser_type(ref="@REF_OF_CODE_INPUT", text="CODE")
         Submit, CONTINUE LOOP
+    → If "I need more time" → wait 10 seconds, CONTINUE LOOP
+    → If "Cancel" → abort and tell user
 
-  CASE: "Stay signed in?" / "Remember this device?" prompt
-    → Click "Yes" / "Don't show again" to maximize session duration
+  CASE: "Stay signed in?" / "Remember this device?" / "Don't show this again"
+    → Click "Yes" to maximize session duration
+    → CONTINUE LOOP
+
+  CASE: "Verify it's you" / additional Google verification after SSO
+    → Click "Continue" or "Try another way" as appropriate
     → CONTINUE LOOP
 
   CASE: Consent / permissions page
-    → Click "Accept" / "Allow"
+    → Click "Accept" / "Allow" / "Continue"
     → CONTINUE LOOP
 
-  CASE: Drive content is visible (document text, file list, etc.)
+  CASE: Google Drive / Docs editor is visible
     → Login succeeded! EXIT LOOP
-    → Save login flow to memory (see below)
+    → Save flow to memory (see below)
 
-  CASE: Error page or unrecognized page
-    → browser_vision(question="What is shown on this page? Is it a login page, error, or something else?")
-    → If error: report to user, ask how to proceed
-    → If unrecognizable: show screenshot to user, ask for guidance
+  CASE: Error or unrecognized page
+    → browser_vision(question="What is shown on this page? Is it a login form, error, or content?")
+    → If unclear: ask user for guidance
 
 END LOOP
 ```
@@ -231,52 +246,60 @@ END LOOP
 **After successful login, save the flow to memory:**
 
 ```
-memory(action="add", target="memory", content="google-drive-auth: Browser SSO mode. Provider: [Google/Microsoft/Okta/other]. Profile: google-drive. Login flow: [1. email at accounts.google.com, 2. redirect to login.microsoftonline.com, 3. email again, 4. password, 5. MS Authenticator push, 6. 'Stay signed in' → Yes]. Session persists ~90 days.")
+memory(action="add", target="memory", content="google-drive-auth: Browser SSO. Provider: [detected]. Profile: google-drive. Flow: [1. email at accounts.google.com → 2. redirect to login.microsoftonline.com → 3. re-enter email → 4. password → 5. MS Authenticator number match → 6. Stay signed in=Yes → 7. Google 'Verify it's you' Continue]. Content method: edit URL + File→Download. Downloads go to ~/Downloads/. Session ~90 days.")
 ```
 
 ### Handling Session Expiry
 
-When you navigate to a Drive URL with the persistent profile and get a login page instead of content:
-
-1. Read memory for the saved login flow pattern
-2. You already know the email (from `USER.md`) — skip asking for it
-3. Only prompt for password + 2FA
-4. If the flow has changed (different pages than expected), adapt and update memory
+When a previously working session shows a login page:
+1. Read memory for saved login flow
+2. Email is already in `USER.md` — only ask for password + 2FA
+3. If flow has changed, adapt and update memory
 
 ### SSO Provider Identification
-
-Common SSO providers you may encounter — identify by page URL or content:
 
 | Provider | URL Pattern | Identifying Features |
 |----------|------------|---------------------|
 | Google | `accounts.google.com` | "Sign in with Google" heading |
-| Microsoft / Azure AD | `login.microsoftonline.com`, `login.live.com` | Microsoft logo, "Sign in" with Microsoft branding |
-| Okta | `*.okta.com` | Okta branding, "Sign In" with Okta widget |
-| Clever | `clever.com` | Clever branding (common in K-12 schools) |
+| Microsoft / Azure AD | `login.microsoftonline.com` | Microsoft logo, may require number matching for 2FA |
+| Okta | `*.okta.com` | Okta widget |
+| Clever | `clever.com` | Common in K-12 schools |
 | ClassLink | `launchpad.classlink.com` | ClassLink branding |
-| SAML / Generic | Various institutional URLs | School/university branding, "Institutional Login" |
-
-If you can't identify the provider from the snapshot, use `browser_vision()` to visually analyze the page.
+| SAML / Generic | Various institutional URLs | School/university branding |
 
 ---
 
+## Known Limitations & Workarounds
+
+These are lessons learned from real-world testing:
+
+| What Doesn't Work | Why | Workaround |
+|---|---|---|
+| Export URLs in browser | Browser blocks downloads (ERR_ABORTED) | Use edit URL + File → Download instead |
+| `browser_snapshot()` on Google Docs | Content is Canvas-rendered, invisible to DOM | Download the doc as text/markdown/PDF and read the file |
+| `browser_snapshot()` on Google Sheets | May work for simple sheets; complex ones are Canvas | Download as CSV and read the file |
+| `curl` on private files | No auth cookies in terminal | Use browser mode with persistent profile |
+| Direct `curl` export after browser login | Browser cookies aren't shared with `curl` | Always use browser File→Download for private files |
+
 ## Rules
 
-1. **NEVER save passwords to memory.** Only save email/username and login flow pattern.
-2. **Always use `profile="google-drive"`** with `browser_navigate` for Drive access — this ensures session persistence.
-3. **Parse URLs before navigating** — use `gdrive_read.py parse` to get the right export/view URL.
-4. **For long documents**, scroll and take multiple snapshots to capture all content.
-5. **If a file requires access permissions**, tell the user — don't try to bypass access controls.
+1. **NEVER save passwords to memory.** Only save email and login flow pattern.
+2. **Always use `profile="google-drive"`** with `browser_navigate` — ensures session persistence.
+3. **Use the edit URL, not export URL** for authenticated browser access.
+4. **Download via File menu**, don't try to snapshot document content.
+5. **Check `~/Downloads/`** for downloaded files — names may have underscores replacing spaces.
+6. **For 2FA number matching**, read the number from the page and tell the user what to match.
 
 ## Troubleshooting
 
 | Problem | Fix |
 |---------|-----|
-| Login page keeps appearing | Session may have expired. Re-run login flow (only password + 2FA needed since email is saved). |
-| "You need access" error | File isn't shared with the user's account. Ask user to request access. |
-| Export URL returns HTML instead of text | Navigate to view URL instead and use `browser_snapshot(full=True)`. |
-| 2FA times out | Ask user to retry 2FA. Some authenticator apps have short windows. |
-| Unrecognized login page | Use `browser_vision()` to see the page, ask user for guidance. |
+| Login page keeps appearing | Session expired. Re-run login flow (password + 2FA only). |
+| "You need access" error | File isn't shared with user's account. Ask user to request access. |
+| Export URL returns ERR_ABORTED | Expected — use File → Download from the edit URL instead. |
+| Downloaded file not found | Check `ls -t ~/Downloads/ \| head` — filename may differ from doc title. |
+| 2FA times out | Ask user to retry. Some authenticator apps have short approval windows. |
+| Snapshot shows no content (blank) | Google Docs uses Canvas rendering. Download the file instead of snapshotting. |
 | Browser profile corrupted | Delete `~/.hermes/browser-profiles/google-drive/` and re-login. |
-| Browser tools not available | Run `npm install` in hermes-agent dir, then `npx agent-browser install --with-deps`. |
-| `web_extract` returns login page | File requires auth — use browser SSO mode or make the doc publicly shared. |
+| Browser tools not available | Run `npm install && npx agent-browser install --with-deps` in hermes-agent dir. |
+| "Verify it's you" page after SSO | Click "Continue" — this is Google's additional verification after SSO redirect. |

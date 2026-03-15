@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Google Drive URL Parser and Export URL Builder
+Google Drive URL Parser and URL Builder
 
 Parses Google Drive/Docs/Sheets/Slides URLs to extract file IDs and
-construct export URLs for clean text/CSV content extraction.
+construct export, edit, and view URLs.
 
 Usage:
-    python gdrive_read.py parse "https://docs.google.com/document/d/ABC123/edit"
-    python gdrive_read.py parse "https://drive.google.com/file/d/XYZ789/view"
+    python3 gdrive_read.py parse "https://docs.google.com/document/d/ABC123/edit"
+    python3 gdrive_read.py parse "https://drive.google.com/file/d/XYZ789/view"
 """
 
 import json
@@ -32,14 +32,28 @@ _PATTERNS = [
     (r"drive\.google\.com/open\?id=([a-zA-Z0-9_-]+)", "file"),
 ]
 
-# Export URL templates for text/CSV extraction
+# Export URL templates — for direct curl fetch of publicly shared files.
+# NOTE: These do NOT work in the browser (downloads get blocked with ERR_ABORTED).
+# For authenticated access, use the edit URL + File → Download instead.
 _EXPORT_URLS = {
     "doc": "https://docs.google.com/document/d/{file_id}/export?format=txt",
     "sheet": "https://docs.google.com/spreadsheets/d/{file_id}/export?format=csv",
     "slides": "https://docs.google.com/presentation/d/{file_id}/export?format=txt",
 }
 
-# View URL templates for browser viewing
+# Edit URL templates — for browser-based access (File → Download workflow).
+# This is the PREFERRED method for authenticated access because:
+# - Export URLs get blocked by the browser (ERR_ABORTED)
+# - Google Docs content is Canvas-rendered (invisible to DOM/snapshots)
+# - File → Download saves a readable file to ~/Downloads/
+_EDIT_URLS = {
+    "doc": "https://docs.google.com/document/d/{file_id}/edit",
+    "sheet": "https://docs.google.com/spreadsheets/d/{file_id}/edit",
+    "slides": "https://docs.google.com/presentation/d/{file_id}/edit",
+    "form": "https://docs.google.com/forms/d/{file_id}/edit",
+}
+
+# View URL templates — for read-only browser viewing
 _VIEW_URLS = {
     "doc": "https://docs.google.com/document/d/{file_id}/preview",
     "sheet": "https://docs.google.com/spreadsheets/d/{file_id}/preview",
@@ -53,8 +67,9 @@ def parse_drive_url(url: str) -> dict:
     """Parse a Google Drive URL and return file metadata.
 
     Returns:
-        Dict with: file_id, file_type, export_url (if available),
-        view_url, original_url.  On failure: error message.
+        Dict with: file_id, file_type, edit_url (preferred for browser),
+        export_url (for curl), view_url, original_url.
+        On failure: error message.
     """
     url = url.strip()
 
@@ -82,19 +97,29 @@ def parse_drive_url(url: str) -> dict:
         "file_id": file_id,
         "file_type": file_type,
         "original_url": url,
-        "view_url": _VIEW_URLS.get(file_type, "").format(file_id=file_id),
     }
 
+    # Edit URL — preferred for browser access (File → Download workflow)
+    edit_url = _EDIT_URLS.get(file_type, "").format(file_id=file_id)
+    if edit_url:
+        result["edit_url"] = edit_url
+
+    # Export URL — for direct curl fetch of public files only
     export_url = _EXPORT_URLS.get(file_type, "").format(file_id=file_id)
     if export_url:
         result["export_url"] = export_url
+
+    # View URL — read-only browser viewing
+    view_url = _VIEW_URLS.get(file_type, "").format(file_id=file_id)
+    if view_url:
+        result["view_url"] = view_url
 
     return result
 
 
 def main():
     if len(sys.argv) < 3 or sys.argv[1] != "parse":
-        print("Usage: python gdrive_read.py parse <google_drive_url>")
+        print("Usage: python3 gdrive_read.py parse <google_drive_url>")
         sys.exit(1)
 
     url = sys.argv[2]
