@@ -1626,8 +1626,44 @@ def _reset_config_provider() -> Path:
     return config_path
 
 
-def _prompt_model_selection(model_ids: List[str], current_model: str = "") -> Optional[str]:
-    """Interactive model selection. Puts current_model first with a marker. Returns chosen model ID or None."""
+def _get_recently_used_for_provider(
+    provider_model_ids: List[str],
+    limit: int = 5,
+) -> tuple:
+    """Return ``(per_provider_recent, global_recent)`` model lists.
+
+    *per_provider_recent* contains models from the provider's catalog that have
+    been used in recent sessions.  *global_recent* contains recently used models
+    from *other* providers (not in the current catalog).
+
+    Returns ``([], [])`` on any error so callers never need to handle failures.
+    """
+    try:
+        from hermes_state import SessionDB
+        db = SessionDB()
+        all_recent = db.recently_used_models(limit=30)
+        db.close()
+    except Exception:
+        return ([], [])
+
+    provider_set = set(provider_model_ids)
+    per_provider = [m for m in all_recent if m in provider_set][:limit]
+    global_recent = [m for m in all_recent if m not in provider_set][:limit]
+    return (per_provider, global_recent)
+
+
+def _prompt_model_selection(
+    model_ids: List[str],
+    current_model: str = "",
+    recently_used: Optional[List[str]] = None,
+    global_recent: Optional[List[str]] = None,
+) -> Optional[str]:
+    """Interactive model selection with optional 'Previously Used' sections.
+
+    Puts current_model first with a marker.  When *recently_used* or
+    *global_recent* are provided, renders them as separate sections above
+    the full model list.  Returns chosen model ID or ``None``.
+    """
     # Reorder: current model first, then the rest (deduplicated)
     ordered = []
     if current_model and current_model in model_ids:
@@ -1642,15 +1678,44 @@ def _prompt_model_selection(model_ids: List[str], current_model: str = "") -> Op
             return f"{mid}  ← currently in use"
         return mid
 
-    # Default cursor on the current model (index 0 if it was reordered to top)
+    # Build a flat entries list: (display_string, model_id | "__custom__" | "__skip__" | None)
+    # None entries are non-selectable section separators.
+    _SEP = None  # sentinel for separator entries
+    entries: list = []
+
+    has_provider_recent = bool(recently_used)
+    has_global_recent = bool(global_recent)
+
+    if has_provider_recent:
+        entries.append(("  ── Previously Used ──", _SEP))
+        for mid in recently_used:
+            entries.append((f"  {_label(mid)}", mid))
+
+    if has_global_recent:
+        entries.append(("  ── Previously Used (other providers) ──", _SEP))
+        for mid in global_recent:
+            entries.append((f"  {_label(mid)}", mid))
+
+    if has_provider_recent or has_global_recent:
+        entries.append(("  ── All Models ──", _SEP))
+
+    for mid in ordered:
+        entries.append((f"  {_label(mid)}", mid))
+
+    entries.append(("  Enter custom model name", "__custom__"))
+    entries.append(("  Skip (keep current)", "__skip__"))
+
+    # Default cursor: first selectable entry
     default_idx = 0
+    for i, (_, val) in enumerate(entries):
+        if val is not _SEP:
+            default_idx = i
+            break
 
     # Try arrow-key menu first, fall back to number input
     try:
         from simple_term_menu import TerminalMenu
-        choices = [f"  {_label(mid)}" for mid in ordered]
-        choices.append("  Enter custom model name")
-        choices.append("  Skip (keep current)")
+        choices = [e[0] for e in entries]
         menu = TerminalMenu(
             choices,
             cursor_index=default_idx,
@@ -1665,38 +1730,48 @@ def _prompt_model_selection(model_ids: List[str], current_model: str = "") -> Op
         if idx is None:
             return None
         print()
-        if idx < len(ordered):
-            return ordered[idx]
-        elif idx == len(ordered):
+        _, val = entries[idx]
+        if val is _SEP:
+            return None
+        if val == "__custom__":
             custom = input("Enter model name: ").strip()
             return custom if custom else None
-        return None
+        if val == "__skip__":
+            return None
+        return val
     except (ImportError, NotImplementedError):
         pass
 
-    # Fallback: numbered list
+    # Fallback: numbered list (separators are unnumbered)
     print("Select default model:")
-    for i, mid in enumerate(ordered, 1):
-        print(f"  {i}. {_label(mid)}")
-    n = len(ordered)
-    print(f"  {n + 1}. Enter custom model name")
-    print(f"  {n + 2}. Skip (keep current)")
+    index_to_value: dict = {}
+    num = 0
+    for display, val in entries:
+        if val is _SEP:
+            print(display)
+        else:
+            num += 1
+            index_to_value[num] = val
+            # Replace leading spaces with number prefix
+            print(f"  {num}. {display.strip()}")
     print()
 
     while True:
         try:
-            choice = input(f"Choice [1-{n + 2}] (default: skip): ").strip()
+            choice = input(f"Choice [1-{num}] (default: skip): ").strip()
             if not choice:
                 return None
             idx = int(choice)
-            if 1 <= idx <= n:
-                return ordered[idx - 1]
-            elif idx == n + 1:
+            val = index_to_value.get(idx)
+            if val is None:
+                print(f"Please enter 1-{num}")
+                continue
+            if val == "__custom__":
                 custom = input("Enter model name: ").strip()
                 return custom if custom else None
-            elif idx == n + 2:
+            if val == "__skip__":
                 return None
-            print(f"Please enter 1-{n + 2}")
+            return val
         except ValueError:
             print("Please enter a number")
         except (KeyboardInterrupt, EOFError):
@@ -2068,7 +2143,9 @@ def _login_nous(args, pconfig: ProviderConfig) -> None:
 
             print()
             if model_ids:
-                selected_model = _prompt_model_selection(model_ids)
+                per_provider, global_recent = _get_recently_used_for_provider(model_ids)
+                selected_model = _prompt_model_selection(
+                    model_ids, recently_used=per_provider, global_recent=global_recent)
                 if selected_model:
                     _save_model_choice(selected_model)
                     print(f"Default model set to: {selected_model}")

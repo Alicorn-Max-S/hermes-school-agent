@@ -933,3 +933,84 @@ class TestResolveSessionByNameOrId:
         db.set_session_title("s1", "my project")
         result = db.resolve_session_by_title("my project")
         assert result == "s1"
+
+
+# =========================================================================
+# Recently used models
+# =========================================================================
+
+class TestRecentlyUsedModels:
+    def test_empty_db(self, db):
+        assert db.recently_used_models() == []
+
+    def test_ordering(self, db):
+        """Models returned in most-recently-used-first order."""
+        db._conn.execute(
+            "INSERT INTO sessions (id, source, model, started_at) VALUES (?, ?, ?, ?)",
+            ("s1", "cli", "model-a", 1000.0),
+        )
+        db._conn.execute(
+            "INSERT INTO sessions (id, source, model, started_at) VALUES (?, ?, ?, ?)",
+            ("s2", "cli", "model-b", 2000.0),
+        )
+        db._conn.execute(
+            "INSERT INTO sessions (id, source, model, started_at) VALUES (?, ?, ?, ?)",
+            ("s3", "cli", "model-c", 3000.0),
+        )
+        db._conn.commit()
+
+        result = db.recently_used_models(limit=30)
+        assert result == ["model-c", "model-b", "model-a"]
+
+    def test_deduplication(self, db):
+        """Same model used in multiple sessions appears only once."""
+        db._conn.execute(
+            "INSERT INTO sessions (id, source, model, started_at) VALUES (?, ?, ?, ?)",
+            ("s1", "cli", "model-a", 1000.0),
+        )
+        db._conn.execute(
+            "INSERT INTO sessions (id, source, model, started_at) VALUES (?, ?, ?, ?)",
+            ("s2", "cli", "model-b", 2000.0),
+        )
+        db._conn.execute(
+            "INSERT INTO sessions (id, source, model, started_at) VALUES (?, ?, ?, ?)",
+            ("s3", "cli", "model-a", 3000.0),
+        )
+        db._conn.commit()
+
+        result = db.recently_used_models(limit=30)
+        # model-a most recent (s3 at 3000), model-b second (s2 at 2000)
+        assert result == ["model-a", "model-b"]
+
+    def test_limit(self, db):
+        """Respects the limit parameter."""
+        for i in range(8):
+            db._conn.execute(
+                "INSERT INTO sessions (id, source, model, started_at) VALUES (?, ?, ?, ?)",
+                (f"s{i}", "cli", f"model-{i}", float(i * 1000)),
+            )
+        db._conn.commit()
+
+        result = db.recently_used_models(limit=5)
+        assert len(result) == 5
+        # Should be the 5 most recent sessions' distinct models
+        assert result[0] == "model-7"
+
+    def test_excludes_null_and_empty(self, db):
+        """Sessions with NULL or empty model are excluded."""
+        db._conn.execute(
+            "INSERT INTO sessions (id, source, model, started_at) VALUES (?, ?, ?, ?)",
+            ("s1", "cli", None, 1000.0),
+        )
+        db._conn.execute(
+            "INSERT INTO sessions (id, source, model, started_at) VALUES (?, ?, ?, ?)",
+            ("s2", "cli", "", 2000.0),
+        )
+        db._conn.execute(
+            "INSERT INTO sessions (id, source, model, started_at) VALUES (?, ?, ?, ?)",
+            ("s3", "cli", "model-a", 3000.0),
+        )
+        db._conn.commit()
+
+        result = db.recently_used_models(limit=30)
+        assert result == ["model-a"]

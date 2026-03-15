@@ -697,6 +697,32 @@ class SessionDB:
             )
         return [dict(row) for row in cursor.fetchall()]
 
+    def recently_used_models(self, limit: int = 10) -> List[str]:
+        """Return distinct model IDs ordered by most recent use.
+
+        Looks at the last *limit* sessions and returns the distinct model IDs
+        in recency order (most recently used first).  Sessions with NULL or
+        empty model values are excluded.
+        """
+        try:
+            cursor = self._conn.execute(
+                """
+                SELECT model FROM (
+                    SELECT model, started_at
+                    FROM sessions
+                    WHERE model IS NOT NULL AND model != ''
+                    ORDER BY started_at DESC
+                    LIMIT ?
+                )
+                GROUP BY model
+                ORDER BY MAX(started_at) DESC
+                """,
+                (limit,),
+            )
+            return [row[0] for row in cursor.fetchall()]
+        except Exception:
+            return []
+
     # =========================================================================
     # Utility
     # =========================================================================
