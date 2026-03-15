@@ -30,20 +30,11 @@ After generating flashcards, tell the user how to import them:
 3. Select **Flashcard set**
 4. Click **Import** (near the top of the page)
 5. Paste the generated flashcards into the text box
-6. Verify the separator is set to **Tab** between term and definition
-7. Verify the separator is set to **New line** between cards
-8. Click **Import**
-9. Give your set a title and click **Create**
+6. Click **Import** (Tab and New line separators are the defaults)
+7. Give your set a title and click **Create**
 
-### On Mobile (iOS / Android)
-1. Open the **Quizlet app**
-2. Tap the **+** button (bottom center)
-3. Tap **Flashcard set**
-4. Tap the **⋮** menu (three dots, top-right) or look for **Import from notes**
-5. Paste the generated flashcards
-6. Confirm the separator is **Tab** and rows are separated by **New line**
-7. Tap **Import**
-8. Add a title and tap **Done** or **Create**
+### On Mobile
+Quizlet's mobile app does not support reliable flashcard importing. Direct the user to use the web version at [quizlet.com](https://quizlet.com) on their phone's browser or on a computer instead.
 
 ---
 
@@ -81,9 +72,8 @@ If the user says yes, generate the extra cards in the same format.
 
 After the flashcards are generated, remind the user of the import path:
 
-> **To import into Quizlet:**
-> - **PC:** quizlet.com → **+** → **Flashcard set** → **Import** → paste → set separator to Tab → Import
-> - **Mobile:** Quizlet app → **+** → **Flashcard set** → **⋮** menu → **Import from notes** → paste → Import
+> **To import into Quizlet (use the web version — mobile import is unreliable):**
+> quizlet.com → **+** → **Flashcard set** → **Import** → paste → **Import** → add title → **Create**
 
 ---
 
