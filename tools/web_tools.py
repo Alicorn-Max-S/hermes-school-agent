@@ -427,67 +427,116 @@ def clean_base64_images(text: str) -> str:
     return cleaned_text
 
 
-def web_search_tool(query: str, limit: int = 5) -> str:
+# ---------------------------------------------------------------------------
+# Student-tailored search: trusted sources, safe-search filtering, citations
+# ---------------------------------------------------------------------------
+
+# Domains considered trustworthy for educational / academic content
+TRUSTED_EDUCATIONAL_DOMAINS = (
+    ".edu", ".gov", ".org",
+    "scholar.google.com", "arxiv.org", "pubmed.ncbi.nlm.nih.gov",
+    "britannica.com", "khanacademy.org", "nationalgeographic.com",
+    "smithsonianmag.com", "wikipedia.org", "nature.com",
+    "sciencedirect.com", "jstor.org", "pbs.org", "ieee.org",
+    "bbc.co.uk/bitesize", "howstuffworks.com", "worldhistory.org",
+)
+
+# Domains blocked for student safety
+BLOCKED_DOMAINS = (
+    "reddit.com", "4chan.org", "tiktok.com", "onlyfans.com",
+    "buzzfeed.com", "tmz.com",
+)
+
+# Topics that benefit from the Firecrawl "research" category
+_ACADEMIC_TOPICS = {"math", "science", "history", "literature", "technology", "health"}
+
+
+def _is_domain_blocked(url: str) -> bool:
+    """Return True if *url* belongs to a blocked domain."""
+    url_lower = url.lower()
+    return any(blocked in url_lower for blocked in BLOCKED_DOMAINS)
+
+
+def _trusted_domain_score(url: str) -> int:
+    """Return a sort-priority score: lower = more trusted."""
+    url_lower = url.lower()
+    for domain in TRUSTED_EDUCATIONAL_DOMAINS:
+        if domain in url_lower:
+            return 0  # trusted
+    return 1  # untrusted (sorted after trusted results)
+
+
+def _format_citation(result: dict) -> str:
+    """Build a simple APA-style citation string from a search result dict."""
+    title = result.get("title", "Untitled")
+    url = result.get("url", "")
+    # Extract site name from URL  (e.g. "khanacademy.org")
+    try:
+        from urllib.parse import urlparse
+        host = urlparse(url).netloc or url
+        # Strip leading "www."
+        if host.startswith("www."):
+            host = host[4:]
+    except Exception:
+        host = url
+    return f"{host}. {title}. Retrieved from {url}"
+
+
+def web_search_tool(query: str, limit: int = 5, topic: str = "general") -> str:
     """
-    Search the web for information using available search API backend.
-    
-    This function provides a generic interface for web search that can work
-    with multiple backends. Currently uses Firecrawl.
-    
-    Note: This function returns search result metadata only (URLs, titles, descriptions).
-    Use web_extract_tool to get full content from specific URLs.
-    
+    Search the web for student-friendly, educational information.
+
+    The search is tailored for students:
+    • Results from blocked / inappropriate domains are removed.
+    • Trusted educational sources (.edu, .gov, scholarly publishers) are
+      prioritised and appear first.
+    • Each result includes an APA-style ``citation`` field ready for
+      copy-paste into schoolwork.
+    • When the *topic* maps to an academic discipline the Firecrawl
+      ``research`` category is used to surface scholarly content.
+
     Args:
-        query (str): The search query to look up
-        limit (int): Maximum number of results to return (default: 5)
-    
+        query:  The search query.
+        limit:  Maximum number of results to return (default 5).
+        topic:  Academic subject area – helps prioritise relevant sources.
+
     Returns:
-        str: JSON string containing search results with the following structure:
-             {
-                 "success": bool,
-                 "data": {
-                     "web": [
-                         {
-                             "title": str,
-                             "url": str,
-                             "description": str,
-                             "position": int
-                         },
-                         ...
-                     ]
-                 }
-             }
-    
-    Raises:
-        Exception: If search fails or API key is not set
+        JSON string with the same schema as before, plus a ``citation``
+        key on every result.
     """
     debug_call_data = {
         "parameters": {
             "query": query,
-            "limit": limit
+            "limit": limit,
+            "topic": topic,
         },
         "error": None,
         "results_count": 0,
         "original_response_size": 0,
         "final_response_size": 0
     }
-    
+
     try:
         from tools.interrupt import is_interrupted
         if is_interrupted():
             return json.dumps({"error": "Interrupted", "success": False})
 
-        logger.info("Searching the web for: '%s' (limit: %d)", query, limit)
-        
-        response = _get_firecrawl_client().search(
-            query=query,
-            limit=limit
-        )
-        
+        logger.info("Searching the web for: '%s' (limit: %d, topic: %s)", query, limit, topic)
+
+        # Build Firecrawl search kwargs
+        search_kwargs: Dict[str, Any] = {"query": query, "limit": limit}
+
+        # For academic topics, request the "research" category so Firecrawl
+        # surfaces results from arXiv, PubMed, Nature, IEEE, etc.
+        if topic in _ACADEMIC_TOPICS:
+            search_kwargs["categories"] = [{"type": "research"}]
+
+        response = _get_firecrawl_client().search(**search_kwargs)
+
         # The response is a SearchData object with web, news, and images attributes
         # When not scraping, the results are directly in these attributes
         web_results = []
-        
+
         # Check if response has web attribute (SearchData object)
         if hasattr(response, 'web'):
             # Response is a SearchData object with web attribute
@@ -512,10 +561,28 @@ def web_search_tool(query: str, limit: int = 5) -> str:
             # Response is already a dictionary
             if 'web' in response and response['web']:
                 web_results = response['web']
-        
+
+        # --- Student-tailored post-processing ---------------------------------
+
+        # 1. Safe-search filtering: remove results from blocked domains
+        web_results = [
+            r for r in web_results
+            if not _is_domain_blocked(r.get("url", ""))
+        ]
+
+        # 2. Trusted-source prioritisation: stable-sort so .edu / .gov / scholarly
+        #    sources float to the top while preserving relative order otherwise.
+        web_results.sort(key=lambda r: _trusted_domain_score(r.get("url", "")))
+
+        # 3. Citation formatting: attach an APA-style citation to every result
+        for r in web_results:
+            r["citation"] = _format_citation(r)
+
+        # ----------------------------------------------------------------------
+
         results_count = len(web_results)
-        logger.info("Found %d search results", results_count)
-        
+        logger.info("Found %d search results (after student filtering)", results_count)
+
         # Build response with just search metadata (URLs, titles, descriptions)
         response_data = {
             "success": True,
@@ -523,29 +590,29 @@ def web_search_tool(query: str, limit: int = 5) -> str:
                 "web": web_results
             }
         }
-        
+
         # Capture debug information
         debug_call_data["results_count"] = results_count
-        
+
         # Convert to JSON
         result_json = json.dumps(response_data, indent=2, ensure_ascii=False)
-        
+
         debug_call_data["final_response_size"] = len(result_json)
-        
+
         # Log debug information
         _debug.log_call("web_search_tool", debug_call_data)
         _debug.save()
-        
+
         return result_json
-        
+
     except Exception as e:
         error_msg = f"Error searching web: {str(e)}"
         logger.debug("%s", error_msg)
-        
+
         debug_call_data["error"] = error_msg
         _debug.log_call("web_search_tool", debug_call_data)
         _debug.save()
-        
+
         return json.dumps({"error": error_msg}, ensure_ascii=False)
 
 
@@ -1221,13 +1288,29 @@ from tools.registry import registry
 
 WEB_SEARCH_SCHEMA = {
     "name": "web_search",
-    "description": "Search the web for information on any topic. Returns up to 5 relevant results with titles, URLs, and descriptions.",
+    "description": (
+        "Search the web for educational and academic information. "
+        "Results are safe-search filtered, prioritised from trusted sources "
+        "(.edu, .gov, scholarly publishers, educational platforms), and each "
+        "result includes an APA-style citation ready for schoolwork."
+    ),
     "parameters": {
         "type": "object",
         "properties": {
             "query": {
                 "type": "string",
                 "description": "The search query to look up on the web"
+            },
+            "topic": {
+                "type": "string",
+                "description": (
+                    "Academic subject area to help prioritise relevant "
+                    "educational sources"
+                ),
+                "enum": [
+                    "math", "science", "history", "literature",
+                    "geography", "art", "technology", "health", "general"
+                ]
             }
         },
         "required": ["query"]
@@ -1255,7 +1338,9 @@ registry.register(
     name="web_search",
     toolset="web",
     schema=WEB_SEARCH_SCHEMA,
-    handler=lambda args, **kw: web_search_tool(args.get("query", ""), limit=5),
+    handler=lambda args, **kw: web_search_tool(
+        args.get("query", ""), limit=5, topic=args.get("topic", "general")
+    ),
     check_fn=check_firecrawl_api_key,
     requires_env=["FIRECRAWL_API_KEY"],
 )
