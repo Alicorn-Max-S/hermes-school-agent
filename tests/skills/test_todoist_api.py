@@ -41,6 +41,11 @@ def _mock_response(json_data, status_code=200, headers=None):
     return resp
 
 
+def _wrap_list(items):
+    """Wrap a list in the v1 API paginated response format."""
+    return {"results": items, "next_cursor": None}
+
+
 # ---------------------------------------------------------------------------
 # list_tasks
 # ---------------------------------------------------------------------------
@@ -61,7 +66,7 @@ class TestListTasks(unittest.TestCase):
                 "url": "https://todoist.com/showTask?id=123",
             }
         ]
-        mock_requests.get.return_value = _mock_response(tasks)
+        mock_requests.get.return_value = _mock_response(_wrap_list(tasks))
         mock_requests.HTTPError = Exception
 
         args = _make_args(filter="", project_id=None, label=None)
@@ -76,21 +81,23 @@ class TestListTasks(unittest.TestCase):
     @patch.object(todoist_api, "TODOIST_API_TOKEN", "tok")
     @patch("todoist_api.requests")
     def test_list_tasks_with_filter(self, mock_requests):
-        mock_requests.get.return_value = _mock_response([])
+        mock_requests.get.return_value = _mock_response(_wrap_list([]))
         mock_requests.HTTPError = Exception
 
         args = _make_args(filter="today", project_id=None, label=None)
         buf = io.StringIO()
         with patch("sys.stdout", buf):
             todoist_api.list_tasks(args)
-        # Verify filter was passed as param
+        # Verify filter uses dedicated /tasks/filter endpoint with query param
         call_kwargs = mock_requests.get.call_args
-        self.assertEqual(call_kwargs.kwargs.get("params", {}).get("filter"), "today")
+        url = call_kwargs.args[0] if call_kwargs.args else call_kwargs.kwargs.get("url", "")
+        self.assertIn("/tasks/filter", url)
+        self.assertEqual(call_kwargs.kwargs.get("params", {}).get("query"), "today")
 
     @patch.object(todoist_api, "TODOIST_API_TOKEN", "tok")
     @patch("todoist_api.requests")
     def test_list_tasks_with_label(self, mock_requests):
-        mock_requests.get.return_value = _mock_response([])
+        mock_requests.get.return_value = _mock_response(_wrap_list([]))
         mock_requests.HTTPError = Exception
 
         args = _make_args(filter="", project_id=None, label="school")
@@ -197,8 +204,7 @@ class TestCreateTask(unittest.TestCase):
         # Verify POST body has duration and duration_unit
         call_kwargs = mock_requests.post.call_args
         body = call_kwargs.kwargs.get("json", {})
-        self.assertEqual(body["duration"], 90)
-        self.assertEqual(body["duration_unit"], "minute")
+        self.assertEqual(body["duration"], {"amount": 90, "unit": "minute"})
         self.assertEqual(body["due_datetime"], "2026-03-16T10:00:00Z")
         self.assertEqual(body["priority"], 3)
         self.assertEqual(body["labels"], ["school"])
@@ -283,8 +289,7 @@ class TestUpdateTask(unittest.TestCase):
             todoist_api.update_task(args)
         call_kwargs = mock_requests.post.call_args
         body = call_kwargs.kwargs.get("json", {})
-        self.assertEqual(body["duration"], 45)
-        self.assertEqual(body["duration_unit"], "minute")
+        self.assertEqual(body["duration"], {"amount": 45, "unit": "minute"})
 
     @patch.object(todoist_api, "TODOIST_API_TOKEN", "tok")
     @patch("todoist_api.requests")
@@ -347,7 +352,7 @@ class TestListProjects(unittest.TestCase):
             {"id": "100", "name": "Inbox", "color": "grey", "is_inbox_project": True, "is_favorite": False, "order": 0},
             {"id": "200", "name": "School", "color": "blue", "is_inbox_project": False, "is_favorite": True, "order": 1},
         ]
-        mock_requests.get.return_value = _mock_response(projects)
+        mock_requests.get.return_value = _mock_response(_wrap_list(projects))
         mock_requests.HTTPError = Exception
 
         args = _make_args()
@@ -371,7 +376,7 @@ class TestListLabels(unittest.TestCase):
             {"id": "10", "name": "school", "color": "blue", "order": 1, "is_favorite": False},
             {"id": "20", "name": "work", "color": "red", "order": 2, "is_favorite": True},
         ]
-        mock_requests.get.return_value = _mock_response(labels)
+        mock_requests.get.return_value = _mock_response(_wrap_list(labels))
         mock_requests.HTTPError = Exception
 
         args = _make_args()
@@ -419,7 +424,7 @@ class TestGetScheduled(unittest.TestCase):
                 "url": "",
             },
         ]
-        mock_requests.get.return_value = _mock_response(tasks)
+        mock_requests.get.return_value = _mock_response(_wrap_list(tasks))
         mock_requests.HTTPError = Exception
 
         args = _make_args(date="2026-03-16", working_hours="08:00-22:00")
@@ -441,7 +446,7 @@ class TestGetScheduled(unittest.TestCase):
     @patch("todoist_api.requests")
     def test_get_scheduled_no_tasks(self, mock_requests):
         """Empty day should produce one gap covering full working hours."""
-        mock_requests.get.return_value = _mock_response([])
+        mock_requests.get.return_value = _mock_response(_wrap_list([]))
         mock_requests.HTTPError = Exception
 
         args = _make_args(date="2026-03-16", working_hours="08:00-22:00")
@@ -474,7 +479,7 @@ class TestGetScheduled(unittest.TestCase):
                 "url": "",
             }
         ]
-        mock_requests.get.return_value = _mock_response(tasks)
+        mock_requests.get.return_value = _mock_response(_wrap_list(tasks))
         mock_requests.HTTPError = Exception
 
         args = _make_args(date="2026-03-16", working_hours="08:00-22:00")
@@ -490,7 +495,7 @@ class TestGetScheduled(unittest.TestCase):
     @patch("todoist_api.requests")
     def test_get_scheduled_custom_working_hours(self, mock_requests):
         """Custom working hours should change gap boundaries."""
-        mock_requests.get.return_value = _mock_response([])
+        mock_requests.get.return_value = _mock_response(_wrap_list([]))
         mock_requests.HTTPError = Exception
 
         args = _make_args(date="2026-03-16", working_hours="10:00-18:00")
@@ -522,7 +527,7 @@ class TestGetScheduled(unittest.TestCase):
                 "url": "",
             }
         ]
-        mock_requests.get.return_value = _mock_response(tasks)
+        mock_requests.get.return_value = _mock_response(_wrap_list(tasks))
         mock_requests.HTTPError = Exception
 
         args = _make_args(date="2026-03-16", working_hours="08:00-22:00")
