@@ -1,6 +1,6 @@
 ---
 name: canvas-lms
-description: Canvas LMS integration — list courses, fetch assignment details, submit assignments, and track completion locally.
+description: "Canvas LMS integration for students and teachers — list courses, view syllabi, fetch assignment details and rubrics, submit homework, check grades, and track completion. Trigger on mentions of Canvas, LMS, coursework, assignments, grading, or submissions."
 version: 2.0.0
 author: community
 license: MIT
@@ -10,6 +10,8 @@ metadata:
   hermes:
     tags: [Canvas, LMS, Education, Courses, Assignments, Submissions]
     related_skills: [file-analysis, document-analysis, image-analysis, ocr-and-documents, google-drive]
+    school: true
+    school_category: "Homework & Assignments"
 ---
 
 # Canvas LMS — Course & Assignment Access

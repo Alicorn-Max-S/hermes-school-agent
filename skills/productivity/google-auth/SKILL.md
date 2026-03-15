@@ -9,6 +9,8 @@ metadata:
     tags: [Google, OAuth, Auth, Setup]
     homepage: https://github.com/NousResearch/hermes-agent
     related_skills: [google-calendar, gmail, google-drive, google-drive-write, google-contacts]
+    school: true
+    school_category: "Google Workspace"
 ---
 
 # Google Auth — Shared OAuth2 Setup

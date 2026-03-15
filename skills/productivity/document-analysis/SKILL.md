@@ -1,6 +1,6 @@
 ---
 name: document-analysis
-description: Extract and analyze content from documents — PDF, DOCX, XLSX, PPTX, and more. Uses free local tools (pymupdf, python-docx, openpyxl, python-pptx) with vision AI as universal fallback.
+description: "Extract and analyze content from documents — PDF, DOCX, XLSX, PPTX, CSV, and more. Uses free local tools (pymupdf, python-docx, openpyxl, python-pptx) with vision AI fallback. Trigger on mentions of reading documents, parsing PDFs, extracting tables, or analyzing uploaded files."
 version: 1.0.0
 author: Nous Research
 license: MIT
@@ -8,6 +8,8 @@ metadata:
   hermes:
     tags: [Documents, PDF, Word, Excel, PowerPoint, OCR, Extraction]
     related_skills: [file-analysis, ocr-and-documents, powerpoint, image-analysis]
+    school: true
+    school_category: "File Analysis"
 ---
 
 # Document Analysis

@@ -8,6 +8,8 @@ metadata:
   hermes:
     tags: [Audio, Transcription, Whisper, Speech, Music, Analysis]
     related_skills: [file-analysis, video-analysis]
+    school: true
+    school_category: "File Analysis"
 ---
 
 # Audio Analysis

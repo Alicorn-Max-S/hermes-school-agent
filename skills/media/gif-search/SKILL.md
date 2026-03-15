@@ -10,6 +10,8 @@ prerequisites:
 metadata:
   hermes:
     tags: [GIF, Media, Search, Tenor, API]
+    school: true
+    school_category: "Media"
 ---
 
 # GIF Search (Tenor API)

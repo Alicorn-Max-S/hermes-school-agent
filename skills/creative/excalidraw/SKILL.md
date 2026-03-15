@@ -9,6 +9,8 @@ metadata:
   hermes:
     tags: [Excalidraw, Diagrams, Flowcharts, Architecture, Visualization, JSON]
     related_skills: []
+    school: true
+    school_category: "Documents & Presentations"
 
 ---
 

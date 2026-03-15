@@ -8,6 +8,8 @@ metadata:
   hermes:
     tags: [Research, Web, Search, Deep-Research, Enrichment, CLI]
     related_skills: [duckduckgo-search, mcporter]
+    school: true
+    school_category: "Research & Web"
 ---
 
 # Parallel CLI

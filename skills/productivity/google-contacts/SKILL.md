@@ -9,6 +9,8 @@ metadata:
     tags: [Google, Contacts, People]
     homepage: https://github.com/NousResearch/hermes-agent
     related_skills: [google-auth, gmail]
+    school: true
+    school_category: "Google Workspace"
 ---
 
 # Google Contacts

@@ -8,6 +8,8 @@ metadata:
   hermes:
     tags: [Text, CSV, JSON, XML, YAML, Markdown, Data, Log, Analysis]
     related_skills: [file-analysis, code-analysis, document-analysis]
+    school: true
+    school_category: "File Analysis"
 ---
 
 # Text & Structured Data Analysis

@@ -1,7 +1,11 @@
 ---
 name: powerpoint
-description: "Use this skill any time a .pptx file is involved in any way — as input, output, or both. This includes: creating slide decks, pitch decks, or presentations; reading, parsing, or extracting text from any .pptx file (even if the extracted content will be used elsewhere, like in an email or summary); editing, modifying, or updating existing presentations; combining or splitting slide files; working with templates, layouts, speaker notes, or comments. Trigger whenever the user mentions \"deck,\" \"slides,\" \"presentation,\" or references a .pptx filename, regardless of what they plan to do with the content afterward. If a .pptx file needs to be opened, created, or touched, use this skill."
+description: "Use this skill any time a .pptx file is involved — creating slide decks, reading or extracting content from presentations, editing slides, working with templates, layouts, speaker notes, or comments. Trigger on mentions of PowerPoint, slides, deck, presentation, or any .pptx filename."
 license: Proprietary. LICENSE.txt has complete terms
+metadata:
+  hermes:
+    school: true
+    school_category: "Documents & Presentations"
 ---
 
 # Powerpoint Skill

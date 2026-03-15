@@ -8,6 +8,8 @@ metadata:
   hermes:
     tags: [Code, Analysis, Programming, Review, Debug]
     related_skills: [file-analysis, text-analysis]
+    school: true
+    school_category: "File Analysis"
 ---
 
 # Code Analysis

@@ -10,6 +10,8 @@ metadata:
     related_skills: [duckduckgo-search, arxiv, domain-intel]
     fallback_for_toolsets: []
     fallback_for_tools: [webscrape]
+    school: true
+    school_category: "Research & Web"
 prerequisites:
   commands: [curl, python3]
 ---

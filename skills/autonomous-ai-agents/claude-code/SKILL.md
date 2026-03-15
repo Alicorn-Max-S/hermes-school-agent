@@ -8,6 +8,8 @@ metadata:
   hermes:
     tags: [Coding-Agent, Claude, Anthropic, Code-Review, Refactoring]
     related_skills: [codex, hermes-agent]
+    school: true
+    school_category: "Coding & Projects"
 ---
 
 # Claude Code

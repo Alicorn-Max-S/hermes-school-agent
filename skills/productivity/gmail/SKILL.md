@@ -1,6 +1,6 @@
 ---
 name: gmail
-description: Gmail email management — search, read, send, reply, and organize with labels. Uses Google OAuth2 via the google-auth skill.
+description: "Gmail email management — search, read, compose, send, reply, forward, and organize with labels and filters. Uses Google OAuth2. Trigger on mentions of email, inbox, sending messages, Gmail, or composing a message to someone."
 version: 1.0.0
 author: Nous Research
 license: MIT
@@ -9,6 +9,8 @@ metadata:
     tags: [Gmail, Email, Google]
     homepage: https://github.com/NousResearch/hermes-agent
     related_skills: [google-auth, himalaya]
+    school: true
+    school_category: "Google Workspace"
 ---
 
 # Gmail

@@ -1,6 +1,6 @@
 ---
 name: study
-description: Interactive study sessions with document upload, 10 quiz formats, performance tracking, semantic-search-powered spaced repetition, and smart suggestions.
+description: "Interactive study sessions — upload docs or notes, generate flashcards, take quizzes (10 formats: multiple choice, fill-in-the-blank, true/false, matching, short answer, and more), track scores, use spaced repetition, and get smart review suggestions. Trigger on mentions of studying, quizzing, flashcards, test prep, review, or practice problems."
 version: 1.0.0
 author: community
 license: MIT
@@ -8,6 +8,8 @@ metadata:
   hermes:
     tags: [Study, Quiz, Flashcards, Practice, Education, Spaced Repetition, School]
     related_skills: [file-analysis, canvas-lms, todoist, document-analysis, text-analysis]
+    school: true
+    school_category: "Study & Practice"
 ---
 
 # Study — Interactive Study Sessions & Performance Tracking
