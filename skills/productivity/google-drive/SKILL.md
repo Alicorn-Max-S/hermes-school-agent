@@ -1,23 +1,25 @@
 ---
 name: google-drive
-description: Read content from Google Drive links (Docs, Sheets, PDFs). Supports both Google API (OAuth2) and browser-based SSO authentication for school/enterprise accounts that cannot access the Google Developer Console.
-version: 1.1.0
+description: Read content from Google Drive — Docs, Sheets, PDFs, and file search. Tries Google API (OAuth2) first, falls back to browser-based SSO for school/enterprise accounts. Read-only — for writing, use google-drive-write.
+version: 1.2.0
 author: Nous Research
 license: MIT
 metadata:
   hermes:
     tags: [Google, Drive, Docs, Sheets, School, SSO, Education]
     homepage: https://github.com/NousResearch/hermes-agent
-    related_skills: [google-workspace]
+    related_skills: [google-auth, google-drive-write]
 ---
 
-# Google Drive Content Reader
+# Google Drive — Read Content
 
-Read content from Google Drive links. Three methods are available — try them in order:
+Read content from Google Drive links and search for files. **This skill is read-only** — for writing/editing, use the `google-drive-write` skill.
+
+Three methods are available — try them in order:
 
 1. **Direct Fetch** (fastest): `curl` the export URL — works for publicly shared files, no auth needed
-2. **API Mode**: Uses Google Workspace OAuth2 (requires Google Developer Console access)
-3. **Browser SSO Mode**: Uses browser automation with persistent login — works for school/enterprise accounts that block Developer Console access
+2. **API Mode** (preferred for authenticated access): Uses Google OAuth2 via the `google-auth` skill
+3. **Browser SSO Mode** (fallback): Uses browser automation with persistent login — works for school/enterprise accounts that block Developer Console access
 
 **IMPORTANT**: All tool references in this skill (`browser_navigate`, `browser_snapshot`, `browser_click`, `browser_type`, `browser_press`, `web_extract`, `clarify`, `memory`) are **agent tools** — invoke them as tool calls, NOT as Python imports or function calls in `execute_code`.
 
@@ -53,15 +55,16 @@ curl -sL "EXPORT_URL_FROM_STEP_0"
 
 Look in your memory for an existing `google-drive-auth` entry. If found, skip to the appropriate method below.
 
-### Step 3: Check Existing Google Workspace Auth
+### Step 3: Check Existing Google Auth
 
 ```bash
-python3 ~/.hermes/skills/productivity/google-workspace/scripts/setup.py --check 2>/dev/null
+GSETUP="python3 ~/.hermes/skills/productivity/google-auth/scripts/setup.py"
+$GSETUP --check 2>/dev/null
 ```
 
 If output is `AUTHENTICATED`, use **Method A (API Mode)** below. Save to memory:
 ```
-memory(action="add", target="memory", content="google-drive-auth: API mode via google-workspace skill.")
+memory(action="add", target="memory", content="google-drive-auth: API mode via google-auth skill.")
 ```
 
 ### Step 4: Check if Browser Tools Are Available
@@ -79,22 +82,31 @@ If NOT available, tell the user:
 clarify("The file requires authentication. Can you access the Google Developer Console (console.cloud.google.com)? School/enterprise accounts often cannot.", ["Yes, I can access it", "No, I cannot / I'm not sure"])
 ```
 
-- **Yes**: guide through google-workspace skill setup, then use API mode.
+- **Yes**: guide through `google-auth` skill setup, then use API mode.
 - **No**: proceed with **Method B (Browser SSO Mode)** below.
 
 ---
 
 ## Method A: API Mode
 
-Delegate to the existing google-workspace skill. See `skill_view("google-workspace")` for full setup and usage.
+Uses Google OAuth2 via the `google-auth` skill. For setup, load: `skill_view("google-auth")`
 
 ```bash
-GAPI="python3 ~/.hermes/skills/productivity/google-workspace/scripts/google_api.py"
+GAPI="python3 ~/.hermes/skills/productivity/google-auth/scripts/google_api.py"
 ```
+
+### Read Content by Type
 
 - **Google Docs**: `$GAPI docs get FILE_ID`
 - **Google Sheets**: `$GAPI sheets get FILE_ID "Sheet1!A:Z"`
-- **Other files**: `$GAPI drive search "name = 'filename'"` then download
+- **Search for files**: `$GAPI drive search "quarterly report" --max 10`
+- **Raw Drive query**: `$GAPI drive search "mimeType='application/pdf'" --raw-query --max 5`
+
+### Output Formats (API Mode)
+
+- **docs get**: `{title, documentId, body}` — body is extracted plain text
+- **sheets get**: `[[cell, cell, ...], ...]` — 2D array of cell values
+- **drive search**: `[{id, name, mimeType, modifiedTime, webViewLink}]`
 
 ---
 

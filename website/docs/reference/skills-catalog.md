@@ -204,7 +204,11 @@ Skills for document creation, presentations, spreadsheets, and other productivit
 
 | Skill | Description | Path |
 |-------|-------------|------|
-| `google-workspace` | Gmail, Calendar, Drive, Contacts, Sheets, and Docs integration via Python. Uses OAuth2 with automatic token refresh. No external binaries needed — runs entirely with Google's Python client libraries in the Hermes venv. | `productivity/google-workspace` |
+| `google-auth` | Shared OAuth2 setup for all Google services (Gmail, Calendar, Drive, Sheets, Docs, Contacts). Run this once to authorize, then use individual Google skills. | `productivity/google-auth` |
+| `google-calendar` | Google Calendar event management — create, edit, view, and delete events. Automatically checked when scheduling Todoist tasks to prevent overlap. | `productivity/google-calendar` |
+| `gmail` | Gmail email management — search, read, send, reply, and organize with labels. | `productivity/gmail` |
+| `google-contacts` | List Google Contacts — names, emails, and phone numbers. | `productivity/google-contacts` |
+| `google-drive-write` | Write and edit Google Drive content — update Google Sheets, append rows, and modify Drive files. | `productivity/google-drive-write` |
 | `nano-pdf` | Edit PDFs with natural-language instructions using the nano-pdf CLI. Modify text, fix typos, update titles, and make content changes to specific pages without manual editing. | `productivity/nano-pdf` |
 | `notion` | Notion API for creating and managing pages, databases, and blocks via curl. Search, create, update, and query Notion workspaces directly from the terminal. | `productivity/notion` |
 | `ocr-and-documents` | Extract text from PDFs and scanned documents. Use web_extract for remote URLs, pymupdf for local text-based PDFs, marker-pdf for OCR/scanned docs. For DOCX use python-docx, for PPTX see the powerpoint skill. | `productivity/ocr-and-documents` |

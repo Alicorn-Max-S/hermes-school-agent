@@ -36,8 +36,10 @@ A curated set of skills for high school students. Use `skill_view("<skill-name>"
 - **powerpoint** — Create and edit PowerPoint presentations
 - **nano-pdf** — Edit and create PDFs
 - **excalidraw** — Create diagrams and visual aids
-- **google-workspace** — Gmail, Calendar, Sheets, Docs
-- **google-drive** — Access Google Drive files
+- **google-calendar** — Google Calendar events and scheduling
+- **gmail** — Gmail email management
+- **google-drive** — Read Google Drive files (Docs, Sheets, PDFs)
+- **google-drive-write** — Edit Google Sheets and Drive files
 
 ## Coding & Projects
 - **claude-code** — AI coding assistant

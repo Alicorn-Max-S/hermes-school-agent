@@ -30,7 +30,7 @@ Create, manage, and intelligently schedule Todoist tasks. Automatically estimate
 TODOIST_API_TOKEN=your_token_here
 ```
 
-**Optional — Google Calendar:** If the `google-workspace` skill is set up, scheduling will also check Google Calendar events to avoid double-booking. This is strongly recommended but not required.
+**Optional — Google Calendar:** If the `google-calendar` skill is set up (requires `google-auth` for OAuth2), scheduling will also check Google Calendar events to avoid double-booking. This is strongly recommended but not required.
 
 ## Step 0: Verify Setup
 
@@ -216,9 +216,9 @@ Wait for the user to confirm or request changes before proceeding.
 
 1. Run `$TODOIST get_scheduled DATE` for the target date to see existing tasks and available gaps.
 
-2. **Also check Google Calendar** (if the google-workspace skill is set up):
+2. **Also check Google Calendar** (if the `google-calendar` skill is set up):
    ```bash
-   GAPI="python ~/.hermes/skills/productivity/google-workspace/scripts/google_api.py"
+   GAPI="python ~/.hermes/skills/productivity/google-auth/scripts/google_api.py"
    $GAPI calendar list --start 2026-03-16T00:00:00Z --end 2026-03-16T23:59:59Z
    ```
    This captures meetings and calendar events not tracked in Todoist. Treat calendar events as busy time when looking for gaps.
@@ -232,7 +232,7 @@ Wait for the user to confirm or request changes before proceeding.
    - Suggest the next date with availability.
    - Ask if they want to override and schedule anyway.
 
-6. If Google Calendar is not set up, schedule using Todoist tasks only — do not error.
+6. If Google Calendar is not set up (`google-calendar` skill), schedule using Todoist tasks only — do not error.
 
 ### Step 5: Create the Task
 
@@ -293,7 +293,7 @@ Use the memory tool: add "Label preference: user prefers '[correct_label]' for [
 | Empty task list | Check filter syntax or try without `--filter` |
 | Rate limit hit | Wait a few minutes; Todoist allows 1000 requests per 15 min |
 | Timezone mismatch | Tasks may display in UTC; the script converts to local time for scheduling |
-| Google Calendar not available | Schedule with Todoist tasks only — this is fine, just less accurate |
+| Google Calendar not available | Set up `google-calendar` skill (requires `google-auth`). Schedule with Todoist tasks only — this is fine, just less accurate |
 | `get_scheduled` shows no gaps | Day is fully booked — suggest an alternative date |
 | Duration not saved | Ensure `--duration` flag is provided (integer minutes) |
 

@@ -260,6 +260,31 @@ def calendar_create(args):
     }, indent=2))
 
 
+def calendar_update(args):
+    service = build_service("calendar", "v3")
+    event = service.events().get(calendarId=args.calendar, eventId=args.event_id).execute()
+    if args.summary:
+        event["summary"] = args.summary
+    if args.start:
+        event["start"] = {"dateTime": args.start}
+    if args.end:
+        event["end"] = {"dateTime": args.end}
+    if args.location is not None:
+        event["location"] = args.location
+    if args.description is not None:
+        event["description"] = args.description
+    if args.attendees:
+        event["attendees"] = [{"email": e.strip()} for e in args.attendees.split(",")]
+
+    result = service.events().update(calendarId=args.calendar, eventId=args.event_id, body=event).execute()
+    print(json.dumps({
+        "status": "updated",
+        "id": result["id"],
+        "summary": result.get("summary", ""),
+        "htmlLink": result.get("htmlLink", ""),
+    }, indent=2))
+
+
 def calendar_delete(args):
     service = build_service("calendar", "v3")
     service.events().delete(calendarId=args.calendar, eventId=args.event_id).execute()
@@ -425,6 +450,17 @@ def main():
     p.add_argument("--attendees", default="", help="Comma-separated email addresses")
     p.add_argument("--calendar", default="primary")
     p.set_defaults(func=calendar_create)
+
+    p = cal_sub.add_parser("update")
+    p.add_argument("event_id")
+    p.add_argument("--summary", default="")
+    p.add_argument("--start", default="", help="New start (ISO 8601 with timezone)")
+    p.add_argument("--end", default="", help="New end (ISO 8601 with timezone)")
+    p.add_argument("--location", default=None)
+    p.add_argument("--description", default=None)
+    p.add_argument("--attendees", default="", help="Comma-separated email addresses")
+    p.add_argument("--calendar", default="primary")
+    p.set_defaults(func=calendar_update)
 
     p = cal_sub.add_parser("delete")
     p.add_argument("event_id")
