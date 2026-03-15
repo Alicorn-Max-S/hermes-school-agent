@@ -112,3 +112,10 @@ When vision analysis succeeds, present:
 - Successful models are saved to memory for faster retry on future images
 - For screenshots with text, the vision model can typically read the text directly
 - For diagrams/charts, describe the structure and data
+- **Native format conversion**: `vision_analyze_tool` now automatically converts exotic formats
+  (HEIC, TIFF, SVG, AVIF, etc.) to PNG before analysis. Manual conversion via `convert_image.py`
+  is no longer required but remains available for standalone use.
+- **Automatic model fallback**: When the vision model doesn't support images, the tool
+  automatically prompts the user to pick a vision-capable model (interactive terminal menu).
+  The chosen model is saved for future calls. The manual fallback procedure (Steps 3a-3e)
+  is no longer necessary but remains documented for reference.
