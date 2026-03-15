@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Todoist API CLI for Hermes Agent.
 
-A thin CLI wrapper around the Todoist REST API v2.
+A thin CLI wrapper around the Todoist API v1 (unified API).
 Authenticates using a personal API token from environment variables.
 
 Usage:
@@ -25,7 +25,7 @@ from datetime import datetime, timedelta, timezone
 import requests
 
 
-BASE_URL = "https://api.todoist.com/rest/v2"
+BASE_URL = "https://api.todoist.com/api/v1"
 
 
 def _load_hermes_env_value(key: str) -> str:
@@ -70,6 +70,25 @@ def _headers():
         "Authorization": f"Bearer {TODOIST_API_TOKEN}",
         "Content-Type": "application/json",
     }
+
+
+# =========================================================================
+# Response helpers
+# =========================================================================
+
+
+def _unwrap_list(resp):
+    """Unwrap a paginated v1 API response.
+
+    The v1 API wraps list responses in {"results": [...], "next_cursor": ...}.
+    This helper extracts the results array.  For non-paginated (single-object)
+    responses, use resp.json() directly.
+    """
+    data = resp.json()
+    if isinstance(data, dict) and "results" in data:
+        return data["results"]
+    # Fallback for unexpected shapes
+    return data
 
 
 # =========================================================================
@@ -127,24 +146,32 @@ def _task_summary(task):
 
 
 def list_tasks(args):
-    """List active tasks with optional filtering."""
+    """List active tasks with optional filtering.
+
+    In API v1 the ``filter`` parameter was removed from GET /tasks.
+    Filtered queries now use the dedicated GET /tasks/filter endpoint.
+    """
     _check_config()
-    params = {}
-    if args.filter:
-        params["filter"] = args.filter
-    if args.project_id:
-        params["project_id"] = args.project_id
-    if args.label:
-        params["label"] = args.label
     try:
-        resp = requests.get(f"{BASE_URL}/tasks", headers=_headers(),
-                            params=params, timeout=30)
+        if args.filter:
+            # v1 uses a dedicated filter endpoint
+            params = {"query": args.filter}
+            resp = requests.get(f"{BASE_URL}/tasks/filter",
+                                headers=_headers(), params=params, timeout=30)
+        else:
+            params = {}
+            if args.project_id:
+                params["project_id"] = args.project_id
+            if args.label:
+                params["label"] = args.label
+            resp = requests.get(f"{BASE_URL}/tasks", headers=_headers(),
+                                params=params, timeout=30)
         resp.raise_for_status()
     except requests.HTTPError as e:
         print(f"API error: {e.response.status_code} {e.response.text}",
               file=sys.stderr)
         sys.exit(1)
-    tasks = resp.json()
+    tasks = _unwrap_list(resp)
     output = [_task_summary(t) for t in tasks]
     print(json.dumps(output, indent=2))
 
@@ -176,8 +203,7 @@ def create_task(args):
     elif args.due_date:
         body["due_date"] = args.due_date
     if args.duration is not None:
-        body["duration"] = args.duration
-        body["duration_unit"] = "minute"
+        body["duration"] = {"amount": args.duration, "unit": "minute"}
     if args.project_id:
         body["project_id"] = args.project_id
     if args.priority is not None:
@@ -212,8 +238,7 @@ def update_task(args):
     elif args.due_date is not None:
         body["due_date"] = args.due_date
     if args.duration is not None:
-        body["duration"] = args.duration
-        body["duration_unit"] = "minute"
+        body["duration"] = {"amount": args.duration, "unit": "minute"}
     if args.project_id is not None:
         body["project_id"] = args.project_id
     if args.priority is not None:
@@ -275,7 +300,7 @@ def list_projects(args):
         print(f"API error: {e.response.status_code} {e.response.text}",
               file=sys.stderr)
         sys.exit(1)
-    projects = resp.json()
+    projects = _unwrap_list(resp)
     output = [
         {
             "id": p["id"],
@@ -301,7 +326,7 @@ def list_labels(args):
         print(f"API error: {e.response.status_code} {e.response.text}",
               file=sys.stderr)
         sys.exit(1)
-    labels = resp.json()
+    labels = _unwrap_list(resp)
     output = [
         {
             "id": l["id"],
@@ -328,10 +353,10 @@ def get_scheduled(args):
     work_start = _time_to_minutes(sh, sm)
     work_end = _time_to_minutes(eh, em)
 
-    # Fetch tasks due on this date using Todoist filter
-    params = {"filter": f"due: {target_date}"}
+    # Fetch tasks due on this date using the v1 filter endpoint
+    params = {"query": f"due: {target_date}"}
     try:
-        resp = requests.get(f"{BASE_URL}/tasks", headers=_headers(),
+        resp = requests.get(f"{BASE_URL}/tasks/filter", headers=_headers(),
                             params=params, timeout=30)
         resp.raise_for_status()
     except requests.HTTPError as e:
@@ -339,7 +364,7 @@ def get_scheduled(args):
               file=sys.stderr)
         sys.exit(1)
 
-    tasks = resp.json()
+    tasks = _unwrap_list(resp)
 
     scheduled = []
     unscheduled = []
