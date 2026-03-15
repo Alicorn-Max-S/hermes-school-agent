@@ -207,6 +207,10 @@ def _cleanup_inactive_browser_sessions():
     with _cleanup_lock:
         for task_id, last_time in list(_session_last_activity.items()):
             if current_time - last_time > BROWSER_SESSION_INACTIVITY_TIMEOUT:
+                # Skip persistent sessions — their cookies must survive
+                session = _active_sessions.get(task_id, {})
+                if session.get("features", {}).get("persistent"):
+                    continue
                 sessions_to_cleanup.append(task_id)
     
     for task_id in sessions_to_cleanup:
@@ -291,6 +295,10 @@ BROWSER_TOOL_SCHEMAS = [
                 "url": {
                     "type": "string",
                     "description": "The URL to navigate to (e.g., 'https://example.com')"
+                },
+                "profile": {
+                    "type": "string",
+                    "description": "Optional persistent profile name. When set, cookies and login sessions persist across browser restarts — use for sites requiring login (e.g., 'google-drive'). Omit for regular browsing."
                 }
             },
             "required": ["url"]
@@ -608,6 +616,29 @@ def _create_local_session(task_id: str) -> Dict[str, str]:
     }
 
 
+# Persistent browser profiles — cookies, IndexedDB, cache survive across restarts
+BROWSER_PROFILES_DIR = Path(os.getenv("HERMES_HOME", Path.home() / ".hermes")) / "browser-profiles"
+
+
+def _create_persistent_session(profile_name: str) -> Dict[str, str]:
+    """Create a session backed by a persistent --profile directory.
+
+    Cookies, IndexedDB, and cache persist across browser restarts, enabling
+    long-lived login sessions (e.g., 90-day SSO cookies).
+    """
+    profile_dir = BROWSER_PROFILES_DIR / profile_name
+    profile_dir.mkdir(parents=True, exist_ok=True)
+    logger.info("Created persistent browser session with profile %s at %s",
+                profile_name, profile_dir)
+    return {
+        "session_name": f"persistent_{profile_name}",
+        "profile_path": str(profile_dir),
+        "bb_session_id": None,
+        "cdp_url": None,
+        "features": {"local": True, "persistent": True},
+    }
+
+
 def _get_session_info(task_id: Optional[str] = None) -> Dict[str, str]:
     """
     Get or create session info for the given task.
@@ -784,10 +815,14 @@ def _run_browser_command(
         return {"success": False, "error": f"Failed to create browser session: {str(e)}"}
     
     # Build the command with the appropriate backend flag.
+    # Persistent mode: --profile <path> persists cookies/storage across restarts.
     # Cloud mode: --cdp <websocket_url> connects to Browserbase.
     # Local mode: --session <name> launches a local headless Chromium.
     # The rest of the command (--json, command, args) is identical.
-    if session_info.get("cdp_url"):
+    if session_info.get("profile_path"):
+        # Persistent mode — cookies, IndexedDB, cache survive across restarts
+        backend_args = ["--profile", session_info["profile_path"]]
+    elif session_info.get("cdp_url"):
         # Cloud mode — connect to remote Browserbase browser via CDP
         # IMPORTANT: Do NOT use --session with --cdp. In agent-browser >=0.13,
         # --session creates a local browser instance and silently ignores --cdp.
@@ -978,19 +1013,28 @@ def _truncate_snapshot(snapshot_text: str, max_chars: int = 8000) -> str:
 # Browser Tool Functions
 # ============================================================================
 
-def browser_navigate(url: str, task_id: Optional[str] = None) -> str:
+def browser_navigate(url: str, profile: Optional[str] = None, task_id: Optional[str] = None) -> str:
     """
     Navigate to a URL in the browser.
-    
+
     Args:
         url: The URL to navigate to
+        profile: Optional persistent profile name. When set, cookies and login
+                 sessions persist across browser restarts (e.g., 'google-drive').
         task_id: Task identifier for session isolation
-        
+
     Returns:
         JSON string with navigation result (includes stealth features info on first nav)
     """
     effective_task_id = task_id or "default"
-    
+
+    # If a persistent profile is requested and no session exists yet, create one
+    if profile:
+        with _cleanup_lock:
+            if effective_task_id not in _active_sessions:
+                session_info = _create_persistent_session(profile)
+                _active_sessions[effective_task_id] = session_info
+
     # Get session info to check if this is a new session
     # (will create one with features logged if not exists)
     session_info = _get_session_info(effective_task_id)
@@ -1831,7 +1875,7 @@ registry.register(
     name="browser_navigate",
     toolset="browser",
     schema=_BROWSER_SCHEMA_MAP["browser_navigate"],
-    handler=lambda args, **kw: browser_navigate(url=args.get("url", ""), task_id=kw.get("task_id")),
+    handler=lambda args, **kw: browser_navigate(url=args.get("url", ""), profile=args.get("profile"), task_id=kw.get("task_id")),
     check_fn=check_browser_requirements,
 )
 registry.register(
