@@ -3044,11 +3044,16 @@ class AIAgent:
                     pass  # omit reasoning entirely for Nous when disabled
                 else:
                     extra_body["reasoning"] = rc
-            else:
+            elif _is_nous:
+                # Nous Portal expects reasoning — default to enabled for it.
                 extra_body["reasoning"] = {
                     "enabled": True,
                     "effort": "medium"
                 }
+            # For OpenRouter without explicit reasoning_config, omit the
+            # reasoning block — the provider will use its own defaults,
+            # and sending reasoning:{enabled:true} to models that don't
+            # support it causes 502 errors from downstream providers.
 
         # Nous Portal product attribution
         if _is_nous:
@@ -3232,13 +3237,25 @@ class AIAgent:
         try:
             # Build API messages for the flush call
             _is_strict_api = "api.mistral.ai" in self.base_url.lower()
+            _is_or = "openrouter" in self.base_url.lower()
+            _is_ns = "nousresearch" in self.base_url.lower()
+            _reasoning_off = (
+                self.reasoning_config is not None
+                and self.reasoning_config.get("enabled") is False
+            )
+            _include_reasoning = (
+                (_is_or or _is_ns) and not _is_strict_api and not _reasoning_off
+            )
             api_messages = []
             for msg in messages:
                 api_msg = msg.copy()
                 if msg.get("role") == "assistant":
-                    reasoning = msg.get("reasoning")
-                    if reasoning:
-                        api_msg["reasoning_content"] = reasoning
+                    if _include_reasoning:
+                        reasoning = msg.get("reasoning")
+                        if reasoning:
+                            api_msg["reasoning_content"] = reasoning
+                    else:
+                        api_msg.pop("reasoning_details", None)
                 api_msg.pop("reasoning", None)
                 api_msg.pop("finish_reason", None)
                 api_msg.pop("_flush_sentinel", None)
@@ -4411,6 +4428,24 @@ class AIAgent:
             # Note: Reasoning is embedded in content via <think> tags for trajectory storage.
             # However, providers like Moonshot AI require a separate 'reasoning_content' field
             # on assistant messages with tool_calls. We handle both cases here.
+
+            # Determine whether the current model/provider supports reasoning fields.
+            # Only include reasoning_content and reasoning_details when the provider
+            # can handle them — sending these non-standard fields to providers that
+            # don't support reasoning causes 502 errors from OpenRouter.
+            _is_openrouter_msg = "openrouter" in self.base_url.lower()
+            _is_nous_msg = "nousresearch" in self.base_url.lower()
+            _is_mistral_msg = "api.mistral.ai" in self.base_url.lower()
+            _reasoning_disabled = (
+                self.reasoning_config is not None
+                and self.reasoning_config.get("enabled") is False
+            )
+            _include_reasoning_fields = (
+                (_is_openrouter_msg or _is_nous_msg)
+                and not _is_mistral_msg
+                and not _reasoning_disabled
+            )
+
             api_messages = []
             for idx, msg in enumerate(messages):
                 api_msg = msg.copy()
@@ -4420,13 +4455,18 @@ class AIAgent:
                         api_msg.get("content", ""), self._honcho_turn_context
                     )
 
-                # For ALL assistant messages, pass reasoning back to the API
-                # This ensures multi-turn reasoning context is preserved
+                # For assistant messages, conditionally pass reasoning back to the API.
+                # Only include reasoning_content when the provider supports it —
+                # non-reasoning providers reject unknown message fields with 502.
                 if msg.get("role") == "assistant":
-                    reasoning_text = msg.get("reasoning")
-                    if reasoning_text:
-                        # Add reasoning_content for API compatibility (Moonshot AI, Novita, OpenRouter)
-                        api_msg["reasoning_content"] = reasoning_text
+                    if _include_reasoning_fields:
+                        reasoning_text = msg.get("reasoning")
+                        if reasoning_text:
+                            # Add reasoning_content for API compatibility (Moonshot AI, Novita, OpenRouter)
+                            api_msg["reasoning_content"] = reasoning_text
+                    else:
+                        # Strip reasoning_details for providers that don't support reasoning
+                        api_msg.pop("reasoning_details", None)
 
                 # Remove 'reasoning' field - it's for trajectory storage only
                 # We've copied it to 'reasoning_content' for the API above
@@ -4439,10 +4479,11 @@ class AIAgent:
                 # strict providers like Mistral that reject unknown fields with 422.
                 # Uses new dicts so the internal messages list retains the fields
                 # for Codex Responses compatibility.
-                if "api.mistral.ai" in self.base_url.lower():
+                if _is_mistral_msg:
                     self._sanitize_tool_calls_for_strict_api(api_msg)
-                # Keep 'reasoning_details' - OpenRouter uses this for multi-turn reasoning context
-                # The signature field helps maintain reasoning continuity
+                # Keep 'reasoning_details' only when reasoning is supported —
+                # OpenRouter uses this for multi-turn reasoning context.
+                # The signature field helps maintain reasoning continuity.
                 api_messages.append(api_msg)
 
             # Build the final system message: cached prompt + ephemeral system prompt.
