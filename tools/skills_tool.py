@@ -71,6 +71,7 @@ import logging
 import os
 import re
 import sys
+import time
 from enum import Enum
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Set, Tuple
@@ -80,6 +81,12 @@ from hermes_cli.config import load_env, _ENV_VAR_NAME_RE
 from tools.registry import registry
 
 logger = logging.getLogger(__name__)
+
+# TTL cache for _find_all_skills() to avoid repeated filesystem scans + YAML parsing
+_skills_cache: Optional[List[Dict[str, Any]]] = None
+_skills_cache_time: float = 0.0
+_skills_cache_dir: Optional[str] = None  # tracks which SKILLS_DIR the cache was built for
+_SKILLS_CACHE_TTL: float = 30.0  # seconds
 
 
 # All skills live in ~/.hermes/skills/ (seeded from bundled skills/ on install).
@@ -551,6 +558,13 @@ def _is_skill_disabled(name: str, platform: str = None) -> bool:
         return False
 
 
+def invalidate_skills_cache() -> None:
+    """Invalidate the skills cache so the next call re-scans the filesystem."""
+    global _skills_cache, _skills_cache_time
+    _skills_cache = None
+    _skills_cache_time = 0.0
+
+
 def _find_all_skills(*, skip_disabled: bool = False) -> List[Dict[str, Any]]:
     """Recursively find all skills in ~/.hermes/skills/.
 
@@ -562,6 +576,15 @@ def _find_all_skills(*, skip_disabled: bool = False) -> List[Dict[str, Any]]:
     Returns:
         List of skill metadata dicts (name, description, category).
     """
+    global _skills_cache, _skills_cache_time, _skills_cache_dir
+
+    # Return cached result if still valid (only for default skip_disabled=False)
+    # Also verify the cache was built for the current SKILLS_DIR and platform
+    _current_cache_key = f"{SKILLS_DIR}:{sys.platform}"
+    if not skip_disabled and _skills_cache is not None:
+        if (time.monotonic() - _skills_cache_time) < _SKILLS_CACHE_TTL and _skills_cache_dir == _current_cache_key:
+            return list(_skills_cache)  # return a copy to prevent mutation
+
     skills = []
 
     if not SKILLS_DIR.exists():
@@ -615,6 +638,12 @@ def _find_all_skills(*, skip_disabled: bool = False) -> List[Dict[str, Any]]:
                 "Skipping skill at %s: failed to parse: %s", skill_md, e, exc_info=True
             )
             continue
+
+    # Populate cache (only for default skip_disabled=False path)
+    if not skip_disabled:
+        _skills_cache = list(skills)  # store a copy
+        _skills_cache_time = time.monotonic()
+        _skills_cache_dir = f"{SKILLS_DIR}:{sys.platform}"
 
     return skills
 

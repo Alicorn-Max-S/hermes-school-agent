@@ -16,9 +16,24 @@ Import chain (circular-import safe):
 
 import json
 import logging
+import os
+import time
 from typing import Any, Callable, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
+
+# Lazy-cached reference to model_tools._run_async to avoid per-call import overhead.
+# registry.py is imported before model_tools.py, so we can't import at module level.
+_run_async_fn = None
+
+
+def _get_run_async():
+    """Return the cached _run_async function, importing it on first call."""
+    global _run_async_fn
+    if _run_async_fn is None:
+        from model_tools import _run_async
+        _run_async_fn = _run_async
+    return _run_async_fn
 
 
 class ToolEntry:
@@ -44,9 +59,12 @@ class ToolEntry:
 class ToolRegistry:
     """Singleton registry that collects tool schemas + handlers from tool files."""
 
+    _CHECK_FN_CACHE_TTL = 60  # seconds
+
     def __init__(self):
         self._tools: Dict[str, ToolEntry] = {}
         self._toolset_checks: Dict[str, Callable] = {}
+        self._check_fn_cache: Dict[str, tuple] = {}  # name -> (result_bool, timestamp)
 
     # ------------------------------------------------------------------
     # Registration
@@ -88,17 +106,41 @@ class ToolRegistry:
         are included.
         """
         result = []
+        now = time.monotonic()
         for name in sorted(tool_names):
             entry = self._tools.get(name)
             if not entry:
                 continue
             if entry.check_fn:
+                # Use TTL cache to avoid re-running expensive availability checks.
+                # Only cache when requires_env is declared so we can fingerprint
+                # the relevant env vars; otherwise we can't know what the check
+                # function reads and must call it every time.
+                can_cache = bool(entry.requires_env)
+                if can_cache:
+                    env_fingerprint = tuple(
+                        os.getenv(v, "") for v in entry.requires_env
+                    )
+                    cached = self._check_fn_cache.get(name)
+                    if (cached
+                            and (now - cached[1]) < self._CHECK_FN_CACHE_TTL
+                            and cached[2] == env_fingerprint):
+                        if not cached[0]:
+                            continue
+                        else:
+                            result.append({"type": "function", "function": entry.schema})
+                            continue
                 try:
-                    if not entry.check_fn():
+                    available = entry.check_fn()
+                    if can_cache:
+                        self._check_fn_cache[name] = (available, now, env_fingerprint)
+                    if not available:
                         if not quiet:
                             logger.debug("Tool %s unavailable (check failed)", name)
                         continue
                 except Exception:
+                    if can_cache:
+                        self._check_fn_cache[name] = (False, now, env_fingerprint)
                     if not quiet:
                         logger.debug("Tool %s check raised; skipping", name)
                     continue
@@ -121,8 +163,7 @@ class ToolRegistry:
             return json.dumps({"error": f"Unknown tool: {name}"})
         try:
             if entry.is_async:
-                from model_tools import _run_async
-                return _run_async(entry.handler(args, **kwargs))
+                return _get_run_async()(entry.handler(args, **kwargs))
             return entry.handler(args, **kwargs)
         except Exception as e:
             logger.exception("Tool %s dispatch error: %s", name, e)
