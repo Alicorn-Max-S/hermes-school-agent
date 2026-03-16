@@ -13,6 +13,7 @@ A curated set of skills for high school students. Use `skill_view("<skill-name>"
 
 ## Homework & Assignments
 - **canvas-lms** — Access Canvas LMS: view courses, assignments, grades, submit work
+- **grading** — Grade your work against a rubric: upload your assignment and rubric, get detailed feedback with scores per criterion
 - **todoist** — Track homework and deadlines with intelligent scheduling
 - **google-calendar** — Google Calendar events and scheduling — class times, practices, appointments. Automatically consulted when scheduling Todoist tasks to prevent overlap and to resolve time references (e.g., "after track", "before class")
 - **reward** — Track and log rewards for completing school tasks, with Google Sheets integration
@@ -77,6 +78,8 @@ When using school skills, follow these automatic workflows:
 - **After extracting study material from a document** → Offer to save it via the study skill for future practice sessions.
 
 ### Propose to User (offer these as follow-up actions via clarify tool)
+- **User shares completed work and a rubric** → "Would you like me to grade your work against this rubric?"
+- **After grading work** → "Would you like help revising your work based on the feedback?" or "Would you like to create study notes for the areas where you lost points?"
 - **Canvas shows assignments with due dates** → "Would you like me to schedule these deadlines in Todoist?"
 - **After finding research results** → "Would you like me to save these sources to memory for your project?"
 - **After analyzing a long document** → "Would you like me to create a summary in your notes (Obsidian/Notion)?"
