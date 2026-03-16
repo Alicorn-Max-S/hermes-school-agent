@@ -2072,7 +2072,7 @@ class GatewayRunner:
         if not personalities:
             try:
                 from apollo_cli.config import DEFAULT_CONFIG
-                personalities = DEFAULT_CONFIG.get("personalities", {})
+                personalities = DEFAULT_CONFIG.get("agent", {}).get("personalities", {})
             except Exception:
                 personalities = {}
 
