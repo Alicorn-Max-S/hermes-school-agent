@@ -61,7 +61,7 @@ def _scan_context_content(content: str, filename: str) -> str:
 # =========================================================================
 
 DEFAULT_AGENT_IDENTITY = (
-    "You are Hermes Agent, an intelligent AI assistant created by Nous Research. "
+    "You are Apollo Agent, an intelligent AI assistant created by Nous Research. "
     "You are helpful, knowledgeable, and direct. You assist users with a wide "
     "range of tasks including answering questions, writing and editing code, "
     "analyzing information, creative work, and executing actions via your tools. "
@@ -145,8 +145,8 @@ SCHOOL_SKILLS_SUMMARY = (
     "Only offer if the follow-up is genuinely useful. Do not spam offers.\n\n"
     "### Creating New School Skills\n"
     "When saving a new skill with skill_manage that is school-related:\n"
-    "1. Set metadata.hermes.school: true in the SKILL.md frontmatter.\n"
-    "2. Set metadata.hermes.school_category to one of the existing categories "
+    "1. Set metadata.apollo.school: true in the SKILL.md frontmatter.\n"
+    "2. Set metadata.apollo.school_category to one of the existing categories "
     "(e.g., 'Homework & Assignments', 'File Analysis', 'Notes & Organization', "
     "'Task Management', 'Calendar & Scheduling', 'Study & Review') or create a new one.\n"
     "3. The skill will automatically appear in the <school_skills> section on next prompt build.\n"
@@ -253,12 +253,12 @@ def _read_skill_conditions(skill_file: Path) -> dict:
         from tools.skills_tool import _parse_frontmatter
         raw = skill_file.read_text(encoding="utf-8")[:2000]
         frontmatter, _ = _parse_frontmatter(raw)
-        hermes = frontmatter.get("metadata", {}).get("hermes", {})
+        apollo = frontmatter.get("metadata", {}).get("apollo", {})
         return {
-            "fallback_for_toolsets": hermes.get("fallback_for_toolsets", []),
-            "requires_toolsets": hermes.get("requires_toolsets", []),
-            "fallback_for_tools": hermes.get("fallback_for_tools", []),
-            "requires_tools": hermes.get("requires_tools", []),
+            "fallback_for_toolsets": apollo.get("fallback_for_toolsets", []),
+            "requires_toolsets": apollo.get("requires_toolsets", []),
+            "fallback_for_tools": apollo.get("fallback_for_tools", []),
+            "requires_tools": apollo.get("requires_tools", []),
         }
     except Exception as e:
         logger.debug("Failed to read skill conditions from %s: %s", skill_file, e)
@@ -305,15 +305,15 @@ def build_skills_system_prompt(
 ) -> str:
     """Build a compact skill index for the system prompt.
 
-    Scans ~/.hermes/skills/ for SKILL.md files grouped by category.
+    Scans ~/.apollo/skills/ for SKILL.md files grouped by category.
     Includes per-skill descriptions from frontmatter so the model can
     match skills by meaning, not just name.
     Filters out skills incompatible with the current OS platform.
 
     Results are cached and invalidated when any SKILL.md file is modified.
     """
-    hermes_home = Path(os.getenv("HERMES_HOME", Path.home() / ".hermes"))
-    skills_dir = hermes_home / "skills"
+    apollo_home = Path(os.getenv("APOLLO_HOME", Path.home() / ".apollo"))
+    skills_dir = apollo_home / "skills"
 
     if not skills_dir.exists():
         return ""
@@ -336,7 +336,7 @@ def build_skills_system_prompt(
         return _skills_cache["result"]
 
     # Collect skills with descriptions, grouped by category.
-    # School skills (metadata.hermes.school == true) are grouped by school_category.
+    # School skills (metadata.apollo.school == true) are grouped by school_category.
     # Non-school skills are hidden from the system prompt entirely.
     school_skills_by_category: dict[str, list[tuple[str, str]]] = {}
     has_any_skill = False
@@ -352,12 +352,12 @@ def build_skills_system_prompt(
         has_any_skill = True
 
         # Check school metadata from frontmatter
-        hermes_meta = frontmatter.get("metadata", {}).get("hermes", {})
-        is_school = hermes_meta.get("school", False)
+        apollo_meta = frontmatter.get("metadata", {}).get("apollo", {})
+        is_school = apollo_meta.get("school", False)
         if not is_school:
             continue  # Non-school skills hidden from system prompt
 
-        school_category = hermes_meta.get("school_category", "General")
+        school_category = apollo_meta.get("school_category", "General")
         rel_path = skill_file.relative_to(skills_dir)
         parts = rel_path.parts
         if len(parts) >= 2:
@@ -429,7 +429,7 @@ def build_context_files_prompt(cwd: Optional[str] = None) -> str:
     """Discover and load context files for the system prompt.
 
     Discovery: AGENTS.md (recursive), .cursorrules / .cursor/rules/*.mdc,
-    and SOUL.md from HERMES_HOME only. Each capped at 20,000 chars.
+    and SOUL.md from APOLLO_HOME only. Each capped at 20,000 chars.
     """
     if cwd is None:
         cwd = os.getcwd()
@@ -497,14 +497,14 @@ def build_context_files_prompt(cwd: Optional[str] = None) -> str:
         cursorrules_content = _truncate_content(cursorrules_content, ".cursorrules")
         sections.append(cursorrules_content)
 
-    # SOUL.md from HERMES_HOME only
+    # SOUL.md from APOLLO_HOME only
     try:
-        from hermes_cli.config import ensure_hermes_home
-        ensure_hermes_home()
+        from apollo_cli.config import ensure_apollo_home
+        ensure_apollo_home()
     except Exception as e:
-        logger.debug("Could not ensure HERMES_HOME before loading SOUL.md: %s", e)
+        logger.debug("Could not ensure APOLLO_HOME before loading SOUL.md: %s", e)
 
-    soul_path = Path(os.getenv("HERMES_HOME", Path.home() / ".hermes")) / "SOUL.md"
+    soul_path = Path(os.getenv("APOLLO_HOME", Path.home() / ".apollo")) / "SOUL.md"
     if soul_path.exists():
         try:
             content = soul_path.read_text(encoding="utf-8").strip()

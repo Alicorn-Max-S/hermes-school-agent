@@ -2,10 +2,10 @@
 name: jupyter-live-kernel
 description: "Run Python code interactively in a live Jupyter kernel — ideal for data science, math, statistics, plotting, ML experiments, calculations, and step-by-step problem solving. Trigger on mentions of Jupyter, notebooks, running Python, data analysis, plotting, calculations, or computational exploration."
 version: 1.0.0
-author: Hermes Agent
+author: Apollo Agent
 license: MIT
 metadata:
-  hermes:
+  apollo:
     tags: [jupyter, notebook, repl, data-science, exploration, iterative]
     category: data-science
     school: true
@@ -23,7 +23,7 @@ state incrementally, explore APIs, inspect DataFrames, or iterate on complex cod
 | Tool | Use When |
 |------|----------|
 | **This skill** | Iterative exploration, state across steps, data science, ML, "let me try this and check" |
-| `execute_code` | One-shot scripts needing hermes tool access (web_search, file ops). Stateless. |
+| `execute_code` | One-shot scripts needing apollo tool access (web_search, file ops). Stateless. |
 | `terminal` | Shell commands, builds, installs, git, process management |
 
 **Rule of thumb:** If you'd want a Jupyter notebook for the task, use this skill.

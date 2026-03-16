@@ -5,9 +5,9 @@ version: 1.0.0
 author: Nous Research
 license: MIT
 metadata:
-  hermes:
+  apollo:
     tags: [Google, OAuth, Auth, Setup]
-    homepage: https://github.com/NousResearch/hermes-agent
+    homepage: https://github.com/NousResearch/apollo-agent
     related_skills: [google-calendar, gmail, google-drive, google-drive-write, google-contacts]
     school: true
     school_category: "Google Workspace"
@@ -27,8 +27,8 @@ Shared authentication for all Google service skills. Run this setup once — all
 Define shorthands:
 
 ```bash
-GSETUP="python ~/.hermes/skills/productivity/google-auth/scripts/setup.py"
-GAPI="python ~/.hermes/skills/productivity/google-auth/scripts/google_api.py"
+GSETUP="python ~/.apollo/skills/productivity/google-auth/scripts/setup.py"
+GAPI="python ~/.apollo/skills/productivity/google-auth/scripts/google_api.py"
 ```
 
 ### Step 0: Check if already set up
@@ -98,7 +98,7 @@ Should print `AUTHENTICATED`. Setup is complete — token refreshes automaticall
 
 ## Notes
 
-- Token stored at `~/.hermes/google_token.json` — auto-refreshes on expiry.
+- Token stored at `~/.apollo/google_token.json` — auto-refreshes on expiry.
 - To revoke: `$GSETUP --revoke`
 
 ## Troubleshooting

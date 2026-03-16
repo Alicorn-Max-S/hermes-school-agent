@@ -32,9 +32,9 @@ class TestParserRegistry:
         parsers = list_parsers()
         assert len(parsers) > 0
 
-    def test_hermes_parser_registered(self):
+    def test_apollo_parser_registered(self):
         parsers = list_parsers()
-        assert "hermes" in parsers
+        assert "apollo" in parsers
 
     def test_get_parser_returns_instance(self):
         parser = get_parser("hermes")
@@ -52,9 +52,9 @@ class TestParserRegistry:
             assert hasattr(parser, "parse")
 
 
-# ─── Hermes parser tests ────────────────────────────────────────────────
+# ─── Apollo parser tests ────────────────────────────────────────────────
 
-class TestHermesParser:
+class TestApolloParser:
     @pytest.fixture
     def parser(self):
         return get_parser("hermes")
@@ -129,7 +129,7 @@ class TestHermesParser:
 class TestParseResultContract:
     """Ensure all parsers conform to the ParseResult contract."""
 
-    @pytest.fixture(params=["hermes"])  # Add more as needed
+    @pytest.fixture(params=["apollo"])  # Add more as needed
     def parser(self, request):
         return get_parser(request.param)
 
@@ -145,7 +145,7 @@ class TestParseResultContract:
 
     def test_tool_calls_are_proper_objects(self, parser):
         """When tool calls are found, they should be ChatCompletionMessageToolCall objects."""
-        # Use hermes format since that's universal
+        # Use apollo format since that's universal
         text = '<tool_call>{"name": "terminal", "arguments": {"command": "echo hi"}}</tool_call>'
         content, tool_calls = parser.parse(text)
         if tool_calls is not None:

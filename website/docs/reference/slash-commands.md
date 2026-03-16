@@ -6,9 +6,9 @@ description: "Complete reference for interactive CLI and messaging slash command
 
 # Slash Commands Reference
 
-Hermes has two slash-command surfaces:
+Apollo has two slash-command surfaces:
 
-- **Interactive CLI slash commands** — handled by `cli.py` / `hermes_cli/commands.py`
+- **Interactive CLI slash commands** — handled by `cli.py` / `apollo_cli/commands.py`
 - **Messaging slash commands** — handled by `gateway/run.py`
 
 Installed skills are also exposed as dynamic slash commands on both surfaces.
@@ -81,7 +81,7 @@ Type `/` in the CLI to open the autocomplete menu. Built-in commands are case-in
 
 ### Quick commands
 
-User-defined quick commands from `quick_commands` in `~/.hermes/config.yaml` are also available as slash commands. These are resolved at dispatch time, not shown in the built-in autocomplete/help tables.
+User-defined quick commands from `quick_commands` in `~/.apollo/config.yaml` are also available as slash commands. These are resolved at dispatch time, not shown in the built-in autocomplete/help tables.
 
 ## Messaging slash commands
 
@@ -108,7 +108,7 @@ The messaging gateway supports the following built-in commands inside Telegram, 
 | `/rollback [number]` | List or restore filesystem checkpoints. |
 | `/background &lt;prompt&gt;` | Run a prompt in a separate background session. |
 | `/reload-mcp` | Reload MCP servers from config. |
-| `/update` | Update Hermes Agent to the latest version. |
+| `/update` | Update Apollo Agent to the latest version. |
 | `/help` | Show messaging help. |
 | `/<skill-name>` | Invoke any installed skill by name. |
 

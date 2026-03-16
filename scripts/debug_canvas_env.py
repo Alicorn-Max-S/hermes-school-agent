@@ -6,7 +6,7 @@ Run this to see exactly why the canvas-lms skill thinks your credentials are mis
 Usage:
     python scripts/debug_canvas_env.py
     # or with verbose logging from skills_tool:
-    HERMES_DEBUG_SKILLS=1 python scripts/debug_canvas_env.py
+    APOLLO_DEBUG_SKILLS=1 python scripts/debug_canvas_env.py
 """
 
 import os
@@ -39,9 +39,9 @@ def main():
         else:
             print(f"    {var} = (NOT SET)  ✗")
 
-    # ── 2. Check ~/.hermes/.env file ──
-    print("\n[2] Checking ~/.hermes/.env file:")
-    from hermes_cli.config import get_env_path, load_env
+    # ── 2. Check ~/.apollo/.env file ──
+    print("\n[2] Checking ~/.apollo/.env file:")
+    from apollo_cli.config import get_env_path, load_env
 
     env_path = get_env_path()
     print(f"    Path: {env_path}")
@@ -115,7 +115,7 @@ def main():
             return str(os.getenv("TERMINAL_ENV", "local")).strip().lower() or "local"
 
         def _is_gateway_surface():
-            return bool(os.getenv("HERMES_GATEWAY_SESSION")) or bool(os.getenv("HERMES_SESSION_PLATFORM"))
+            return bool(os.getenv("APOLLO_GATEWAY_SESSION")) or bool(os.getenv("APOLLO_SESSION_PLATFORM"))
 
         def _is_env_var_persisted(var_name, env_snapshot=None):
             if env_snapshot is None:
@@ -138,7 +138,7 @@ def main():
     if is_remote:
         print(f"\n    ⚠ PROBLEM FOUND: backend={backend!r} is a remote backend.")
         print(f"    Remote backends ALWAYS report all env vars as missing,")
-        print(f"    regardless of whether they are set in ~/.hermes/.env.")
+        print(f"    regardless of whether they are set in ~/.apollo/.env.")
         print(f"    This is the _REMOTE_ENV_BACKENDS check in skills_tool.py:1087.")
 
     env_snapshot = load_env() if env_path.exists() else {}
@@ -159,7 +159,7 @@ def main():
 
     # ── 5. Check canvas_api.py runtime ──
     print("\n[5] Checking canvas_api.py runtime environment:")
-    print("    The canvas_api.py script reads from os.environ, NOT from ~/.hermes/.env.")
+    print("    The canvas_api.py script reads from os.environ, NOT from ~/.apollo/.env.")
     print("    For the script to work, vars must be in the process environment.")
     for var in ("CANVAS_API_TOKEN", "CANVAS_BASE_URL"):
         val = os.environ.get(var)
@@ -170,10 +170,10 @@ def main():
 
     # ── 6. Environment context ──
     print("\n[6] Environment context:")
-    print(f"    HERMES_HOME = {os.getenv('HERMES_HOME', '(not set, defaults to ~/.hermes)')}")
+    print(f"    APOLLO_HOME = {os.getenv('APOLLO_HOME', '(not set, defaults to ~/.apollo)')}")
     print(f"    TERMINAL_ENV = {os.getenv('TERMINAL_ENV', '(not set, defaults to local)')}")
-    print(f"    HERMES_GATEWAY_SESSION = {os.getenv('HERMES_GATEWAY_SESSION', '(not set)')}")
-    print(f"    HERMES_SESSION_PLATFORM = {os.getenv('HERMES_SESSION_PLATFORM', '(not set)')}")
+    print(f"    APOLLO_GATEWAY_SESSION = {os.getenv('APOLLO_GATEWAY_SESSION', '(not set)')}")
+    print(f"    APOLLO_SESSION_PLATFORM = {os.getenv('APOLLO_SESSION_PLATFORM', '(not set)')}")
 
     # ── Summary ──
     print("\n" + "=" * 60)
@@ -183,13 +183,13 @@ def main():
     issues = []
 
     if not env_path.exists():
-        issues.append("~/.hermes/.env file does not exist")
+        issues.append("~/.apollo/.env file does not exist")
 
     if env_path.exists():
         env_data = load_env()
         for var in ("CANVAS_API_TOKEN", "CANVAS_BASE_URL"):
             if not env_data.get(var):
-                issues.append(f"{var} is empty or missing in ~/.hermes/.env")
+                issues.append(f"{var} is empty or missing in ~/.apollo/.env")
 
     if is_remote:
         issues.append(f"Remote backend ({backend}) always reports vars as missing")
@@ -206,14 +206,14 @@ def main():
             print(f"  {i}. {issue}")
 
     print()
-    print("To enable verbose skill_view debug logging, run hermes with:")
-    print("  HERMES_DEBUG_SKILLS=1 python cli.py")
+    print("To enable verbose skill_view debug logging, run apollo with:")
+    print("  APOLLO_DEBUG_SKILLS=1 python cli.py")
     print("  (or set logging level to DEBUG for 'tools.skills_tool')")
 
 
 if __name__ == "__main__":
     # Enable debug logging for skills_tool if requested
-    if os.getenv("HERMES_DEBUG_SKILLS"):
+    if os.getenv("APOLLO_DEBUG_SKILLS"):
         import logging
         logging.basicConfig(level=logging.DEBUG, format="%(name)s %(message)s")
     main()

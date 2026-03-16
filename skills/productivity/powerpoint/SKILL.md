@@ -3,7 +3,7 @@ name: powerpoint
 description: "Use this skill any time a .pptx file is involved — creating slide decks, reading or extracting content from presentations, editing slides, working with templates, layouts, speaker notes, or comments. Trigger on mentions of PowerPoint, slides, deck, presentation, or any .pptx filename."
 license: Proprietary. LICENSE.txt has complete terms
 metadata:
-  hermes:
+  apollo:
     school: true
     school_category: "Documents & Presentations"
 ---

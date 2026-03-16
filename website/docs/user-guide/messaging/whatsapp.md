@@ -1,12 +1,12 @@
 ---
 sidebar_position: 5
 title: "WhatsApp"
-description: "Set up Hermes Agent as a WhatsApp bot via the built-in Baileys bridge"
+description: "Set up Apollo Agent as a WhatsApp bot via the built-in Baileys bridge"
 ---
 
 # WhatsApp Setup
 
-Hermes connects to WhatsApp through a built-in bridge based on **Baileys**. This works by emulating a WhatsApp Web session — **not** through the official WhatsApp Business API. No Meta developer account or Business verification is required.
+Apollo connects to WhatsApp through a built-in bridge based on **Baileys**. This works by emulating a WhatsApp Web session — **not** through the official WhatsApp Business API. No Meta developer account or Business verification is required.
 
 :::warning Unofficial API — Ban Risk
 WhatsApp does **not** officially support third-party bots outside the Business API. Using a third-party bridge carries a small risk of account restrictions. To minimize risk:
@@ -17,8 +17,8 @@ WhatsApp does **not** officially support third-party bots outside the Business A
 
 :::warning WhatsApp Web Protocol Updates
 WhatsApp periodically updates their Web protocol, which can temporarily break compatibility
-with third-party bridges. When this happens, Hermes will update the bridge dependency. If the
-bot stops working after a WhatsApp update, pull the latest Hermes version and re-pair.
+with third-party bridges. When this happens, Apollo will update the bridge dependency. If the
+bot stops working after a WhatsApp update, pull the latest Apollo version and re-pair.
 :::
 
 ## Two Modes
@@ -42,7 +42,7 @@ Unlike older browser-driven bridges, the current Baileys-based bridge does **not
 ## Step 1: Run the Setup Wizard
 
 ```bash
-hermes whatsapp
+apollo whatsapp
 ```
 
 The wizard will:
@@ -82,13 +82,13 @@ After getting the number:
 
 1. Install WhatsApp on a phone (or use WhatsApp Business app with dual-SIM)
 2. Register the new number with WhatsApp
-3. Run `hermes whatsapp` and scan the QR code from that WhatsApp account
+3. Run `apollo whatsapp` and scan the QR code from that WhatsApp account
 
 ---
 
-## Step 3: Configure Hermes
+## Step 3: Configure Apollo
 
-Add the following to your `~/.hermes/.env` file:
+Add the following to your `~/.apollo/.env` file:
 
 ```bash
 # Required
@@ -100,8 +100,8 @@ WHATSAPP_ALLOWED_USERS=15551234567         # Comma-separated phone numbers (with
 Then start the gateway:
 
 ```bash
-hermes gateway              # Foreground
-hermes gateway install      # Install as a system service
+apollo gateway              # Foreground
+apollo gateway install      # Install as a system service
 ```
 
 The gateway starts the WhatsApp bridge automatically using the saved session.
@@ -110,7 +110,7 @@ The gateway starts the WhatsApp bridge automatically using the saved session.
 
 ## Session Persistence
 
-The Baileys bridge saves its session under `~/.hermes/whatsapp/session`. This means:
+The Baileys bridge saves its session under `~/.apollo/whatsapp/session`. This means:
 
 - **Sessions survive restarts** — you don't need to re-scan the QR code every time
 - The session data includes encryption keys and device credentials
@@ -124,7 +124,7 @@ If the session breaks (phone reset, WhatsApp update, manually unlinked), you'll 
 errors in the gateway logs. To fix it:
 
 ```bash
-hermes whatsapp
+apollo whatsapp
 ```
 
 This generates a fresh QR code. Scan it again and the session is re-established. The gateway
@@ -135,11 +135,11 @@ with reconnection logic.
 
 ## Voice Messages
 
-Hermes supports voice on WhatsApp:
+Apollo supports voice on WhatsApp:
 
 - **Incoming:** Voice messages (`.ogg` opus) are automatically transcribed using Whisper (requires `VOICE_TOOLS_OPENAI_KEY`)
 - **Outgoing:** TTS responses are sent as MP3 audio file attachments
-- Agent responses are prefixed with "⚕ **Hermes Agent**" for easy identification
+- Agent responses are prefixed with "⚕ **Apollo Agent**" for easy identification
 
 ---
 
@@ -148,11 +148,11 @@ Hermes supports voice on WhatsApp:
 | Problem | Solution |
 |---------|----------|
 | **QR code not scanning** | Ensure terminal is wide enough (60+ columns). Try a different terminal. Make sure you're scanning from the correct WhatsApp account (bot number, not personal). |
-| **QR code expires** | QR codes refresh every ~20 seconds. If it times out, restart `hermes whatsapp`. |
-| **Session not persisting** | Check that `~/.hermes/whatsapp/session` exists and is writable. If containerized, mount it as a persistent volume. |
-| **Logged out unexpectedly** | WhatsApp unlinks devices after long inactivity. Keep the phone on and connected to the network, then re-pair with `hermes whatsapp` if needed. |
-| **Bridge crashes or reconnect loops** | Restart the gateway, update Hermes, and re-pair if the session was invalidated by a WhatsApp protocol change. |
-| **Bot stops working after WhatsApp update** | Update Hermes to get the latest bridge version, then re-pair. |
+| **QR code expires** | QR codes refresh every ~20 seconds. If it times out, restart `apollo whatsapp`. |
+| **Session not persisting** | Check that `~/.apollo/whatsapp/session` exists and is writable. If containerized, mount it as a persistent volume. |
+| **Logged out unexpectedly** | WhatsApp unlinks devices after long inactivity. Keep the phone on and connected to the network, then re-pair with `apollo whatsapp` if needed. |
+| **Bridge crashes or reconnect loops** | Restart the gateway, update Apollo, and re-pair if the session was invalidated by a WhatsApp protocol change. |
+| **Bot stops working after WhatsApp update** | Update Apollo to get the latest bridge version, then re-pair. |
 | **Messages not being received** | Verify `WHATSAPP_ALLOWED_USERS` includes the sender's number (with country code, no `+` or spaces). |
 
 ---
@@ -165,8 +165,8 @@ of authorized users. Without this setting, the gateway will **deny all incoming 
 safety measure.
 :::
 
-- The `~/.hermes/whatsapp/session` directory contains full session credentials — protect it like a password
-- Set file permissions: `chmod 700 ~/.hermes/whatsapp/session`
+- The `~/.apollo/whatsapp/session` directory contains full session credentials — protect it like a password
+- Set file permissions: `chmod 700 ~/.apollo/whatsapp/session`
 - Use a **dedicated phone number** for the bot to isolate risk from your personal account
 - If you suspect compromise, unlink the device from WhatsApp → Settings → Linked Devices
 - Phone numbers in logs are partially redacted, but review your log retention policy

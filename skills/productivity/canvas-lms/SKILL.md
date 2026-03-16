@@ -7,7 +7,7 @@ license: MIT
 prerequisites:
   env_vars: [CANVAS_API_TOKEN, CANVAS_BASE_URL]
 metadata:
-  hermes:
+  apollo:
     tags: [Canvas, LMS, Education, Courses, Assignments, Submissions]
     related_skills: [file-analysis, document-analysis, image-analysis, ocr-and-documents, google-drive]
     school: true
@@ -27,8 +27,8 @@ Read and write access to Canvas LMS for listing courses, fetching assignment det
 1. Log in to your Canvas instance in a browser
 2. Go to **Account → Settings** (click your profile icon, then Settings)
 3. Scroll to **Approved Integrations** and click **+ New Access Token**
-4. Name the token (e.g., "Hermes Agent"), set an optional expiry, and click **Generate Token**
-5. Copy the token and add to `~/.hermes/.env`:
+4. Name the token (e.g., "Apollo Agent"), set an optional expiry, and click **Generate Token**
+5. Copy the token and add to `~/.apollo/.env`:
 
 ```
 CANVAS_API_TOKEN=your_token_here
@@ -44,7 +44,7 @@ Before proceeding, verify that CANVAS_API_TOKEN and CANVAS_BASE_URL environment 
 ## Usage
 
 ```bash
-CANVAS="python ~/.hermes/skills/productivity/canvas-lms/scripts/canvas_api.py"
+CANVAS="python ~/.apollo/skills/productivity/canvas-lms/scripts/canvas_api.py"
 
 # List all active courses
 $CANVAS list_courses --enrollment-state active
@@ -213,7 +213,7 @@ curl -L -o /tmp/FILENAME "ATTACHMENT_URL"
 ### Step 2: Detect file type and route to analysis
 
 ```bash
-python3 ~/.hermes/skills/productivity/file-analysis/scripts/detect_filetype.py "/tmp/FILENAME"
+python3 ~/.apollo/skills/productivity/file-analysis/scripts/detect_filetype.py "/tmp/FILENAME"
 ```
 
 ### Step 3: Analyze based on type
@@ -222,13 +222,13 @@ python3 ~/.hermes/skills/productivity/file-analysis/scripts/detect_filetype.py "
 
 1. **Try text extraction first** (FREE, local):
    ```bash
-   python3 ~/.hermes/skills/productivity/ocr-and-documents/scripts/extract_pymupdf.py /tmp/FILENAME --markdown
+   python3 ~/.apollo/skills/productivity/ocr-and-documents/scripts/extract_pymupdf.py /tmp/FILENAME --markdown
    ```
    If this returns meaningful text → present the content. Done!
 
 2. **If text is empty/garbled (scanned/image-based PDF)** — convert pages to images and use vision AI:
    ```bash
-   python3 ~/.hermes/skills/productivity/document-analysis/scripts/pdf_to_images.py /tmp/FILENAME /tmp/pdf_pages/ --pages 0-4
+   python3 ~/.apollo/skills/productivity/document-analysis/scripts/pdf_to_images.py /tmp/FILENAME /tmp/pdf_pages/ --pages 0-4
    ```
    Then analyze each page image:
    ```
@@ -252,11 +252,11 @@ vision_analyze(image_url="/tmp/FILENAME", question="Describe and extract all con
 Use the corresponding extraction script from the `document-analysis` skill:
 ```bash
 # DOCX
-python3 ~/.hermes/skills/productivity/document-analysis/scripts/extract_docx.py /tmp/FILENAME --format markdown
+python3 ~/.apollo/skills/productivity/document-analysis/scripts/extract_docx.py /tmp/FILENAME --format markdown
 # XLSX
-python3 ~/.hermes/skills/productivity/document-analysis/scripts/extract_xlsx.py /tmp/FILENAME --format summary
+python3 ~/.apollo/skills/productivity/document-analysis/scripts/extract_xlsx.py /tmp/FILENAME --format summary
 # PPTX
-python3 ~/.hermes/skills/productivity/document-analysis/scripts/extract_pptx.py /tmp/FILENAME
+python3 ~/.apollo/skills/productivity/document-analysis/scripts/extract_pptx.py /tmp/FILENAME
 ```
 
 **For Google Drive links** in assignment descriptions:
@@ -274,7 +274,7 @@ Use the `google-drive` skill to access the file, then route through the analysis
 - `list_courses`, `list_assignments`, and `get_assignment` are **read-only** — they only fetch data
 - `submit_assignment` **MUST** always be called with `--dry-run` first; show the dry-run output to the user and wait for explicit confirmation before running without `--dry-run`
 - The dry-run output shows exactly: assignment name, submission type, body text / URL / file path and size — the user must approve this exact content before the real submission
-- `mark_done` only writes to the local DB (`~/.hermes/canvas_assignments.db`) — it never touches Canvas
+- `mark_done` only writes to the local DB (`~/.apollo/canvas_assignments.db`) — it never touches Canvas
 - Google Assignments (LTI) cannot be submitted via the Canvas API; the command returns the Google URL for manual completion in a browser
 - On first use, verify auth by running `$CANVAS list_courses` — if it fails with 401, guide the user through setup
 - Canvas rate-limits to ~700 requests per 10 minutes; check `X-Rate-Limit-Remaining` header if hitting limits

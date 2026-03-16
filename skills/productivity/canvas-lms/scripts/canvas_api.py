@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Canvas LMS API CLI for Hermes Agent.
+"""Canvas LMS API CLI for Apollo Agent.
 
 A thin CLI wrapper around the Canvas REST API.
 Authenticates using a personal access token from environment variables.
@@ -25,15 +25,15 @@ from datetime import datetime, timezone
 import requests
 
 
-def _load_hermes_env_value(key: str) -> str:
-    """Load a value from ~/.hermes/.env if not already in os.environ."""
+def _load_apollo_env_value(key: str) -> str:
+    """Load a value from ~/.apollo/.env if not already in os.environ."""
     val = os.environ.get(key, "")
     if val:
         return val
     # Fallback: read directly from the .env file (python-dotenv may not be
     # installed or load_dotenv may not have run for this process).
     env_path = os.path.join(
-        os.environ.get("HERMES_HOME", os.path.join(os.path.expanduser("~"), ".hermes")),
+        os.environ.get("APOLLO_HOME", os.path.join(os.path.expanduser("~"), ".apollo")),
         ".env",
     )
     try:
@@ -49,8 +49,8 @@ def _load_hermes_env_value(key: str) -> str:
     return ""
 
 
-CANVAS_API_TOKEN = _load_hermes_env_value("CANVAS_API_TOKEN")
-CANVAS_BASE_URL = _load_hermes_env_value("CANVAS_BASE_URL").rstrip("/")
+CANVAS_API_TOKEN = _load_apollo_env_value("CANVAS_API_TOKEN")
+CANVAS_BASE_URL = _load_apollo_env_value("CANVAS_BASE_URL").rstrip("/")
 
 
 def _check_config():
@@ -63,7 +63,7 @@ def _check_config():
     if missing:
         print(
             f"Missing required environment variables: {', '.join(missing)}\n"
-            "Set them in ~/.hermes/.env or export them in your shell.\n"
+            "Set them in ~/.apollo/.env or export them in your shell.\n"
             "See the canvas-lms skill SKILL.md for setup instructions.",
             file=sys.stderr,
         )
@@ -75,10 +75,10 @@ def _headers():
 
 
 def _db_path():
-    hermes_home = os.environ.get(
-        "HERMES_HOME", os.path.join(os.path.expanduser("~"), ".hermes")
+    apollo_home = os.environ.get(
+        "APOLLO_HOME", os.path.join(os.path.expanduser("~"), ".apollo")
     )
-    return os.path.join(hermes_home, "canvas_assignments.db")
+    return os.path.join(apollo_home, "canvas_assignments.db")
 
 
 def _get_db():
@@ -594,7 +594,7 @@ def list_done(args):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Canvas LMS API CLI for Hermes Agent"
+        description="Canvas LMS API CLI for Apollo Agent"
     )
     sub = parser.add_subparsers(dest="command", required=True)
 

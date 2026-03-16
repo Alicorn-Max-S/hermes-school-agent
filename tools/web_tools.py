@@ -642,7 +642,7 @@ def _scrape_tier2_requests_bs4(url: str) -> Optional[str]:
         from bs4 import BeautifulSoup
 
         headers = {
-            "User-Agent": "Mozilla/5.0 (compatible; HermesBot/1.0)",
+            "User-Agent": "Mozilla/5.0 (compatible; ApolloBot/1.0)",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         }
         resp = req.get(url, headers=headers, timeout=20)

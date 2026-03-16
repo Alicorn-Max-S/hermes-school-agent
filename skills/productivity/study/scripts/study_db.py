@@ -6,7 +6,7 @@ Manages classes, categories, study files, question history, knowledge scores,
 and question type distribution. Uses sentence-transformers for semantic
 deduplication and spaced repetition (falls back to FTS5 if unavailable).
 
-Database: ~/.hermes/study_data.db
+Database: ~/.apollo/study_data.db
 Usage:    python study_db.py <command> [options]
 """
 
@@ -20,7 +20,7 @@ from datetime import datetime
 from math import sqrt
 from pathlib import Path
 
-DB_PATH = Path(os.getenv("HERMES_HOME", Path.home() / ".hermes")) / "study_data.db"
+DB_PATH = Path(os.getenv("APOLLO_HOME", Path.home() / ".apollo")) / "study_data.db"
 
 # 10 question types
 QUESTION_TYPES = [

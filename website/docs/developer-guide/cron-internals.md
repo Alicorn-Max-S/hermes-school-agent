@@ -1,12 +1,12 @@
 ---
 sidebar_position: 11
 title: "Cron Internals"
-description: "How Hermes stores, schedules, locks, and delivers cron jobs"
+description: "How Apollo stores, schedules, locks, and delivers cron jobs"
 ---
 
 # Cron Internals
 
-Hermes cron support is implemented primarily in:
+Apollo cron support is implemented primarily in:
 
 - `cron/jobs.py`
 - `cron/scheduler.py`
@@ -14,7 +14,7 @@ Hermes cron support is implemented primarily in:
 
 ## Scheduling model
 
-Hermes supports:
+Apollo supports:
 
 - one-shot delays
 - intervals
@@ -23,7 +23,7 @@ Hermes supports:
 
 ## Job storage
 
-Cron jobs are stored in Hermes-managed local state with atomic save/update semantics.
+Cron jobs are stored in Apollo-managed local state with atomic save/update semantics.
 
 ## Runtime behavior
 
@@ -48,7 +48,7 @@ Cron jobs can deliver to:
 
 ## Locking
 
-Hermes uses lock-based protections so concurrent cron ticks or overlapping scheduler processes do not corrupt job state.
+Apollo uses lock-based protections so concurrent cron ticks or overlapping scheduler processes do not corrupt job state.
 
 ## Related docs
 

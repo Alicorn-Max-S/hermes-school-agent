@@ -1,33 +1,33 @@
 ---
 sidebar_position: 1
 title: "Architecture"
-description: "Hermes Agent internals — major subsystems, execution paths, and where to read next"
+description: "Apollo Agent internals — major subsystems, execution paths, and where to read next"
 ---
 
 # Architecture
 
-This page is the top-level map of Hermes Agent internals. The project has grown beyond a single monolithic loop, so the best way to understand it is by subsystem.
+This page is the top-level map of Apollo Agent internals. The project has grown beyond a single monolithic loop, so the best way to understand it is by subsystem.
 
 ## High-level structure
 
 ```text
-hermes-agent/
+apollo-agent/
 ├── run_agent.py              # AIAgent core loop
 ├── cli.py                    # interactive terminal UI
 ├── model_tools.py            # tool discovery/orchestration
 ├── toolsets.py               # tool groupings and presets
-├── hermes_state.py           # SQLite session/state database
+├── apollo_state.py           # SQLite session/state database
 ├── batch_runner.py           # batch trajectory generation
 │
 ├── agent/                    # prompt building, compression, caching, metadata, trajectories
-├── hermes_cli/               # command entrypoints, auth, setup, models, config, doctor
+├── apollo_cli/               # command entrypoints, auth, setup, models, config, doctor
 ├── tools/                    # tool implementations and terminal environments
 ├── gateway/                  # messaging gateway, session routing, delivery, pairing, hooks
 ├── cron/                     # scheduled job storage and scheduler
 ├── honcho_integration/       # Honcho memory integration
 ├── acp_adapter/              # ACP editor integration server
 ├── acp_registry/             # ACP registry manifest + icon
-├── environments/             # Hermes RL / benchmark environment framework
+├── environments/             # Apollo RL / benchmark environment framework
 ├── skills/                   # bundled skills
 ├── optional-skills/          # official optional skills
 └── tests/                    # test suite
@@ -81,7 +81,7 @@ See:
 
 ### Provider/runtime resolution
 
-Hermes has a shared runtime provider resolver used by CLI, gateway, cron, ACP, and auxiliary calls.
+Apollo has a shared runtime provider resolver used by CLI, gateway, cron, ACP, and auxiliary calls.
 
 See [Provider Runtime Resolution](./provider-runtime.md).
 
@@ -105,7 +105,7 @@ See [Gateway Internals](./gateway-internals.md).
 
 ### ACP integration
 
-ACP exposes Hermes as an editor-native agent over stdio/JSON-RPC.
+ACP exposes Apollo as an editor-native agent over stdio/JSON-RPC.
 
 See:
 
@@ -120,7 +120,7 @@ See [Cron Internals](./cron-internals.md).
 
 ### RL / environments / trajectories
 
-Hermes ships a full environment framework for evaluation, RL integration, and SFT data generation.
+Apollo ships a full environment framework for evaluation, RL integration, and SFT data generation.
 
 See:
 
@@ -139,7 +139,7 @@ Several cross-cutting design themes appear throughout the codebase:
 
 ## Implementation notes
 
-The older mental model of Hermes as “one OpenAI-compatible chat loop plus some tools” is no longer sufficient. Current Hermes includes:
+The older mental model of Apollo as “one OpenAI-compatible chat loop plus some tools” is no longer sufficient. Current Apollo includes:
 
 - multiple API modes
 - auxiliary model routing

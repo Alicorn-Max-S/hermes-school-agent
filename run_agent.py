@@ -42,11 +42,11 @@ import fire
 from datetime import datetime
 from pathlib import Path
 
-# Load .env from ~/.hermes/.env first, then project root as dev fallback
+# Load .env from ~/.apollo/.env first, then project root as dev fallback
 from dotenv import load_dotenv
 
-_hermes_home = Path(os.getenv("HERMES_HOME", Path.home() / ".hermes"))
-_user_env = _hermes_home / ".env"
+_apollo_home = Path(os.getenv("APOLLO_HOME", Path.home() / ".apollo"))
+_user_env = _apollo_home / ".env"
 _project_env = Path(__file__).parent / '.env'
 if _user_env.exists():
     try:
@@ -63,8 +63,8 @@ elif _project_env.exists():
 else:
     logger.info("No .env file found. Using system environment variables.")
 
-# Point mini-swe-agent at ~/.hermes/ so it shares our config
-os.environ.setdefault("MSWEA_GLOBAL_CONFIG_DIR", str(_hermes_home))
+# Point mini-swe-agent at ~/.apollo/ so it shares our config
+os.environ.setdefault("MSWEA_GLOBAL_CONFIG_DIR", str(_apollo_home))
 os.environ.setdefault("MSWEA_SILENT_STARTUP", "1")
 
 # Import our tool system
@@ -75,7 +75,7 @@ from tools.browser_tool import cleanup_browser
 
 import requests
 
-from hermes_constants import OPENROUTER_BASE_URL, OPENROUTER_MODELS_URL
+from apollo_constants import OPENROUTER_BASE_URL, OPENROUTER_MODELS_URL
 
 # Agent internals extracted to agent/ package for modularity
 from agent.prompt_builder import (
@@ -114,7 +114,7 @@ HONCHO_TOOL_NAMES = {
 class _SafeWriter:
     """Transparent stdio wrapper that catches OSError from broken pipes.
 
-    When hermes-agent runs as a systemd service, Docker container, or headless
+    When apollo-agent runs as a systemd service, Docker container, or headless
     daemon, the stdout/stderr pipe can become unavailable (idle timeout, buffer
     exhaustion, socket reset). Any print() call then raises
     ``OSError: [Errno 5] Input/output error``, which can crash agent setup or
@@ -416,14 +416,14 @@ class AIAgent:
         self._budget_warning_threshold = 0.9   # 90% — urgent, respond now
         self._budget_pressure_enabled = True
 
-        # Persistent error log -- always writes WARNING+ to ~/.hermes/logs/errors.log
+        # Persistent error log -- always writes WARNING+ to ~/.apollo/logs/errors.log
         # so tool failures, API errors, etc. are inspectable after the fact.
         # In gateway mode, each incoming message creates a new AIAgent instance,
         # while the root logger is process-global. Re-adding the same errors.log
         # handler would cause each warning/error line to be written multiple times.
         from logging.handlers import RotatingFileHandler
         root_logger = logging.getLogger()
-        error_log_dir = _hermes_home / "logs"
+        error_log_dir = _apollo_home / "logs"
         error_log_path = error_log_dir / "errors.log"
         resolved_error_log_path = error_log_path.resolve()
         has_errors_log_handler = any(
@@ -490,7 +490,7 @@ class AIAgent:
                     'run_agent',            # agent runner internals
                     'trajectory_compressor',
                     'cron',                 # scheduler (only relevant in daemon mode)
-                    'hermes_cli',           # CLI helpers
+                    'apollo_cli',           # CLI helpers
                 ]:
                     logging.getLogger(quiet_logger).setLevel(logging.ERROR)
         
@@ -532,8 +532,8 @@ class AIAgent:
                 effective_base = base_url
                 if "openrouter" in effective_base.lower():
                     client_kwargs["default_headers"] = {
-                        "HTTP-Referer": "https://hermes-agent.nousresearch.com",
-                        "X-OpenRouter-Title": "Hermes Agent",
+                        "HTTP-Referer": "https://apollo-agent.nousresearch.com",
+                        "X-OpenRouter-Title": "Apollo Agent",
                         "X-OpenRouter-Categories": "productivity,cli-agent",
                     }
                 elif "api.kimi.com" in effective_base.lower():
@@ -559,8 +559,8 @@ class AIAgent:
                         "api_key": os.getenv("OPENROUTER_API_KEY", ""),
                         "base_url": OPENROUTER_BASE_URL,
                         "default_headers": {
-                            "HTTP-Referer": "https://hermes-agent.nousresearch.com",
-                            "X-OpenRouter-Title": "Hermes Agent",
+                            "HTTP-Referer": "https://apollo-agent.nousresearch.com",
+                            "X-OpenRouter-Title": "Apollo Agent",
                             "X-OpenRouter-Categories": "productivity,cli-agent",
                         },
                     }
@@ -647,9 +647,9 @@ class AIAgent:
             short_uuid = uuid.uuid4().hex[:6]
             self.session_id = f"{timestamp_str}_{short_uuid}"
         
-        # Session logs go into ~/.hermes/sessions/ alongside gateway sessions
-        hermes_home = Path(os.getenv("HERMES_HOME", Path.home() / ".hermes"))
-        self.logs_dir = hermes_home / "sessions"
+        # Session logs go into ~/.apollo/sessions/ alongside gateway sessions
+        apollo_home = Path(os.getenv("APOLLO_HOME", Path.home() / ".apollo"))
+        self.logs_dir = apollo_home / "sessions"
         self.logs_dir.mkdir(parents=True, exist_ok=True)
         self.session_log_file = self.logs_dir / f"session_{self.session_id}.json"
         
@@ -697,7 +697,7 @@ class AIAgent:
         self._memory_flush_min_turns = 6
         if not skip_memory:
             try:
-                from hermes_cli.config import load_config as _load_mem_config
+                from apollo_cli.config import load_config as _load_mem_config
                 mem_config = _load_mem_config().get("memory", {})
                 self._memory_enabled = mem_config.get("memory_enabled", False)
                 self._user_profile_enabled = mem_config.get("user_profile_enabled", False)
@@ -760,7 +760,7 @@ class AIAgent:
             except Exception as e:
                 logger.warning("Honcho init failed — memory disabled: %s", e)
                 print(f"  Honcho init failed: {e}")
-                print("  Run 'hermes honcho setup' to reconfigure.")
+                print("  Run 'apollo honcho setup' to reconfigure.")
                 self._honcho = None
 
         # Tools are initially discovered before Honcho activation. If Honcho
@@ -786,7 +786,7 @@ class AIAgent:
         # Skills config: nudge interval for skill creation reminders
         self._skill_nudge_interval = 15
         try:
-            from hermes_cli.config import load_config as _load_skills_config
+            from apollo_cli.config import load_config as _load_skills_config
             skills_config = _load_skills_config().get("skills", {})
             self._skill_nudge_interval = int(skills_config.get("creation_nudge_interval", 15))
         except Exception:
@@ -1384,7 +1384,7 @@ class AIAgent:
 
             self._vprint(f"{self.log_prefix}🧾 Request debug dump written to: {dump_file}")
 
-            if os.getenv("HERMES_DUMP_REQUEST_STDOUT", "").strip().lower() in {"1", "true", "yes", "on"}:
+            if os.getenv("APOLLO_DUMP_REQUEST_STDOUT", "").strip().lower() in {"1", "true", "yes", "on"}:
                 print(json.dumps(dump_payload, ensure_ascii=False, indent=2, default=str))
 
             return dump_file
@@ -1578,15 +1578,15 @@ class AIAgent:
                     session_title=session_title,
                     session_id=self.session_id,
                 )
-                or "hermes-default"
+                or "apollo-default"
             )
 
         honcho_sess = self._honcho.get_or_create(self._honcho_session_key)
         if not honcho_sess.messages:
             try:
-                from hermes_cli.config import get_hermes_home
+                from apollo_cli.config import get_apollo_home
 
-                mem_dir = str(get_hermes_home() / "memories")
+                mem_dir = str(get_apollo_home() / "memories")
                 self._honcho.migrate_memory_files(
                     self._honcho_session_key,
                     mem_dir,
@@ -1768,12 +1768,12 @@ class AIAgent:
         # If an AI peer name is configured in Honcho, personalise the identity line.
         _ai_peer_name = (
             self._honcho_config.ai_peer
-            if self._honcho_config and self._honcho_config.ai_peer != "hermes"
+            if self._honcho_config and self._honcho_config.ai_peer != "apollo"
             else None
         )
         if _ai_peer_name:
             _identity = DEFAULT_AGENT_IDENTITY.replace(
-                "You are Hermes Agent",
+                "You are Apollo Agent",
                 f"You are {_ai_peer_name}",
                 1,
             )
@@ -1797,7 +1797,7 @@ class AIAgent:
         if len(self.valid_tool_names) > 3:
             prompt_parts.append(TOOL_SELECTION_GUIDE)
 
-        # Honcho CLI awareness: tell Hermes about its own management commands
+        # Honcho CLI awareness: tell Apollo about its own management commands
         # so it can refer the user to them rather than reinventing answers.
         if self._honcho and self._honcho_session_key:
             hcfg = self._honcho_config
@@ -1839,15 +1839,15 @@ class AIAgent:
                 )
             honcho_block += (
                 "Management commands (refer users here instead of explaining manually):\n"
-                "  hermes honcho status                    — show full config + connection\n"
-                "  hermes honcho mode [hybrid|honcho]       — show or set memory mode\n"
-                "  hermes honcho tokens [--context N] [--dialectic N] — show or set token budgets\n"
-                "  hermes honcho peer [--user NAME] [--ai NAME] [--reasoning LEVEL]\n"
-                "  hermes honcho sessions                  — list directory→session mappings\n"
-                "  hermes honcho map <name>                — map cwd to a session name\n"
-                "  hermes honcho identity [<file>] [--show] — seed or show AI peer identity\n"
-                "  hermes honcho migrate                   — migration guide from openclaw-honcho\n"
-                "  hermes honcho setup                     — full interactive wizard"
+                "  apollo honcho status                    — show full config + connection\n"
+                "  apollo honcho mode [hybrid|honcho]       — show or set memory mode\n"
+                "  apollo honcho tokens [--context N] [--dialectic N] — show or set token budgets\n"
+                "  apollo honcho peer [--user NAME] [--ai NAME] [--reasoning LEVEL]\n"
+                "  apollo honcho sessions                  — list directory→session mappings\n"
+                "  apollo honcho map <name>                — map cwd to a session name\n"
+                "  apollo honcho identity [<file>] [--show] — seed or show AI peer identity\n"
+                "  apollo honcho migrate                   — migration guide from openclaw-honcho\n"
+                "  apollo honcho setup                     — full interactive wizard"
             )
             prompt_parts.append(honcho_block)
 
@@ -1885,8 +1885,8 @@ class AIAgent:
             if context_files_prompt:
                 prompt_parts.append(context_files_prompt)
 
-        from hermes_time import now as _hermes_now
-        now = _hermes_now()
+        from apollo_time import now as _apollo_now
+        now = _apollo_now()
         timestamp_line = f"Conversation started: {now.strftime('%A, %B %d, %Y %I:%M %p')}"
         if self.pass_session_id and self.session_id:
             timestamp_line += f"\nSession ID: {self.session_id}"
@@ -2545,7 +2545,7 @@ class AIAgent:
             return False
 
         try:
-            from hermes_cli.auth import resolve_codex_runtime_credentials
+            from apollo_cli.auth import resolve_codex_runtime_credentials
 
             creds = resolve_codex_runtime_credentials(force_refresh=force)
         except Exception as exc:
@@ -2582,11 +2582,11 @@ class AIAgent:
             return False
 
         try:
-            from hermes_cli.auth import resolve_nous_runtime_credentials
+            from apollo_cli.auth import resolve_nous_runtime_credentials
 
             creds = resolve_nous_runtime_credentials(
-                min_key_ttl_seconds=max(60, int(os.getenv("HERMES_NOUS_MIN_KEY_TTL_SECONDS", "1800"))),
-                timeout_seconds=float(os.getenv("HERMES_NOUS_TIMEOUT_SECONDS", "15")),
+                min_key_ttl_seconds=max(60, int(os.getenv("APOLLO_NOUS_MIN_KEY_TTL_SECONDS", "1800"))),
+                timeout_seconds=float(os.getenv("APOLLO_NOUS_TIMEOUT_SECONDS", "15")),
                 force_mint=force,
             )
         except Exception as exc:
@@ -2997,7 +2997,7 @@ class AIAgent:
             "model": self.model,
             "messages": sanitized_messages,
             "tools": self.tools if self.tools else None,
-            "timeout": float(os.getenv("HERMES_API_TIMEOUT", 900.0)),
+            "timeout": float(os.getenv("APOLLO_API_TIMEOUT", 900.0)),
         }
 
         if self.max_tokens is not None:
@@ -3033,7 +3033,7 @@ class AIAgent:
 
         # Nous Portal product attribution
         if _is_nous:
-            extra_body["tags"] = ["product=hermes-agent"]
+            extra_body["tags"] = ["product=apollo-agent"]
 
         if extra_body:
             api_kwargs["extra_body"] = extra_body
@@ -4027,7 +4027,7 @@ class AIAgent:
                         "effort": "medium"
                     }
             if _is_nous:
-                summary_extra_body["tags"] = ["product=hermes-agent"]
+                summary_extra_body["tags"] = ["product=apollo-agent"]
 
             if self.api_mode == "codex_responses":
                 codex_kwargs = self._build_api_kwargs(api_messages)
@@ -4512,7 +4512,7 @@ class AIAgent:
                     if self.api_mode == "codex_responses":
                         api_kwargs = self._preflight_codex_api_kwargs(api_kwargs, allow_stream=False)
 
-                    if os.getenv("HERMES_DUMP_REQUESTS", "").strip().lower() in {"1", "true", "yes", "on"}:
+                    if os.getenv("APOLLO_DUMP_REQUESTS", "").strip().lower() in {"1", "true", "yes", "on"}:
                         self._dump_api_request_debug(api_kwargs, reason="preflight")
 
                     cb = getattr(self, "_stream_callback", None)
@@ -4882,12 +4882,12 @@ class AIAgent:
                         print(f"{self.log_prefix}   Auth method: {auth_method}")
                         print(f"{self.log_prefix}   Token prefix: {key[:12]}..." if key and len(key) > 12 else f"{self.log_prefix}   Token: (empty or short)")
                         print(f"{self.log_prefix}   Troubleshooting:")
-                        print(f"{self.log_prefix}     • Check ANTHROPIC_TOKEN in ~/.hermes/.env for Hermes-managed OAuth/setup tokens")
-                        print(f"{self.log_prefix}     • Check ANTHROPIC_API_KEY in ~/.hermes/.env for API keys or legacy token values")
+                        print(f"{self.log_prefix}     • Check ANTHROPIC_TOKEN in ~/.apollo/.env for Apollo-managed OAuth/setup tokens")
+                        print(f"{self.log_prefix}     • Check ANTHROPIC_API_KEY in ~/.apollo/.env for API keys or legacy token values")
                         print(f"{self.log_prefix}     • For API keys: verify at https://console.anthropic.com/settings/keys")
                         print(f"{self.log_prefix}     • For Claude Code: run 'claude /login' to refresh, then retry")
-                        print(f"{self.log_prefix}     • Clear stale keys: hermes config set ANTHROPIC_TOKEN \"\"")
-                        print(f"{self.log_prefix}     • Legacy cleanup: hermes config set ANTHROPIC_API_KEY \"\"")
+                        print(f"{self.log_prefix}     • Clear stale keys: apollo config set ANTHROPIC_TOKEN \"\"")
+                        print(f"{self.log_prefix}     • Legacy cleanup: apollo config set ANTHROPIC_API_KEY \"\"")
 
                     retry_count += 1
                     elapsed_time = time.time() - api_start_time

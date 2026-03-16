@@ -5,7 +5,7 @@ version: 1.0.0
 author: community
 license: MIT
 metadata:
-  hermes:
+  apollo:
     tags: [Study, Quiz, Flashcards, Practice, Education, Spaced Repetition, School]
     related_skills: [file-analysis, canvas-lms, todoist, document-analysis, text-analysis]
     school: true
@@ -21,7 +21,7 @@ Upload study materials, get quizzed with 10 different question formats, track wh
 ## Scripts
 
 ```bash
-STUDY="python ~/.hermes/skills/productivity/study/scripts/study_db.py"
+STUDY="python ~/.apollo/skills/productivity/study/scripts/study_db.py"
 ```
 
 ## Available Commands
@@ -541,7 +541,7 @@ Save high-level study preferences to the memory tool (NOT study data — that go
 | Problem | Fix |
 |---------|-----|
 | `sentence-transformers` not installed | Semantic search falls back to FTS5 text search. Install with `pip install sentence-transformers` for better deduplication. |
-| Database not found | Created automatically on first use at `~/.hermes/study_data.db` |
+| Database not found | Created automatically on first use at `~/.apollo/study_data.db` |
 | Class/category not found | Create with `create_class` / `create_category` before recording |
 | Large file content | Use `--content -` flag and pipe content via stdin |
 | Score seems wrong | Scores use a rolling window of last 20 attempts — recent performance matters more |

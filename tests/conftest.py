@@ -1,4 +1,4 @@
-"""Shared fixtures for the hermes-agent test suite."""
+"""Shared fixtures for the apollo-agent test suite."""
 
 import asyncio
 import os
@@ -17,15 +17,15 @@ if str(PROJECT_ROOT) not in sys.path:
 
 
 @pytest.fixture(autouse=True)
-def _isolate_hermes_home(tmp_path, monkeypatch):
-    """Redirect HERMES_HOME to a temp dir so tests never write to ~/.hermes/."""
-    fake_home = tmp_path / "hermes_test"
+def _isolate_apollo_home(tmp_path, monkeypatch):
+    """Redirect APOLLO_HOME to a temp dir so tests never write to ~/.apollo/."""
+    fake_home = tmp_path / "apollo_test"
     fake_home.mkdir()
     (fake_home / "sessions").mkdir()
     (fake_home / "cron").mkdir()
     (fake_home / "memories").mkdir()
     (fake_home / "skills").mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(fake_home))
+    monkeypatch.setenv("APOLLO_HOME", str(fake_home))
 
 
 @pytest.fixture()
@@ -36,7 +36,7 @@ def tmp_dir(tmp_path):
 
 @pytest.fixture()
 def mock_config():
-    """Return a minimal hermes config dict suitable for unit tests."""
+    """Return a minimal apollo config dict suitable for unit tests."""
     return {
         "model": "test/mock-model",
         "toolsets": ["terminal", "file"],

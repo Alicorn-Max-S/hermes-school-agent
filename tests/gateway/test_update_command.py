@@ -50,10 +50,10 @@ class TestHandleUpdateCommand:
         """Returns an error when .git does not exist."""
         runner = _make_runner()
         event = _make_event()
-        # Point _hermes_home to tmp_path and project_root to a dir without .git
+        # Point _apollo_home to tmp_path and project_root to a dir without .git
         fake_root = tmp_path / "project"
         fake_root.mkdir()
-        with patch("gateway.run._hermes_home", tmp_path), \
+        with patch("gateway.run._apollo_home", tmp_path), \
              patch("gateway.run.Path") as MockPath:
             # Path(__file__).parent.parent.resolve() -> fake_root
             MockPath.return_value = MagicMock()
@@ -65,11 +65,11 @@ class TestHandleUpdateCommand:
         from gateway.run import GatewayRunner
         runner = _make_runner()
 
-        with patch("gateway.run._hermes_home", tmp_path):
+        with patch("gateway.run._apollo_home", tmp_path):
             # The handler does Path(__file__).parent.parent.resolve()
             # We need to make project_root / '.git' not exist.
             # Since Path(__file__) resolves to the real gateway/run.py,
-            # project_root will be the real hermes-agent dir (which HAS .git).
+            # project_root will be the real apollo-agent dir (which HAS .git).
             # Patch Path to control this.
             original_path = Path
 
@@ -87,8 +87,8 @@ class TestHandleUpdateCommand:
         assert "Not a git repository" in result
 
     @pytest.mark.asyncio
-    async def test_no_hermes_binary(self, tmp_path):
-        """Returns error when hermes is not on PATH."""
+    async def test_no_apollo_binary(self, tmp_path):
+        """Returns error when apollo is not on PATH."""
         runner = _make_runner()
         event = _make_event()
 
@@ -100,7 +100,7 @@ class TestHandleUpdateCommand:
         (fake_root / "gateway" / "run.py").touch()
         fake_file = str(fake_root / "gateway" / "run.py")
 
-        with patch("gateway.run._hermes_home", tmp_path), \
+        with patch("gateway.run._apollo_home", tmp_path), \
              patch("gateway.run.__file__", fake_file), \
              patch("shutil.which", return_value=None):
             result = await runner._handle_update_command(event)
@@ -119,22 +119,22 @@ class TestHandleUpdateCommand:
         (fake_root / "gateway").mkdir()
         (fake_root / "gateway" / "run.py").touch()
         fake_file = str(fake_root / "gateway" / "run.py")
-        hermes_home = tmp_path / "hermes"
-        hermes_home.mkdir()
+        apollo_home = tmp_path / "apollo"
+        apollo_home.mkdir()
 
-        with patch("gateway.run._hermes_home", hermes_home), \
+        with patch("gateway.run._apollo_home", apollo_home), \
              patch("gateway.run.__file__", fake_file), \
-             patch("shutil.which", side_effect=lambda x: "/usr/bin/hermes" if x == "hermes" else "/usr/bin/systemd-run"), \
+             patch("shutil.which", side_effect=lambda x: "/usr/bin/apollo" if x == "apollo" else "/usr/bin/systemd-run"), \
              patch("subprocess.Popen"):
             result = await runner._handle_update_command(event)
 
-        pending_path = hermes_home / ".update_pending.json"
+        pending_path = apollo_home / ".update_pending.json"
         assert pending_path.exists()
         data = json.loads(pending_path.read_text())
         assert data["platform"] == "telegram"
         assert data["chat_id"] == "99999"
         assert "timestamp" in data
-        assert not (hermes_home / ".update_exit_code").exists()
+        assert not (apollo_home / ".update_exit_code").exists()
 
     @pytest.mark.asyncio
     async def test_spawns_systemd_run(self, tmp_path):
@@ -148,11 +148,11 @@ class TestHandleUpdateCommand:
         (fake_root / "gateway").mkdir()
         (fake_root / "gateway" / "run.py").touch()
         fake_file = str(fake_root / "gateway" / "run.py")
-        hermes_home = tmp_path / "hermes"
-        hermes_home.mkdir()
+        apollo_home = tmp_path / "apollo"
+        apollo_home.mkdir()
 
         mock_popen = MagicMock()
-        with patch("gateway.run._hermes_home", hermes_home), \
+        with patch("gateway.run._apollo_home", apollo_home), \
              patch("gateway.run.__file__", fake_file), \
              patch("shutil.which", side_effect=lambda x: f"/usr/bin/{x}"), \
              patch("subprocess.Popen", mock_popen):
@@ -163,7 +163,7 @@ class TestHandleUpdateCommand:
         assert call_args[0] == "/usr/bin/systemd-run"
         assert "--scope" in call_args
         assert ".update_exit_code" in call_args[-1]
-        assert "Starting Hermes update" in result
+        assert "Starting Apollo update" in result
 
     @pytest.mark.asyncio
     async def test_fallback_nohup_when_no_systemd_run(self, tmp_path):
@@ -177,19 +177,19 @@ class TestHandleUpdateCommand:
         (fake_root / "gateway").mkdir()
         (fake_root / "gateway" / "run.py").touch()
         fake_file = str(fake_root / "gateway" / "run.py")
-        hermes_home = tmp_path / "hermes"
-        hermes_home.mkdir()
+        apollo_home = tmp_path / "apollo"
+        apollo_home.mkdir()
 
         mock_popen = MagicMock()
 
         def which_no_systemd(x):
-            if x == "hermes":
-                return "/usr/bin/hermes"
+            if x == "apollo":
+                return "/usr/bin/apollo"
             if x == "systemd-run":
                 return None
             return None
 
-        with patch("gateway.run._hermes_home", hermes_home), \
+        with patch("gateway.run._apollo_home", apollo_home), \
              patch("gateway.run.__file__", fake_file), \
              patch("shutil.which", side_effect=which_no_systemd), \
              patch("subprocess.Popen", mock_popen):
@@ -200,7 +200,7 @@ class TestHandleUpdateCommand:
         assert call_args[0] == "bash"
         assert "nohup" in call_args[2]
         assert ".update_exit_code" in call_args[2]
-        assert "Starting Hermes update" in result
+        assert "Starting Apollo update" in result
 
     @pytest.mark.asyncio
     async def test_popen_failure_cleans_up(self, tmp_path):
@@ -214,10 +214,10 @@ class TestHandleUpdateCommand:
         (fake_root / "gateway").mkdir()
         (fake_root / "gateway" / "run.py").touch()
         fake_file = str(fake_root / "gateway" / "run.py")
-        hermes_home = tmp_path / "hermes"
-        hermes_home.mkdir()
+        apollo_home = tmp_path / "apollo"
+        apollo_home.mkdir()
 
-        with patch("gateway.run._hermes_home", hermes_home), \
+        with patch("gateway.run._apollo_home", apollo_home), \
              patch("gateway.run.__file__", fake_file), \
              patch("shutil.which", side_effect=lambda x: f"/usr/bin/{x}"), \
              patch("subprocess.Popen", side_effect=OSError("spawn failed")):
@@ -225,8 +225,8 @@ class TestHandleUpdateCommand:
 
         assert "Failed to start update" in result
         # Pending file should be cleaned up
-        assert not (hermes_home / ".update_pending.json").exists()
-        assert not (hermes_home / ".update_exit_code").exists()
+        assert not (apollo_home / ".update_pending.json").exists()
+        assert not (apollo_home / ".update_exit_code").exists()
 
     @pytest.mark.asyncio
     async def test_returns_user_friendly_message(self, tmp_path):
@@ -240,10 +240,10 @@ class TestHandleUpdateCommand:
         (fake_root / "gateway").mkdir()
         (fake_root / "gateway" / "run.py").touch()
         fake_file = str(fake_root / "gateway" / "run.py")
-        hermes_home = tmp_path / "hermes"
-        hermes_home.mkdir()
+        apollo_home = tmp_path / "apollo"
+        apollo_home.mkdir()
 
-        with patch("gateway.run._hermes_home", hermes_home), \
+        with patch("gateway.run._apollo_home", apollo_home), \
              patch("gateway.run.__file__", fake_file), \
              patch("shutil.which", side_effect=lambda x: f"/usr/bin/{x}"), \
              patch("subprocess.Popen"):
@@ -264,10 +264,10 @@ class TestSendUpdateNotification:
     async def test_no_pending_file_is_noop(self, tmp_path):
         """Does nothing when no pending file exists."""
         runner = _make_runner()
-        hermes_home = tmp_path / "hermes"
-        hermes_home.mkdir()
+        apollo_home = tmp_path / "apollo"
+        apollo_home.mkdir()
 
-        with patch("gateway.run._hermes_home", hermes_home):
+        with patch("gateway.run._apollo_home", apollo_home):
             # Should not raise
             await runner._send_update_notification()
 
@@ -275,19 +275,19 @@ class TestSendUpdateNotification:
     async def test_defers_notification_while_update_still_running(self, tmp_path):
         """Returns False and keeps marker files when the update has not exited yet."""
         runner = _make_runner()
-        hermes_home = tmp_path / "hermes"
-        hermes_home.mkdir()
+        apollo_home = tmp_path / "apollo"
+        apollo_home.mkdir()
 
-        pending_path = hermes_home / ".update_pending.json"
+        pending_path = apollo_home / ".update_pending.json"
         pending_path.write_text(json.dumps({
             "platform": "telegram", "chat_id": "67890", "user_id": "12345",
         }))
-        (hermes_home / ".update_output.txt").write_text("still running")
+        (apollo_home / ".update_output.txt").write_text("still running")
 
         mock_adapter = AsyncMock()
         runner.adapters = {Platform.TELEGRAM: mock_adapter}
 
-        with patch("gateway.run._hermes_home", hermes_home):
+        with patch("gateway.run._apollo_home", apollo_home):
             result = await runner._send_update_notification()
 
         assert result is False
@@ -298,20 +298,20 @@ class TestSendUpdateNotification:
     async def test_recovers_from_claimed_pending_file(self, tmp_path):
         """A claimed pending file from a crashed notifier is still deliverable."""
         runner = _make_runner()
-        hermes_home = tmp_path / "hermes"
-        hermes_home.mkdir()
+        apollo_home = tmp_path / "apollo"
+        apollo_home.mkdir()
 
-        claimed_path = hermes_home / ".update_pending.claimed.json"
+        claimed_path = apollo_home / ".update_pending.claimed.json"
         claimed_path.write_text(json.dumps({
             "platform": "telegram", "chat_id": "67890", "user_id": "12345",
         }))
-        (hermes_home / ".update_output.txt").write_text("done")
-        (hermes_home / ".update_exit_code").write_text("0")
+        (apollo_home / ".update_output.txt").write_text("done")
+        (apollo_home / ".update_exit_code").write_text("0")
 
         mock_adapter = AsyncMock()
         runner.adapters = {Platform.TELEGRAM: mock_adapter}
 
-        with patch("gateway.run._hermes_home", hermes_home):
+        with patch("gateway.run._apollo_home", apollo_home):
             result = await runner._send_update_notification()
 
         assert result is True
@@ -322,8 +322,8 @@ class TestSendUpdateNotification:
     async def test_sends_notification_with_output(self, tmp_path):
         """Sends update output to the correct platform and chat."""
         runner = _make_runner()
-        hermes_home = tmp_path / "hermes"
-        hermes_home.mkdir()
+        apollo_home = tmp_path / "apollo"
+        apollo_home.mkdir()
 
         # Write pending marker
         pending = {
@@ -332,18 +332,18 @@ class TestSendUpdateNotification:
             "user_id": "12345",
             "timestamp": "2026-03-04T21:00:00",
         }
-        (hermes_home / ".update_pending.json").write_text(json.dumps(pending))
-        (hermes_home / ".update_output.txt").write_text(
+        (apollo_home / ".update_pending.json").write_text(json.dumps(pending))
+        (apollo_home / ".update_output.txt").write_text(
             "→ Found 3 new commit(s)\n✓ Code updated!\n✓ Update complete!"
         )
-        (hermes_home / ".update_exit_code").write_text("0")
+        (apollo_home / ".update_exit_code").write_text("0")
 
         # Mock the adapter
         mock_adapter = AsyncMock()
         mock_adapter.send = AsyncMock()
         runner.adapters = {Platform.TELEGRAM: mock_adapter}
 
-        with patch("gateway.run._hermes_home", hermes_home):
+        with patch("gateway.run._apollo_home", apollo_home):
             await runner._send_update_notification()
 
         mock_adapter.send.assert_called_once()
@@ -355,20 +355,20 @@ class TestSendUpdateNotification:
     async def test_strips_ansi_codes(self, tmp_path):
         """ANSI escape codes are removed from output."""
         runner = _make_runner()
-        hermes_home = tmp_path / "hermes"
-        hermes_home.mkdir()
+        apollo_home = tmp_path / "apollo"
+        apollo_home.mkdir()
 
         pending = {"platform": "telegram", "chat_id": "111", "user_id": "222"}
-        (hermes_home / ".update_pending.json").write_text(json.dumps(pending))
-        (hermes_home / ".update_output.txt").write_text(
+        (apollo_home / ".update_pending.json").write_text(json.dumps(pending))
+        (apollo_home / ".update_output.txt").write_text(
             "\x1b[32m✓ Code updated!\x1b[0m\n\x1b[1mDone\x1b[0m"
         )
-        (hermes_home / ".update_exit_code").write_text("0")
+        (apollo_home / ".update_exit_code").write_text("0")
 
         mock_adapter = AsyncMock()
         runner.adapters = {Platform.TELEGRAM: mock_adapter}
 
-        with patch("gateway.run._hermes_home", hermes_home):
+        with patch("gateway.run._apollo_home", apollo_home):
             await runner._send_update_notification()
 
         sent_text = mock_adapter.send.call_args[0][1]
@@ -379,18 +379,18 @@ class TestSendUpdateNotification:
     async def test_truncates_long_output(self, tmp_path):
         """Output longer than 3500 chars is truncated."""
         runner = _make_runner()
-        hermes_home = tmp_path / "hermes"
-        hermes_home.mkdir()
+        apollo_home = tmp_path / "apollo"
+        apollo_home.mkdir()
 
         pending = {"platform": "telegram", "chat_id": "111", "user_id": "222"}
-        (hermes_home / ".update_pending.json").write_text(json.dumps(pending))
-        (hermes_home / ".update_output.txt").write_text("x" * 5000)
-        (hermes_home / ".update_exit_code").write_text("0")
+        (apollo_home / ".update_pending.json").write_text(json.dumps(pending))
+        (apollo_home / ".update_output.txt").write_text("x" * 5000)
+        (apollo_home / ".update_exit_code").write_text("0")
 
         mock_adapter = AsyncMock()
         runner.adapters = {Platform.TELEGRAM: mock_adapter}
 
-        with patch("gateway.run._hermes_home", hermes_home):
+        with patch("gateway.run._apollo_home", apollo_home):
             await runner._send_update_notification()
 
         sent_text = mock_adapter.send.call_args[0][1]
@@ -403,18 +403,18 @@ class TestSendUpdateNotification:
     async def test_sends_failure_message_when_update_fails(self, tmp_path):
         """Non-zero exit codes produce a failure notification with captured output."""
         runner = _make_runner()
-        hermes_home = tmp_path / "hermes"
-        hermes_home.mkdir()
+        apollo_home = tmp_path / "apollo"
+        apollo_home.mkdir()
 
         pending = {"platform": "telegram", "chat_id": "111", "user_id": "222"}
-        (hermes_home / ".update_pending.json").write_text(json.dumps(pending))
-        (hermes_home / ".update_output.txt").write_text("Traceback: boom")
-        (hermes_home / ".update_exit_code").write_text("1")
+        (apollo_home / ".update_pending.json").write_text(json.dumps(pending))
+        (apollo_home / ".update_output.txt").write_text("Traceback: boom")
+        (apollo_home / ".update_exit_code").write_text("1")
 
         mock_adapter = AsyncMock()
         runner.adapters = {Platform.TELEGRAM: mock_adapter}
 
-        with patch("gateway.run._hermes_home", hermes_home):
+        with patch("gateway.run._apollo_home", apollo_home):
             result = await runner._send_update_notification()
 
         assert result is True
@@ -426,18 +426,18 @@ class TestSendUpdateNotification:
     async def test_sends_generic_message_when_no_output(self, tmp_path):
         """Sends a success message even if the output file is missing."""
         runner = _make_runner()
-        hermes_home = tmp_path / "hermes"
-        hermes_home.mkdir()
+        apollo_home = tmp_path / "apollo"
+        apollo_home.mkdir()
 
         pending = {"platform": "telegram", "chat_id": "111", "user_id": "222"}
-        (hermes_home / ".update_pending.json").write_text(json.dumps(pending))
+        (apollo_home / ".update_pending.json").write_text(json.dumps(pending))
         # No .update_output.txt created
-        (hermes_home / ".update_exit_code").write_text("0")
+        (apollo_home / ".update_exit_code").write_text("0")
 
         mock_adapter = AsyncMock()
         runner.adapters = {Platform.TELEGRAM: mock_adapter}
 
-        with patch("gateway.run._hermes_home", hermes_home):
+        with patch("gateway.run._apollo_home", apollo_home):
             await runner._send_update_notification()
 
         sent_text = mock_adapter.send.call_args[0][1]
@@ -447,12 +447,12 @@ class TestSendUpdateNotification:
     async def test_cleans_up_files_after_notification(self, tmp_path):
         """Both marker and output files are deleted after notification."""
         runner = _make_runner()
-        hermes_home = tmp_path / "hermes"
-        hermes_home.mkdir()
+        apollo_home = tmp_path / "apollo"
+        apollo_home.mkdir()
 
-        pending_path = hermes_home / ".update_pending.json"
-        output_path = hermes_home / ".update_output.txt"
-        exit_code_path = hermes_home / ".update_exit_code"
+        pending_path = apollo_home / ".update_pending.json"
+        output_path = apollo_home / ".update_output.txt"
+        exit_code_path = apollo_home / ".update_exit_code"
         pending_path.write_text(json.dumps({
             "platform": "telegram", "chat_id": "111", "user_id": "222",
         }))
@@ -462,7 +462,7 @@ class TestSendUpdateNotification:
         mock_adapter = AsyncMock()
         runner.adapters = {Platform.TELEGRAM: mock_adapter}
 
-        with patch("gateway.run._hermes_home", hermes_home):
+        with patch("gateway.run._apollo_home", apollo_home):
             await runner._send_update_notification()
 
         assert not pending_path.exists()
@@ -473,12 +473,12 @@ class TestSendUpdateNotification:
     async def test_cleans_up_on_error(self, tmp_path):
         """Files are cleaned up even if notification fails."""
         runner = _make_runner()
-        hermes_home = tmp_path / "hermes"
-        hermes_home.mkdir()
+        apollo_home = tmp_path / "apollo"
+        apollo_home.mkdir()
 
-        pending_path = hermes_home / ".update_pending.json"
-        output_path = hermes_home / ".update_output.txt"
-        exit_code_path = hermes_home / ".update_exit_code"
+        pending_path = apollo_home / ".update_pending.json"
+        output_path = apollo_home / ".update_output.txt"
+        exit_code_path = apollo_home / ".update_exit_code"
         pending_path.write_text(json.dumps({
             "platform": "telegram", "chat_id": "111", "user_id": "222",
         }))
@@ -490,7 +490,7 @@ class TestSendUpdateNotification:
         mock_adapter.send.side_effect = RuntimeError("network error")
         runner.adapters = {Platform.TELEGRAM: mock_adapter}
 
-        with patch("gateway.run._hermes_home", hermes_home):
+        with patch("gateway.run._apollo_home", apollo_home):
             await runner._send_update_notification()
 
         # Files should still be cleaned up (finally block)
@@ -502,13 +502,13 @@ class TestSendUpdateNotification:
     async def test_handles_corrupt_pending_file(self, tmp_path):
         """Gracefully handles a malformed pending JSON file."""
         runner = _make_runner()
-        hermes_home = tmp_path / "hermes"
-        hermes_home.mkdir()
+        apollo_home = tmp_path / "apollo"
+        apollo_home.mkdir()
 
-        pending_path = hermes_home / ".update_pending.json"
+        pending_path = apollo_home / ".update_pending.json"
         pending_path.write_text("{corrupt json!!")
 
-        with patch("gateway.run._hermes_home", hermes_home):
+        with patch("gateway.run._apollo_home", apollo_home):
             # Should not raise
             await runner._send_update_notification()
 
@@ -519,13 +519,13 @@ class TestSendUpdateNotification:
     async def test_no_adapter_for_platform(self, tmp_path):
         """Does not crash if the platform adapter is not connected."""
         runner = _make_runner()
-        hermes_home = tmp_path / "hermes"
-        hermes_home.mkdir()
+        apollo_home = tmp_path / "apollo"
+        apollo_home.mkdir()
 
         pending = {"platform": "discord", "chat_id": "111", "user_id": "222"}
-        pending_path = hermes_home / ".update_pending.json"
-        output_path = hermes_home / ".update_output.txt"
-        exit_code_path = hermes_home / ".update_exit_code"
+        pending_path = apollo_home / ".update_pending.json"
+        output_path = apollo_home / ".update_output.txt"
+        exit_code_path = apollo_home / ".update_exit_code"
         pending_path.write_text(json.dumps(pending))
         output_path.write_text("Done")
         exit_code_path.write_text("0")
@@ -534,7 +534,7 @@ class TestSendUpdateNotification:
         mock_adapter = AsyncMock()
         runner.adapters = {Platform.TELEGRAM: mock_adapter}
 
-        with patch("gateway.run._hermes_home", hermes_home):
+        with patch("gateway.run._apollo_home", apollo_home):
             await runner._send_update_notification()
 
         # send should not have been called (wrong platform)

@@ -5,9 +5,9 @@ version: 1.2.0
 author: Nous Research
 license: MIT
 metadata:
-  hermes:
+  apollo:
     tags: [Google, Drive, Docs, Sheets, School, SSO, Education]
-    homepage: https://github.com/NousResearch/hermes-agent
+    homepage: https://github.com/NousResearch/apollo-agent
     related_skills: [google-auth, google-drive-write]
     school: true
     school_category: "Google Workspace"
@@ -36,7 +36,7 @@ When a user shares a Google Drive link, **always start here**:
 ### Step 0: Parse the URL
 
 ```bash
-GDRIVE="python3 ~/.hermes/skills/productivity/google-drive/scripts/gdrive_read.py"
+GDRIVE="python3 ~/.apollo/skills/productivity/google-drive/scripts/gdrive_read.py"
 $GDRIVE parse "THE_DRIVE_URL"
 ```
 
@@ -60,7 +60,7 @@ Look in your memory for an existing `google-drive-auth` entry. If found, skip to
 ### Step 3: Check Existing Google Auth
 
 ```bash
-GSETUP="python3 ~/.hermes/skills/productivity/google-auth/scripts/setup.py"
+GSETUP="python3 ~/.apollo/skills/productivity/google-auth/scripts/setup.py"
 $GSETUP --check 2>/dev/null
 ```
 
@@ -75,7 +75,7 @@ Check if `browser_navigate` is in your available tools list.
 
 If NOT available, tell the user:
 > "Browser tools aren't available. To enable browser-based Google Drive access, run:
-> `cd /path/to/hermes-agent && npm install && npx agent-browser install --with-deps`
+> `cd /path/to/apollo-agent && npm install && npx agent-browser install --with-deps`
 > Then restart the agent. Or make the document publicly accessible (Share → Anyone with the link)."
 
 ### Step 5: Ask About Developer Console Access
@@ -94,7 +94,7 @@ clarify("The file requires authentication. Can you access the Google Developer C
 Uses Google OAuth2 via the `google-auth` skill. For setup, load: `skill_view("google-auth")`
 
 ```bash
-GAPI="python3 ~/.hermes/skills/productivity/google-auth/scripts/google_api.py"
+GAPI="python3 ~/.apollo/skills/productivity/google-auth/scripts/google_api.py"
 ```
 
 ### Read Content by Type
@@ -128,7 +128,7 @@ Uses the browser with a persistent profile (`google-drive`) for school/enterpris
 **1. Parse the URL:**
 
 ```bash
-GDRIVE="python3 ~/.hermes/skills/productivity/google-drive/scripts/gdrive_read.py"
+GDRIVE="python3 ~/.apollo/skills/productivity/google-drive/scripts/gdrive_read.py"
 $GDRIVE parse "THE_DRIVE_URL"
 ```
 
@@ -317,6 +317,6 @@ These are lessons learned from real-world testing:
 | Downloaded file not found | Check `ls -t ~/Downloads/ \| head` — filename may differ from doc title. |
 | 2FA times out | Ask user to retry. Some authenticator apps have short approval windows. |
 | Snapshot shows no content (blank) | Google Docs uses Canvas rendering. Download the file instead of snapshotting. |
-| Browser profile corrupted | Delete `~/.hermes/browser-profiles/google-drive/` and re-login. |
-| Browser tools not available | Run `npm install && npx agent-browser install --with-deps` in hermes-agent dir. |
+| Browser profile corrupted | Delete `~/.apollo/browser-profiles/google-drive/` and re-login. |
+| Browser tools not available | Run `npm install && npx agent-browser install --with-deps` in apollo-agent dir. |
 | "Verify it's you" page after SSO | Click "Continue" — this is Google's additional verification after SSO redirect. |

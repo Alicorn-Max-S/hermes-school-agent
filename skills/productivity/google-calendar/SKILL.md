@@ -5,9 +5,9 @@ version: 1.0.0
 author: Nous Research
 license: MIT
 metadata:
-  hermes:
+  apollo:
     tags: [Google, Calendar, Scheduling, Events, Todoist]
-    homepage: https://github.com/NousResearch/hermes-agent
+    homepage: https://github.com/NousResearch/apollo-agent
     related_skills: [todoist, google-auth]
     school: true
     school_category: "Homework & Assignments"
@@ -22,7 +22,7 @@ Create, view, edit, and delete Google Calendar events. **Detected automatically*
 Requires Google OAuth2 setup via the `google-auth` skill. Check auth first:
 
 ```bash
-GSETUP="python ~/.hermes/skills/productivity/google-auth/scripts/setup.py"
+GSETUP="python ~/.apollo/skills/productivity/google-auth/scripts/setup.py"
 $GSETUP --check
 ```
 
@@ -31,7 +31,7 @@ If not authenticated, load the `google-auth` skill: `skill_view("google-auth")` 
 ## Usage
 
 ```bash
-GAPI="python ~/.hermes/skills/productivity/google-auth/scripts/google_api.py"
+GAPI="python ~/.apollo/skills/productivity/google-auth/scripts/google_api.py"
 ```
 
 ### List Events
@@ -127,7 +127,7 @@ $GAPI calendar delete EVENT_ID
 
 1. **Get Todoist schedule** for the target date:
    ```bash
-   TODOIST="python ~/.hermes/skills/productivity/todoist/scripts/todoist_api.py"
+   TODOIST="python ~/.apollo/skills/productivity/todoist/scripts/todoist_api.py"
    $TODOIST get_scheduled 2026-03-16
    ```
 

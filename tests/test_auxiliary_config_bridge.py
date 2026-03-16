@@ -243,14 +243,14 @@ class TestVisionModelOverride:
 
 
 class TestDefaultConfigShape:
-    """Verify the DEFAULT_CONFIG in hermes_cli/config.py has correct auxiliary structure."""
+    """Verify the DEFAULT_CONFIG in apollo_cli/config.py has correct auxiliary structure."""
 
     def test_auxiliary_section_exists(self):
-        from hermes_cli.config import DEFAULT_CONFIG
+        from apollo_cli.config import DEFAULT_CONFIG
         assert "auxiliary" in DEFAULT_CONFIG
 
     def test_vision_task_structure(self):
-        from hermes_cli.config import DEFAULT_CONFIG
+        from apollo_cli.config import DEFAULT_CONFIG
         vision = DEFAULT_CONFIG["auxiliary"]["vision"]
         assert "provider" in vision
         assert "model" in vision
@@ -258,7 +258,7 @@ class TestDefaultConfigShape:
         assert vision["model"] == ""
 
     def test_webscrape_task_structure(self):
-        from hermes_cli.config import DEFAULT_CONFIG
+        from apollo_cli.config import DEFAULT_CONFIG
         web = DEFAULT_CONFIG["auxiliary"]["webscrape"]
         assert "provider" in web
         assert "model" in web
@@ -266,7 +266,7 @@ class TestDefaultConfigShape:
         assert web["model"] == ""
 
     def test_compression_provider_default(self):
-        from hermes_cli.config import DEFAULT_CONFIG
+        from apollo_cli.config import DEFAULT_CONFIG
         compression = DEFAULT_CONFIG["compression"]
         assert "summary_provider" in compression
         assert compression["summary_provider"] == "auto"

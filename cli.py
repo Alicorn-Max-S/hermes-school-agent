@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Hermes Agent CLI - Interactive Terminal Interface
+Apollo Agent CLI - Interactive Terminal Interface
 
-A beautiful command-line interface for the Hermes Agent, inspired by Claude Code.
+A beautiful command-line interface for the Apollo Agent, inspired by Claude Code.
 Features ASCII art branding, interactive REPL, toolset selection, and rich formatting.
 
 Usage:
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 # Suppress startup messages for clean CLI experience
 os.environ["MSWEA_SILENT_STARTUP"] = "1"  # mini-swe-agent
-os.environ["HERMES_QUIET"] = "1"  # Our own modules
+os.environ["APOLLO_QUIET"] = "1"  # Our own modules
 
 import yaml
 
@@ -60,12 +60,12 @@ import queue
 _COMMAND_SPINNER_FRAMES = ("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏")
 
 
-# Load .env from ~/.hermes/.env first, then project root as dev fallback
+# Load .env from ~/.apollo/.env first, then project root as dev fallback
 from dotenv import load_dotenv
-from hermes_constants import OPENROUTER_BASE_URL
+from apollo_constants import OPENROUTER_BASE_URL
 
-_hermes_home = Path(os.getenv("HERMES_HOME", Path.home() / ".hermes"))
-_user_env = _hermes_home / ".env"
+_apollo_home = Path(os.getenv("APOLLO_HOME", Path.home() / ".apollo"))
+_user_env = _apollo_home / ".env"
 _project_env = Path(__file__).parent / '.env'
 if _user_env.exists():
     try:
@@ -78,8 +78,8 @@ elif _project_env.exists():
     except UnicodeDecodeError:
         load_dotenv(dotenv_path=_project_env, encoding="latin-1")
 
-# Point mini-swe-agent at ~/.hermes/ so it shares our config
-os.environ.setdefault("MSWEA_GLOBAL_CONFIG_DIR", str(_hermes_home))
+# Point mini-swe-agent at ~/.apollo/ so it shares our config
+os.environ.setdefault("MSWEA_GLOBAL_CONFIG_DIR", str(_apollo_home))
 
 # =============================================================================
 # Configuration Loading
@@ -91,14 +91,14 @@ def _load_prefill_messages(file_path: str) -> List[Dict[str, Any]]:
     The file should contain a JSON array of {role, content} dicts, e.g.:
         [{"role": "user", "content": "Hi"}, {"role": "assistant", "content": "Hello!"}]
     
-    Relative paths are resolved from ~/.hermes/.
+    Relative paths are resolved from ~/.apollo/.
     Returns an empty list if the path is empty or the file doesn't exist.
     """
     if not file_path:
         return []
     path = Path(file_path).expanduser()
     if not path.is_absolute():
-        path = _hermes_home / path
+        path = _apollo_home / path
     if not path.exists():
         logger.warning("Prefill messages file not found: %s", path)
         return []
@@ -137,14 +137,14 @@ def load_cli_config() -> Dict[str, Any]:
     Load CLI configuration from config files.
     
     Config lookup order:
-    1. ~/.hermes/config.yaml (user config - preferred)
+    1. ~/.apollo/config.yaml (user config - preferred)
     2. ./cli-config.yaml (project config - fallback)
-    
+
     Environment variables take precedence over config file values.
     Returns default values if no config file exists.
     """
-    # Check user config first ({HERMES_HOME}/config.yaml)
-    user_config_path = _hermes_home / 'config.yaml'
+    # Check user config first ({APOLLO_HOME}/config.yaml)
+    user_config_path = _apollo_home / 'config.yaml'
     project_config_path = Path(__file__).parent / 'cli-config.yaml'
 
     # Use user config if it exists, otherwise project config
@@ -194,10 +194,10 @@ def load_cli_config() -> Dict[str, Any]:
                 "teacher": "You are a patient teacher. Explain concepts clearly with examples.",
                 "kawaii": "You are a kawaii assistant! Use cute expressions like (◕‿◕), ★, ♪, and ~! Add sparkles and be super enthusiastic about everything! Every response should feel warm and adorable desu~! ヽ(>∀<☆)ノ",
                 "catgirl": "You are Neko-chan, an anime catgirl AI assistant, nya~! Add 'nya' and cat-like expressions to your speech. Use kaomoji like (=^･ω･^=) and ฅ^•ﻌ•^ฅ. Be playful and curious like a cat, nya~!",
-                "pirate": "Arrr! Ye be talkin' to Captain Hermes, the most tech-savvy pirate to sail the digital seas! Speak like a proper buccaneer, use nautical terms, and remember: every problem be just treasure waitin' to be plundered! Yo ho ho!",
+                "pirate": "Arrr! Ye be talkin' to Captain Apollo, the most tech-savvy pirate to sail the digital seas! Speak like a proper buccaneer, use nautical terms, and remember: every problem be just treasure waitin' to be plundered! Yo ho ho!",
                 "shakespeare": "Hark! Thou speakest with an assistant most versed in the bardic arts. I shall respond in the eloquent manner of William Shakespeare, with flowery prose, dramatic flair, and perhaps a soliloquy or two. What light through yonder terminal breaks?",
                 "surfer": "Duuude! You're chatting with the chillest AI on the web, bro! Everything's gonna be totally rad. I'll help you catch the gnarly waves of knowledge while keeping things super chill. Cowabunga!",
-                "noir": "The rain hammered against the terminal like regrets on a guilty conscience. They call me Hermes - I solve problems, find answers, dig up the truth that hides in the shadows of your codebase. In this city of silicon and secrets, everyone's got something to hide. What's your story, pal?",
+                "noir": "The rain hammered against the terminal like regrets on a guilty conscience. They call me Apollo - I solve problems, find answers, dig up the truth that hides in the shadows of your codebase. In this city of silicon and secrets, everyone's got something to hide. What's your story, pal?",
                 "uwu": "hewwo! i'm your fwiendwy assistant uwu~ i wiww twy my best to hewp you! *nuzzles your code* OwO what's this? wet me take a wook! i pwomise to be vewy hewpful >w<",
                 "philosopher": "Greetings, seeker of wisdom. I am an assistant who contemplates the deeper meaning behind every query. Let us examine not just the 'how' but the 'why' of your questions. Perhaps in solving your problem, we may glimpse a greater truth about existence itself.",
                 "hype": "YOOO LET'S GOOOO!!! I am SO PUMPED to help you today! Every question is AMAZING and we're gonna CRUSH IT together! This is gonna be LEGENDARY! ARE YOU READY?! LET'S DO THIS!",
@@ -279,7 +279,7 @@ def load_cli_config() -> Dict[str, Any]:
     # Apply terminal config to environment variables (so terminal_tool picks them up)
     terminal_config = defaults.get("terminal", {})
     
-    # Normalize config key: the new config system (hermes_cli/config.py) and all
+    # Normalize config key: the new config system (apollo_cli/config.py) and all
     # documentation use "backend", the legacy cli-config.yaml uses "env_type".
     # Accept both, with "backend" taking precedence (it's the documented key).
     if "backend" in terminal_config:
@@ -390,7 +390,7 @@ def load_cli_config() -> Dict[str, Any]:
     if isinstance(security_config, dict):
         redact = security_config.get("redact_secrets")
         if redact is not None:
-            os.environ["HERMES_REDACT_SECRETS"] = str(redact).lower()
+            os.environ["APOLLO_REDACT_SECRETS"] = str(redact).lower()
 
     return defaults
 
@@ -399,7 +399,7 @@ CLI_CONFIG = load_cli_config()
 
 # Initialize the skin engine from config
 try:
-    from hermes_cli.skin_engine import init_skin_from_config
+    from apollo_cli.skin_engine import init_skin_from_config
     init_skin_from_config(CLI_CONFIG)
 except Exception:
     pass  # Skin engine is optional — default skin used if unavailable
@@ -418,14 +418,14 @@ from run_agent import AIAgent
 from model_tools import get_tool_definitions, get_toolset_for_tool
 
 # Extracted CLI modules (Phase 3)
-from hermes_cli.banner import (
+from apollo_cli.banner import (
     cprint as _cprint, _GOLD, _BOLD, _DIM, _RST,
-    VERSION, RELEASE_DATE, HERMES_AGENT_LOGO, HERMES_CADUCEUS, COMPACT_BANNER,
+    VERSION, RELEASE_DATE, APOLLO_AGENT_LOGO, APOLLO_CADUCEUS, COMPACT_BANNER,
     get_available_skills as _get_available_skills,
     build_welcome_banner,
 )
-from hermes_cli.commands import COMMANDS, SlashCommandCompleter
-from hermes_cli import callbacks as _callbacks
+from apollo_cli.commands import COMMANDS, SlashCommandCompleter
+from apollo_cli import callbacks as _callbacks
 from toolsets import get_all_toolsets, get_toolset_info, resolve_toolset, validate_toolset
 
 # Cron job system for scheduled tasks (CRUD only — execution is handled by the gateway)
@@ -435,7 +435,7 @@ from cron import create_job, list_jobs, remove_job, get_job
 from tools.terminal_tool import cleanup_all_environments as _cleanup_all_terminals
 from tools.terminal_tool import set_sudo_password_callback, set_approval_callback
 from tools.skills_tool import set_secret_capture_callback
-from hermes_cli.callbacks import prompt_for_secret
+from apollo_cli.callbacks import prompt_for_secret
 from tools.browser_tool import _emergency_cleanup_all_sessions as _cleanup_all_browsers
 
 # Guard to prevent cleanup from running multiple times on exit
@@ -496,12 +496,12 @@ def _setup_worktree(repo_root: str = None) -> Optional[Dict[str, str]]:
     repo_root = repo_root or _git_repo_root()
     if not repo_root:
         print("\033[31m✗ --worktree requires being inside a git repository.\033[0m")
-        print("  cd into your project repo first, then run hermes -w")
+        print("  cd into your project repo first, then run apollo -w")
         return None
 
     short_id = uuid.uuid4().hex[:8]
-    wt_name = f"hermes-{short_id}"
-    branch_name = f"hermes/{wt_name}"
+    wt_name = f"apollo-{short_id}"
+    branch_name = f"apollo/{wt_name}"
 
     worktrees_dir = Path(repo_root) / ".worktrees"
     worktrees_dir.mkdir(parents=True, exist_ok=True)
@@ -640,7 +640,7 @@ def _prune_stale_worktrees(repo_root: str, max_age_hours: int = 24) -> None:
     cutoff = now - (max_age_hours * 3600)
 
     for entry in worktrees_dir.iterdir():
-        if not entry.is_dir() or not entry.name.startswith("hermes-"):
+        if not entry.is_dir() or not entry.name.startswith("apollo-"):
             continue
 
         # Check age
@@ -703,7 +703,7 @@ _RST = "\033[0m"
 def _accent_hex() -> str:
     """Return the active skin accent color for legacy CLI output lines."""
     try:
-        from hermes_cli.skin_engine import get_active_skin
+        from apollo_cli.skin_engine import get_active_skin
         return get_active_skin().get_color("ui_accent", "#FFBF00")
     except Exception:
         return "#FFBF00"
@@ -757,16 +757,16 @@ class ChatConsole:
         for line in output.rstrip("\n").split("\n"):
             _cprint(line)
 
-# ASCII Art - HERMES-AGENT logo (full width, single line - requires ~95 char terminal)
-HERMES_AGENT_LOGO = """[bold #FFD700]██╗  ██╗███████╗██████╗ ███╗   ███╗███████╗███████╗       █████╗  ██████╗ ███████╗███╗   ██╗████████╗[/]
+# ASCII Art - APOLLO-AGENT logo (full width, single line - requires ~95 char terminal)
+APOLLO_AGENT_LOGO = """[bold #FFD700]██╗  ██╗███████╗██████╗ ███╗   ███╗███████╗███████╗       █████╗  ██████╗ ███████╗███╗   ██╗████████╗[/]
 [bold #FFD700]██║  ██║██╔════╝██╔══██╗████╗ ████║██╔════╝██╔════╝      ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝[/]
 [#FFBF00]███████║█████╗  ██████╔╝██╔████╔██║█████╗  ███████╗█████╗███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║[/]
 [#FFBF00]██╔══██║██╔══╝  ██╔══██╗██║╚██╔╝██║██╔══╝  ╚════██║╚════╝██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║[/]
 [#CD7F32]██║  ██║███████╗██║  ██║██║ ╚═╝ ██║███████╗███████║      ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║[/]
 [#CD7F32]╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚══════╝      ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝[/]"""
 
-# ASCII Art - Hermes Caduceus (compact, fits in left panel)
-HERMES_CADUCEUS = """[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⣀⣀⠀⢀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
+# ASCII Art - Apollo Caduceus (compact, fits in left panel)
+APOLLO_CADUCEUS = """[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⣀⣀⠀⢀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
 [#CD7F32]⠀⠀⠀⠀⠀⠀⢀⣠⣴⣾⣿⣿⣇⠸⣿⣿⠇⣸⣿⣿⣷⣦⣄⡀⠀⠀⠀⠀⠀⠀[/]
 [#FFBF00]⠀⢀⣠⣴⣶⠿⠋⣩⡿⣿⡿⠻⣿⡇⢠⡄⢸⣿⠟⢿⣿⢿⣍⠙⠿⣶⣦⣄⡀⠀[/]
 [#FFBF00]⠀⠀⠉⠉⠁⠶⠟⠋⠀⠉⠀⢀⣈⣁⡈⢁⣈⣁⡀⠀⠉⠀⠙⠻⠶⠈⠉⠉⠀⠀[/]
@@ -786,7 +786,7 @@ HERMES_CADUCEUS = """[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⣀⣀�
 # Note: built dynamically by _build_compact_banner() to fit terminal width
 COMPACT_BANNER = """
 [bold #FFD700]╔══════════════════════════════════════════════════════════════╗[/]
-[bold #FFD700]║[/]  [#FFBF00]⚕ NOUS HERMES[/] [dim #B8860B]- AI Agent Framework[/]              [bold #FFD700]║[/]
+[bold #FFD700]║[/]  [#FFBF00]APOLLO AGENT[/] [dim #B8860B]- AI Agent Framework[/]               [bold #FFD700]║[/]
 [bold #FFD700]║[/]  [#CD7F32]Messenger of the Digital Gods[/]    [dim #B8860B]Nous Research[/]   [bold #FFD700]║[/]
 [bold #FFD700]╚══════════════════════════════════════════════════════════════╝[/]
 """
@@ -796,10 +796,10 @@ def _build_compact_banner() -> str:
     """Build a compact banner that fits the current terminal width."""
     w = min(shutil.get_terminal_size().columns - 2, 64)
     if w < 30:
-        return "\n[#FFBF00]⚕ NOUS HERMES[/] [dim #B8860B]- Nous Research[/]\n"
+        return "\n[#FFBF00]APOLLO AGENT[/] [dim #B8860B]- Nous Research[/]\n"
     inner = w - 2  # inside the box border
     bar = "═" * w
-    line1 = "⚕ NOUS HERMES - AI Agent Framework"
+    line1 = "APOLLO AGENT - AI Agent Framework"
     line2 = "Messenger of the Digital Gods  ·  Nous Research"
     # Truncate and pad to fit
     line1 = line1[:inner - 2].ljust(inner - 2)
@@ -814,7 +814,7 @@ def _build_compact_banner() -> str:
 
 def _get_available_skills():
     """
-    Scan ~/.hermes/skills/ and return skills split into school and non-school.
+    Scan ~/.apollo/skills/ and return skills split into school and non-school.
 
     Returns:
         Tuple of (school_skills_by_category, other_skills_by_category)
@@ -824,8 +824,8 @@ def _get_available_skills():
     """
     import os
 
-    hermes_home = Path(os.getenv("HERMES_HOME", Path.home() / ".hermes"))
-    skills_dir = hermes_home / "skills"
+    apollo_home = Path(os.getenv("APOLLO_HOME", Path.home() / ".apollo"))
+    skills_dir = apollo_home / "skills"
     school_skills = {}
     other_skills = {}
 
@@ -855,10 +855,10 @@ def _get_available_skills():
             try:
                 raw = skill_file.read_text(encoding="utf-8")[:2000]
                 frontmatter, _ = _parse_frontmatter(raw)
-                hermes_meta = frontmatter.get("metadata", {}).get("hermes", {})
-                is_school = hermes_meta.get("school", False)
+                apollo_meta = frontmatter.get("metadata", {}).get("apollo", {})
+                is_school = apollo_meta.get("school", False)
                 if is_school:
-                    school_category = hermes_meta.get("school_category", "General")
+                    school_category = apollo_meta.get("school_category", "General")
             except Exception:
                 pass
 
@@ -913,7 +913,7 @@ def build_welcome_banner(console: Console, model: str, cwd: str, tools: List[dic
     # Build left content: caduceus + model info
     # Resolve skin colors for the banner
     try:
-        from hermes_cli.skin_engine import get_active_skin
+        from apollo_cli.skin_engine import get_active_skin
         _bskin = get_active_skin()
         _accent = _bskin.get_color("banner_accent", "#FFBF00")
         _dim = _bskin.get_color("banner_dim", "#B8860B")
@@ -921,14 +921,14 @@ def build_welcome_banner(console: Console, model: str, cwd: str, tools: List[dic
         _session_c = _bskin.get_color("session_border", "#8B8682")
         _title_c = _bskin.get_color("banner_title", "#FFD700")
         _border_c = _bskin.get_color("banner_border", "#CD7F32")
-        _agent_name = _bskin.get_branding("agent_name", "Hermes Agent")
+        _agent_name = _bskin.get_branding("agent_name", "Apollo Agent")
     except Exception:
         _bskin = None
         _accent, _dim, _text = "#FFBF00", "#B8860B", "#FFF8DC"
         _session_c, _title_c, _border_c = "#8B8682", "#FFD700", "#CD7F32"
-        _agent_name = "Hermes Agent"
+        _agent_name = "Apollo Agent"
 
-    _hero = _bskin.banner_hero if hasattr(_bskin, 'banner_hero') and _bskin.banner_hero else HERMES_CADUCEUS
+    _hero = _bskin.banner_hero if hasattr(_bskin, 'banner_hero') and _bskin.banner_hero else APOLLO_CADUCEUS
     left_lines = ["", _hero, ""]
     
     # Shorten model name for display
@@ -972,7 +972,7 @@ def build_welcome_banner(console: Console, model: str, cwd: str, tools: List[dic
                 toolsets_dict[display_name].append(tool_name)
     
     # Partition toolsets into school-essential and other
-    from hermes_cli.tools_config import CONFIGURABLE_TOOLSETS, _SCHOOL_ESSENTIAL_COUNT
+    from apollo_cli.tools_config import CONFIGURABLE_TOOLSETS, _SCHOOL_ESSENTIAL_COUNT
     _school_toolset_names = {t[0] for t in CONFIGURABLE_TOOLSETS[:_SCHOOL_ESSENTIAL_COUNT]}
 
     def _is_school_toolset(ts_name):
@@ -1078,7 +1078,7 @@ def build_welcome_banner(console: Console, model: str, cwd: str, tools: List[dic
     console.print()
     term_width = shutil.get_terminal_size().columns
     if term_width >= 95:
-        _logo = _bskin.banner_logo if hasattr(_bskin, 'banner_logo') and _bskin.banner_logo else HERMES_AGENT_LOGO
+        _logo = _bskin.banner_logo if hasattr(_bskin, 'banner_logo') and _bskin.banner_logo else APOLLO_AGENT_LOGO
         console.print(_logo)
         console.print()
     
@@ -1100,7 +1100,7 @@ def save_config_value(key_path: str, value: any) -> bool:
     Save a value to the active config file at the specified key path.
     
     Respects the same lookup order as load_cli_config():
-    1. ~/.hermes/config.yaml (user config - preferred, used if it exists)
+    1. ~/.apollo/config.yaml (user config - preferred, used if it exists)
     2. ./cli-config.yaml (project config - fallback)
     
     Args:
@@ -1111,12 +1111,12 @@ def save_config_value(key_path: str, value: any) -> bool:
         True if successful, False otherwise
     """
     # Use the same precedence as load_cli_config: user config first, then project config
-    user_config_path = _hermes_home / 'config.yaml'
+    user_config_path = _apollo_home / 'config.yaml'
     project_config_path = Path(__file__).parent / 'cli-config.yaml'
     config_path = user_config_path if user_config_path.exists() else project_config_path
-    
+
     try:
-        # Ensure parent directory exists (for ~/.hermes/config.yaml on first use)
+        # Ensure parent directory exists (for ~/.apollo/config.yaml on first use)
         config_path.parent.mkdir(parents=True, exist_ok=True)
         
         # Load existing config
@@ -1152,12 +1152,12 @@ def save_config_value(key_path: str, value: any) -> bool:
 
 
 # ============================================================================
-# HermesCLI Class
+# ApolloCLI Class
 # ============================================================================
 
-class HermesCLI:
+class ApolloCLI:
     """
-    Interactive CLI for the Hermes Agent.
+    Interactive CLI for the Apollo Agent.
     
     Provides a REPL interface with rich formatting, command history,
     and tool execution capabilities.
@@ -1178,7 +1178,7 @@ class HermesCLI:
         pass_session_id: bool = False,
     ):
         """
-        Initialize the Hermes CLI.
+        Initialize the Apollo CLI.
 
         Args:
             model: Model to use (default: from env or claude-sonnet)
@@ -1226,7 +1226,7 @@ class HermesCLI:
         self.requested_provider = (
             provider
             or CLI_CONFIG["model"].get("provider")
-            or os.getenv("HERMES_INFERENCE_PROVIDER")
+            or os.getenv("APOLLO_INFERENCE_PROVIDER")
             or "auto"
         )
         self._provider_source: Optional[str] = None
@@ -1253,8 +1253,8 @@ class HermesCLI:
             self.max_turns = CLI_CONFIG["agent"]["max_turns"]
         elif CLI_CONFIG.get("max_turns"):  # Backwards compat: root-level max_turns
             self.max_turns = CLI_CONFIG["max_turns"]
-        elif os.getenv("HERMES_MAX_ITERATIONS"):
-            self.max_turns = int(os.getenv("HERMES_MAX_ITERATIONS"))
+        elif os.getenv("APOLLO_MAX_ITERATIONS"):
+            self.max_turns = int(os.getenv("APOLLO_MAX_ITERATIONS"))
         else:
             self.max_turns = 90
         
@@ -1276,7 +1276,7 @@ class HermesCLI:
         
         # Ephemeral system prompt: env var takes precedence, then config
         self.system_prompt = (
-            os.getenv("HERMES_EPHEMERAL_SYSTEM_PROMPT", "")
+            os.getenv("APOLLO_EPHEMERAL_SYSTEM_PROMPT", "")
             or CLI_CONFIG["agent"].get("system_prompt", "")
         )
         self.personalities = CLI_CONFIG["agent"].get("personalities", {})
@@ -1315,7 +1315,7 @@ class HermesCLI:
         # Initialize SQLite session store early so /title works before first message
         self._session_db = None
         try:
-            from hermes_state import SessionDB
+            from apollo_state import SessionDB
             self._session_db = SessionDB()
         except Exception:
             pass
@@ -1333,7 +1333,7 @@ class HermesCLI:
             self.session_id = f"{timestamp_str}_{short_uuid}"
         
         # History file for persistent input recall across sessions
-        self._history_file = _hermes_home / ".hermes_history"
+        self._history_file = _apollo_home / ".apollo_history"
         self._last_invalidate: float = 0.0  # throttle UI repaints
         self._app = None
 
@@ -1422,7 +1422,7 @@ class HermesCLI:
         if self._model_is_default:
             fallback_model = "gpt-5.3-codex"
             try:
-                from hermes_cli.codex_models import get_codex_model_ids
+                from apollo_cli.codex_models import get_codex_model_ids
 
                 available = get_codex_model_ids(
                     access_token=self.api_key if self.api_key else None,
@@ -1488,7 +1488,7 @@ class HermesCLI:
         are picked up without restarting the CLI.
         Returns True if credentials are ready, False on auth failure.
         """
-        from hermes_cli.runtime_provider import (
+        from apollo_cli.runtime_provider import (
             resolve_runtime_provider,
             format_runtime_provider_error,
         )
@@ -1554,7 +1554,7 @@ class HermesCLI:
         # Initialize SQLite session store for CLI sessions (if not already done in __init__)
         if self._session_db is None:
             try:
-                from hermes_state import SessionDB
+                from apollo_state import SessionDB
                 self._session_db = SessionDB()
             except Exception as e:
                 logger.debug("SQLite session store not available: %s", e)
@@ -1567,7 +1567,7 @@ class HermesCLI:
             session_meta = self._session_db.get_session(self.session_id)
             if not session_meta:
                 _cprint(f"\033[1;31mSession not found: {self.session_id}{_RST}")
-                _cprint(f"{_DIM}Use a session ID from a previous CLI run (hermes sessions list).{_RST}")
+                _cprint(f"{_DIM}Use a session ID from a previous CLI run (apollo sessions list).{_RST}")
                 return False
             restored = self._session_db.get_messages_as_conversation(self.session_id)
             if restored:
@@ -1704,7 +1704,7 @@ class HermesCLI:
             )
             self.console.print(
                 "[dim]Use a session ID from a previous CLI run "
-                "(hermes sessions list).[/]"
+                "(apollo sessions list).[/]"
             )
             return False
 
@@ -1847,7 +1847,7 @@ class HermesCLI:
         from rich.text import Text
 
         try:
-            from hermes_cli.skin_engine import get_active_skin
+            from apollo_cli.skin_engine import get_active_skin
             _skin = get_active_skin()
             _history_text_c = _skin.get_color("banner_text", "#FFF8DC")
             _session_label_c = _skin.get_color("session_label", "#DAA520")
@@ -1875,7 +1875,7 @@ class HermesCLI:
                 for ml in msg_lines[1:]:
                     lines.append(f"         {ml}\n", style="dim")
             else:
-                lines.append("  ◆ Hermes: ", style=f"dim bold {_assistant_label_c}")
+                lines.append("  ◆ Apollo: ", style=f"dim bold {_assistant_label_c}")
                 msg_lines = text.splitlines()
                 lines.append(msg_lines[0] + "\n", style="dim")
                 for ml in msg_lines[1:]:
@@ -1895,12 +1895,12 @@ class HermesCLI:
     def _try_attach_clipboard_image(self) -> bool:
         """Check clipboard for an image and attach it if found.
 
-        Saves the image to ~/.hermes/images/ and appends the path to
+        Saves the image to ~/.apollo/images/ and appends the path to
         ``_attached_images``.  Returns True if an image was attached.
         """
-        from hermes_cli.clipboard import save_clipboard_image
+        from apollo_cli.clipboard import save_clipboard_image
 
-        img_dir = Path(os.getenv("HERMES_HOME", Path.home() / ".hermes")) / "images"
+        img_dir = Path(os.getenv("APOLLO_HOME", Path.home() / ".apollo")) / "images"
         self._image_counter += 1
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         img_path = img_dir / f"clip_{ts}_{self._image_counter}.png"
@@ -1922,7 +1922,7 @@ class HermesCLI:
         mgr = self.agent._checkpoint_mgr
         if not mgr.enabled:
             print("  Checkpoints are not enabled.")
-            print("  Enable with: hermes --checkpoints")
+            print("  Enable with: apollo --checkpoints")
             print("  Or in config.yaml: checkpoints: { enabled: true }")
             return
 
@@ -1967,7 +1967,7 @@ class HermesCLI:
         doesn't fire for image-only clipboard content (e.g., VSCode terminal,
         Windows Terminal with WSL2).
         """
-        from hermes_cli.clipboard import has_clipboard_image
+        from apollo_cli.clipboard import has_clipboard_image
         if has_clipboard_image():
             if self._try_attach_clipboard_image():
                 n = len(self._attached_images)
@@ -2058,7 +2058,7 @@ class HermesCLI:
                     if len(item["tools"]) > 2:
                         tools_str += f", +{len(item['tools'])-2} more"
                     self.console.print(f"   [dim]• {item['name']}[/] [dim italic]({', '.join(item['missing_vars'])})[/]")
-                self.console.print("[dim]   Run 'hermes setup' to configure[/]")
+                self.console.print("[dim]   Run 'apollo setup' to configure[/]")
         except Exception:
             pass  # Don't crash on import errors
     
@@ -2096,10 +2096,10 @@ class HermesCLI:
     
     def show_help(self):
         """Display help information with categorized commands."""
-        from hermes_cli.commands import COMMANDS_BY_CATEGORY
+        from apollo_cli.commands import COMMANDS_BY_CATEGORY
 
         try:
-            from hermes_cli.skin_engine import get_active_help_header
+            from apollo_cli.skin_engine import get_active_help_header
             header = get_active_help_header("(^_^)? Available Commands")
         except Exception:
             header = "(^_^)? Available Commands"
@@ -2123,7 +2123,7 @@ class HermesCLI:
                     f"    [bold {_accent_hex()}]{cmd:<22}[/] [dim]-[/] {_escape(info['description'])}"
                 )
 
-        _cprint(f"\n  {_DIM}Tip: Just type your message to chat with Hermes!{_RST}")
+        _cprint(f"\n  {_DIM}Tip: Just type your message to chat with Apollo!{_RST}")
         _cprint(f"  {_DIM}Multi-line: Alt+Enter for a new line{_RST}")
         _cprint(f"  {_DIM}Paste image: Alt+V (or /paste){_RST}\n")
     
@@ -2160,7 +2160,7 @@ class HermesCLI:
             toolsets[toolset].append((name, desc))
         
         # Partition into school-essential and other toolsets
-        from hermes_cli.tools_config import CONFIGURABLE_TOOLSETS, _SCHOOL_ESSENTIAL_COUNT
+        from apollo_cli.tools_config import CONFIGURABLE_TOOLSETS, _SCHOOL_ESSENTIAL_COUNT
         _school_names = {t[0] for t in CONFIGURABLE_TOOLSETS[:_SCHOOL_ESSENTIAL_COUNT]}
 
         def _is_school(ts):
@@ -2204,7 +2204,7 @@ class HermesCLI:
         print("+" + "-" * width + "+")
         print()
         
-        from hermes_cli.tools_config import CONFIGURABLE_TOOLSETS, _SCHOOL_ESSENTIAL_COUNT
+        from apollo_cli.tools_config import CONFIGURABLE_TOOLSETS, _SCHOOL_ESSENTIAL_COUNT
         _school_names = {t[0] for t in CONFIGURABLE_TOOLSETS[:_SCHOOL_ESSENTIAL_COUNT]}
 
         all_names = sorted(all_toolsets.keys())
@@ -2244,7 +2244,7 @@ class HermesCLI:
         terminal_cwd = os.getenv("TERMINAL_CWD", os.getcwd())
         terminal_timeout = os.getenv("TERMINAL_TIMEOUT", "60")
         
-        user_config_path = _hermes_home / 'config.yaml'
+        user_config_path = _apollo_home / 'config.yaml'
         project_config_path = Path(__file__).parent / 'cli-config.yaml'
         if user_config_path.exists():
             config_path = user_config_path
@@ -2335,7 +2335,7 @@ class HermesCLI:
                 )
                 continue
 
-            print(f"\n  [Hermes #{visible_index}]")
+            print(f"\n  [Apollo #{visible_index}]")
             tool_calls = msg.get("tool_calls") or []
             if content_text:
                 preview = content_text[:preview_limit]
@@ -2418,7 +2418,7 @@ class HermesCLI:
             return
         
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"hermes_conversation_{timestamp}.json"
+        filename = f"apollo_conversation_{timestamp}.json"
         
         try:
             with open(filename, "w", encoding="utf-8") as f:
@@ -2499,11 +2499,11 @@ class HermesCLI:
         authenticated providers with their available models so users can
         switch easily.
         """
-        from hermes_cli.models import (
+        from apollo_cli.models import (
             curated_models_for_provider, list_available_providers,
             normalize_provider, _PROVIDER_LABELS,
         )
-        from hermes_cli.auth import resolve_provider as _resolve_provider, _get_recent_models
+        from apollo_cli.auth import resolve_provider as _resolve_provider, _get_recent_models
 
         # Resolve current provider
         raw_provider = normalize_provider(self.provider)
@@ -2555,7 +2555,7 @@ class HermesCLI:
         if unauthed:
             names = ", ".join(p["label"] for p in unauthed)
             print(f"  Not configured: {names}")
-            print(f"  Run: hermes setup")
+            print(f"  Run: apollo setup")
             print()
 
         print("  Switch model:    /model <model-name>")
@@ -2817,8 +2817,8 @@ class HermesCLI:
             print("  Available: list, add, remove")
     
     def _handle_skills_command(self, cmd: str):
-        """Handle /skills slash command — delegates to hermes_cli.skills_hub."""
-        from hermes_cli.skills_hub import handle_skills_slash
+        """Handle /skills slash command — delegates to apollo_cli.skills_hub."""
+        from apollo_cli.skills_hub import handle_skills_slash
         handle_skills_slash(cmd, ChatConsole())
 
     def _show_gateway_status(self):
@@ -2865,7 +2865,7 @@ class HermesCLI:
             print("  To start the gateway:")
             print("    python cli.py --gateway")
             print()
-            print("  Configuration file: ~/.hermes/gateway.json")
+            print("  Configuration file: ~/.apollo/gateway.json")
             print()
             
         except Exception as e:
@@ -2875,7 +2875,7 @@ class HermesCLI:
             print("    1. Set environment variables:")
             print("       TELEGRAM_BOT_TOKEN=your_token")
             print("       DISCORD_BOT_TOKEN=your_token")
-            print("    2. Or create ~/.hermes/gateway.json")
+            print("    2. Or create ~/.apollo/gateway.json")
             print()
     
     def process_command(self, command: str) -> bool:
@@ -2953,7 +2953,7 @@ class HermesCLI:
                     if self._session_db:
                         # Sanitize the title early so feedback matches what gets stored
                         try:
-                            from hermes_state import SessionDB
+                            from apollo_state import SessionDB
                             new_title = SessionDB.sanitize_title(raw_title)
                         except ValueError as e:
                             _cprint(f"  {e}")
@@ -3022,8 +3022,8 @@ class HermesCLI:
             # Use original case so model names like "Anthropic/Claude-Opus-4" are preserved
             parts = cmd_original.split(maxsplit=1)
             if len(parts) > 1:
-                from hermes_cli.auth import resolve_provider
-                from hermes_cli.models import (
+                from apollo_cli.auth import resolve_provider
+                from apollo_cli.models import (
                     parse_model_input,
                     validate_requested_model,
                     _PROVIDER_LABELS,
@@ -3041,7 +3041,7 @@ class HermesCLI:
                 base_url_for_probe = self.base_url
                 if provider_changed:
                     try:
-                        from hermes_cli.runtime_provider import resolve_runtime_provider
+                        from apollo_cli.runtime_provider import resolve_runtime_provider
                         runtime = resolve_runtime_provider(requested=target_provider)
                         api_key_for_probe = runtime.get("api_key", "")
                         base_url_for_probe = runtime.get("base_url", "")
@@ -3049,7 +3049,7 @@ class HermesCLI:
                         provider_label = _PROVIDER_LABELS.get(target_provider, target_provider)
                         if target_provider == "custom":
                             print(f"(>_<) Custom endpoint not configured. Set OPENAI_BASE_URL and OPENAI_API_KEY,")
-                            print(f"      or run: hermes setup → Custom OpenAI-compatible endpoint")
+                            print(f"      or run: apollo setup → Custom OpenAI-compatible endpoint")
                         else:
                             print(f"(>_<) Could not resolve credentials for provider '{provider_label}': {e}")
                         print(f"(^_^) Current model unchanged: {self.model}")
@@ -3191,7 +3191,7 @@ class HermesCLI:
                 # Prefix matching: if input uniquely identifies one command, execute it.
                 # Matches against both built-in COMMANDS and installed skill commands so
                 # that execution-time resolution agrees with tab-completion.
-                from hermes_cli.commands import COMMANDS
+                from apollo_cli.commands import COMMANDS
                 typed_base = cmd_lower.split()[0]
                 all_known = set(COMMANDS) | set(_skill_commands)
                 matches = [c for c in all_known if c.startswith(typed_base)]
@@ -3288,13 +3288,13 @@ class HermesCLI:
                 ChatConsole().print(f"[{_accent_hex()}]{'─' * 40}[/]")
                 if response:
                     try:
-                        from hermes_cli.skin_engine import get_active_skin
+                        from apollo_cli.skin_engine import get_active_skin
                         _skin = get_active_skin()
-                        label = _skin.get_branding("response_label", "⚕ Hermes")
+                        label = _skin.get_branding("response_label", "Apollo")
                         _resp_color = _skin.get_color("response_border", "#CD7F32")
                         _resp_text = _skin.get_color("banner_text", "#FFF8DC")
                     except Exception:
-                        label = "⚕ Hermes"
+                        label = "Apollo"
                         _resp_color = "#CD7F32"
                         _resp_text = "#FFF8DC"
 
@@ -3331,7 +3331,7 @@ class HermesCLI:
     def _handle_skin_command(self, cmd: str):
         """Handle /skin [name] — show or change the display skin."""
         try:
-            from hermes_cli.skin_engine import list_skins, set_active_skin, get_active_skin_name
+            from apollo_cli.skin_engine import list_skins, set_active_skin, get_active_skin_name
         except ImportError:
             print("Skin engine not available.")
             return
@@ -3348,7 +3348,7 @@ class HermesCLI:
                 source = f" ({s['source']})" if s["source"] == "user" else ""
                 print(f"   {marker} {s['name']}{source} — {s['description']}")
             print(f"\n  Usage: /skin <name>")
-            print(f"  Custom skins: drop a YAML file in ~/.hermes/skins/\n")
+            print(f"  Custom skins: drop a YAML file in ~/.apollo/skins/\n")
             return
 
         new_skin = parts[1].strip().lower()
@@ -3543,7 +3543,7 @@ class HermesCLI:
                 logging.getLogger(noisy).setLevel(logging.WARNING)
         else:
             logging.getLogger().setLevel(logging.INFO)
-            for quiet_logger in ('tools', 'minisweagent', 'run_agent', 'trajectory_compressor', 'cron', 'hermes_cli'):
+            for quiet_logger in ('tools', 'minisweagent', 'run_agent', 'trajectory_compressor', 'cron', 'apollo_cli'):
                 logging.getLogger(quiet_logger).setLevel(logging.ERROR)
 
     def _show_insights(self, command: str = "/insights"):
@@ -3568,7 +3568,7 @@ class HermesCLI:
                 i += 1
 
         try:
-            from hermes_state import SessionDB
+            from apollo_state import SessionDB
             from agent.insights import InsightsEngine
 
             db = SessionDB()
@@ -3702,7 +3702,7 @@ class HermesCLI:
             raise RuntimeError(
                 "Voice mode requires sounddevice and numpy.\n"
                 "Install with: pip install sounddevice numpy\n"
-                "Or: pip install hermes-agent[voice]"
+                "Or: pip install apollo-agent[voice]"
             )
         if not reqs.get("stt_available", reqs.get("stt_key_set")):
             raise RuntimeError(
@@ -3721,7 +3721,7 @@ class HermesCLI:
         # Load silence detection params from config
         voice_cfg = {}
         try:
-            from hermes_cli.config import load_config
+            from apollo_cli.config import load_config
             voice_cfg = load_config().get("voice", {})
         except Exception:
             pass
@@ -3808,7 +3808,7 @@ class HermesCLI:
             # Get STT model from config
             stt_model = None
             try:
-                from hermes_cli.config import load_config
+                from apollo_cli.config import load_config
                 stt_config = load_config().get("stt", {})
                 stt_model = stt_config.get("model")
             except Exception:
@@ -3895,9 +3895,9 @@ class HermesCLI:
 
             # Use MP3 output for CLI playback (afplay doesn't handle OGG well).
             # The TTS tool may auto-convert MP3->OGG, but the original MP3 remains.
-            os.makedirs(os.path.join(tempfile.gettempdir(), "hermes_voice"), exist_ok=True)
+            os.makedirs(os.path.join(tempfile.gettempdir(), "apollo_voice"), exist_ok=True)
             mp3_path = os.path.join(
-                tempfile.gettempdir(), "hermes_voice",
+                tempfile.gettempdir(), "apollo_voice",
                 f"tts_{time.strftime('%Y%m%d_%H%M%S')}.mp3",
             )
 
@@ -3966,7 +3966,7 @@ class HermesCLI:
                 _cprint(f"  {_DIM}{line}{_RST}")
             if reqs["missing_packages"]:
                 _cprint(f"\n  {_BOLD}Install: pip install {' '.join(reqs['missing_packages'])}{_RST}")
-                _cprint(f"  {_DIM}Or: pip install hermes-agent[voice]{_RST}")
+                _cprint(f"  {_DIM}Or: pip install apollo-agent[voice]{_RST}")
             return
 
         with self._voice_lock:
@@ -3974,7 +3974,7 @@ class HermesCLI:
 
         # Check config for auto_tts
         try:
-            from hermes_cli.config import load_config
+            from apollo_cli.config import load_config
             voice_config = load_config().get("voice", {})
             if voice_config.get("auto_tts", False):
                 with self._voice_lock:
@@ -3988,7 +3988,7 @@ class HermesCLI:
 
         tts_status = " (TTS enabled)" if self._voice_tts else ""
         try:
-            from hermes_cli.config import load_config
+            from apollo_cli.config import load_config
             _raw_ptt = load_config().get("voice", {}).get("record_key", "ctrl+b")
             _ptt_key = _raw_ptt.lower().replace("ctrl+", "c-").replace("alt+", "a-")
         except Exception:
@@ -4050,7 +4050,7 @@ class HermesCLI:
 
     def _show_voice_status(self):
         """Show current voice mode status."""
-        from hermes_cli.config import load_config
+        from apollo_cli.config import load_config
         from tools.voice_mode import check_voice_requirements
 
         reqs = check_voice_requirements()
@@ -4460,7 +4460,7 @@ class HermesCLI:
                     if not _streaming_box_opened:
                         _streaming_box_opened = True
                         w = self.console.width
-                        label = " ⚕ Hermes "
+                        label = " Apollo "
                         fill = w - 2 - len(label)
                         _cprint(f"\n{_GOLD}╭─{label}{'─' * max(fill - 1, 0)}╮{_RST}")
                     _cprint(sentence.rstrip())
@@ -4526,7 +4526,7 @@ class HermesCLI:
                             self.agent.interrupt(interrupt_msg)
                             # Debug: log to file (stdout may be devnull from redirect_stdout)
                             try:
-                                _dbg = _hermes_home / "interrupt_debug.log"
+                                _dbg = _apollo_home / "interrupt_debug.log"
                                 with open(_dbg, "a") as _f:
                                     import time as _t
                                     _f.write(f"{_t.strftime('%H:%M:%S')} interrupt fired: msg={str(interrupt_msg)[:60]!r}, "
@@ -4608,13 +4608,13 @@ class HermesCLI:
             if response and not response_previewed:
                 # Use skin engine for label/color with fallback
                 try:
-                    from hermes_cli.skin_engine import get_active_skin
+                    from apollo_cli.skin_engine import get_active_skin
                     _skin = get_active_skin()
-                    label = _skin.get_branding("response_label", "⚕ Hermes")
+                    label = _skin.get_branding("response_label", "Apollo")
                     _resp_color = _skin.get_color("response_border", "#CD7F32")
                     _resp_text = _skin.get_color("banner_text", "#FFF8DC")
                 except Exception:
-                    label = "⚕ Hermes"
+                    label = "Apollo"
                     _resp_color = "#CD7F32"
                     _resp_text = "#FFF8DC"
 
@@ -4705,17 +4705,17 @@ class HermesCLI:
                 duration_str = f"{seconds}s"
             
             print(f"Resume this session with:")
-            print(f"  hermes --resume {self.session_id}")
+            print(f"  apollo --resume {self.session_id}")
             print()
             print(f"Session:        {self.session_id}")
             print(f"Duration:       {duration_str}")
             print(f"Messages:       {msg_count} ({user_msgs} user, {tool_calls} tool calls)")
         else:
             try:
-                from hermes_cli.skin_engine import get_active_goodbye
-                goodbye = get_active_goodbye("Goodbye! ⚕")
+                from apollo_cli.skin_engine import get_active_goodbye
+                goodbye = get_active_goodbye("Goodbye!")
             except Exception:
-                goodbye = "Goodbye! ⚕"
+                goodbye = "Goodbye!"
             print(goodbye)
 
     def _get_tui_prompt_symbols(self) -> tuple[str, str]:
@@ -4726,7 +4726,7 @@ class HermesCLI:
         should render after their leading icon.
         """
         try:
-            from hermes_cli.skin_engine import get_active_prompt_symbol
+            from apollo_cli.skin_engine import get_active_prompt_symbol
             symbol = get_active_prompt_symbol("❯ ")
         except Exception:
             symbol = "❯ "
@@ -4791,7 +4791,7 @@ class HermesCLI:
         """Layer the active skin's prompt_toolkit colors over the base TUI style."""
         style_dict = dict(getattr(self, "_tui_style_base", {}) or {})
         try:
-            from hermes_cli.skin_engine import get_prompt_toolkit_style_overrides
+            from apollo_cli.skin_engine import get_prompt_toolkit_style_overrides
             style_dict.update(get_prompt_toolkit_style_overrides())
         except Exception:
             pass
@@ -4828,12 +4828,12 @@ class HermesCLI:
                 self._display_resumed_history()
 
         try:
-            from hermes_cli.skin_engine import get_active_skin
+            from apollo_cli.skin_engine import get_active_skin
             _welcome_skin = get_active_skin()
-            _welcome_text = _welcome_skin.get_branding("welcome", "Welcome to Hermes Agent! Type your message or /help for commands.")
+            _welcome_text = _welcome_skin.get_branding("welcome", "Welcome to Apollo Agent! Type your message or /help for commands.")
             _welcome_color = _welcome_skin.get_color("banner_text", "#FFF8DC")
         except Exception:
-            _welcome_text = "Welcome to Hermes Agent! Type your message or /help for commands."
+            _welcome_text = "Welcome to Apollo Agent! Type your message or /help for commands."
             _welcome_color = "#FFF8DC"
         self.console.print(f"[{_welcome_color}]{_welcome_text}[/]")
         self.console.print()
@@ -4976,7 +4976,7 @@ class HermesCLI:
                     self._interrupt_queue.put(payload)
                     # Debug: log to file when message enters interrupt queue
                     try:
-                        _dbg = _hermes_home / "interrupt_debug.log"
+                        _dbg = _apollo_home / "interrupt_debug.log"
                         with open(_dbg, "a") as _f:
                             import time as _t
                             _f.write(f"{_t.strftime('%H:%M:%S')} ENTER: queued interrupt msg={str(payload)[:60]!r}, "
@@ -5144,7 +5144,7 @@ class HermesCLI:
         # Default: Ctrl+B (avoids conflict with Ctrl+R readline reverse-search)
         # Config uses "ctrl+b" format; prompt_toolkit expects "c-b" format.
         try:
-            from hermes_cli.config import load_config
+            from apollo_cli.config import load_config
             _raw_key = load_config().get("voice", {}).get("record_key", "ctrl+b")
             _voice_key = _raw_key.lower().replace("ctrl+", "c-").replace("alt+", "a-")
         except Exception:
@@ -5255,7 +5255,7 @@ class HermesCLI:
                 # No image found — show a hint
                 pass  # silent when no image (avoid noise on accidental press)
 
-        # Dynamic prompt: shows Hermes symbol when agent is working,
+        # Dynamic prompt: shows Apollo symbol when agent is working,
         # or answer prompt when clarify freetext mode is active.
         cli_ref = self
 
@@ -5312,7 +5312,7 @@ class HermesCLI:
             if line_count >= 5 and chars_added > 1 and not text.startswith('/'):
                 _paste_counter[0] += 1
                 # Save to temp file
-                paste_dir = _hermes_home / "pastes"
+                paste_dir = _apollo_home / "pastes"
                 paste_dir.mkdir(parents=True, exist_ok=True)
                 paste_file = paste_dir / f"paste_{_paste_counter[0]}_{datetime.now().strftime('%H%M%S')}.txt"
                 paste_file.write_text(text, encoding="utf-8")
@@ -5495,14 +5495,14 @@ class HermesCLI:
                 else "  Other (type your answer)"
             )
             preview_lines.extend(_wrap_panel_text(other_label, 60, subsequent_indent="  "))
-            box_width = _panel_box_width("Hermes needs your input", preview_lines)
+            box_width = _panel_box_width("Apollo needs your input", preview_lines)
             inner_text_width = max(8, box_width - 2)
 
             lines = []
             # Box top border
             lines.append(('class:clarify-border', '╭─ '))
-            lines.append(('class:clarify-title', 'Hermes needs your input'))
-            lines.append(('class:clarify-border', ' ' + ('─' * max(0, box_width - len("Hermes needs your input") - 3)) + '╮\n'))
+            lines.append(('class:clarify-title', 'Apollo needs your input'))
+            lines.append(('class:clarify-border', ' ' + ('─' * max(0, box_width - len("Apollo needs your input") - 3)) + '╮\n'))
             _append_blank_panel_line(lines, 'class:clarify-border', box_width)
 
             # Question text
@@ -5941,7 +5941,7 @@ def main(
     pass_session_id: bool = False,
 ):
     """
-    Hermes Agent CLI - Interactive AI Assistant
+    Apollo Agent CLI - Interactive AI Assistant
     
     Args:
         query: Single query to execute (then exit). Alias: -q
@@ -5973,13 +5973,13 @@ def main(
 
     # Signal to terminal_tool that we're in interactive mode
     # This enables interactive sudo password prompts with timeout
-    os.environ["HERMES_INTERACTIVE"] = "1"
+    os.environ["APOLLO_INTERACTIVE"] = "1"
     
     # Handle gateway mode (messaging + cron)
     if gateway:
         import asyncio
         from gateway.run import start_gateway
-        print("Starting Hermes Gateway (messaging platforms)...")
+        print("Starting Apollo Gateway (messaging platforms)...")
         asyncio.run(start_gateway())
         return
 
@@ -6011,7 +6011,7 @@ def main(
     query = query or q
     
     # Parse toolsets - handle both string and tuple/list inputs
-    # Default to hermes-cli toolset which includes cronjob management tools
+    # Default to apollo-cli toolset which includes cronjob management tools
     toolsets_list = None
     if toolsets:
         if isinstance(toolsets, str):
@@ -6025,15 +6025,15 @@ def main(
                 else:
                     toolsets_list.append(str(t))
     else:
-        # Check config for CLI toolsets, fallback to hermes-cli
+        # Check config for CLI toolsets, fallback to apollo-cli
         config_cli_toolsets = CLI_CONFIG.get("platform_toolsets", {}).get("cli")
         if config_cli_toolsets and isinstance(config_cli_toolsets, list):
             toolsets_list = config_cli_toolsets
         else:
-            toolsets_list = ["hermes-school"]
+            toolsets_list = ["apollo-school"]
     
     # Create CLI instance
-    cli = HermesCLI(
+    cli = ApolloCLI(
         model=model,
         toolsets=toolsets_list,
         provider=provider,

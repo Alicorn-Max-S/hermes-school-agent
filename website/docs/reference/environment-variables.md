@@ -1,12 +1,12 @@
 ---
 sidebar_position: 2
 title: "Environment Variables"
-description: "Complete reference of all environment variables used by Hermes Agent"
+description: "Complete reference of all environment variables used by Apollo Agent"
 ---
 
 # Environment Variables Reference
 
-All variables go in `~/.hermes/.env`. You can also set them with `hermes config set VAR value`.
+All variables go in `~/.apollo/.env`. You can also set them with `apollo config set VAR value`.
 
 ## LLM Providers
 
@@ -29,23 +29,23 @@ All variables go in `~/.hermes/.env`. You can also set them with `hermes config 
 | `ANTHROPIC_API_KEY` | Anthropic API key or setup-token ([console.anthropic.com](https://console.anthropic.com/)) |
 | `ANTHROPIC_TOKEN` | Anthropic OAuth/setup token (alternative to `ANTHROPIC_API_KEY`) |
 | `CLAUDE_CODE_OAUTH_TOKEN` | Claude Code setup-token (same as `ANTHROPIC_TOKEN`) |
-| `HERMES_MODEL` | Preferred model name (checked before `LLM_MODEL`, used by gateway) |
+| `APOLLO_MODEL` | Preferred model name (checked before `LLM_MODEL`, used by gateway) |
 | `LLM_MODEL` | Default model name (fallback when not set in config.yaml) |
 | `VOICE_TOOLS_OPENAI_KEY` | OpenAI key for TTS and voice transcription (separate from custom endpoint) |
-| `HERMES_HOME` | Override Hermes config directory (default: `~/.hermes`) |
+| `APOLLO_HOME` | Override Apollo config directory (default: `~/.apollo`) |
 
 ## Provider Auth (OAuth)
 
 | Variable | Description |
 |----------|-------------|
-| `HERMES_INFERENCE_PROVIDER` | Override provider selection: `auto`, `openrouter`, `nous`, `openai-codex`, `anthropic`, `zai`, `kimi-coding`, `minimax`, `minimax-cn` (default: `auto`) |
-| `HERMES_PORTAL_BASE_URL` | Override Nous Portal URL (for development/testing) |
+| `APOLLO_INFERENCE_PROVIDER` | Override provider selection: `auto`, `openrouter`, `nous`, `openai-codex`, `anthropic`, `zai`, `kimi-coding`, `minimax`, `minimax-cn` (default: `auto`) |
+| `APOLLO_PORTAL_BASE_URL` | Override Nous Portal URL (for development/testing) |
 | `NOUS_INFERENCE_BASE_URL` | Override Nous inference API URL |
-| `HERMES_NOUS_MIN_KEY_TTL_SECONDS` | Min agent key TTL before re-mint (default: 1800 = 30min) |
-| `HERMES_NOUS_TIMEOUT_SECONDS` | HTTP timeout for Nous credential / token flows |
-| `HERMES_DUMP_REQUESTS` | Dump API request payloads to log files (`true`/`false`) |
-| `HERMES_PREFILL_MESSAGES_FILE` | Path to a JSON file of ephemeral prefill messages injected at API-call time |
-| `HERMES_TIMEZONE` | IANA timezone override (for example `America/New_York`) |
+| `APOLLO_NOUS_MIN_KEY_TTL_SECONDS` | Min agent key TTL before re-mint (default: 1800 = 30min) |
+| `APOLLO_NOUS_TIMEOUT_SECONDS` | HTTP timeout for Nous credential / token flows |
+| `APOLLO_DUMP_REQUESTS` | Dump API request payloads to log files (`true`/`false`) |
+| `APOLLO_PREFILL_MESSAGES_FILE` | Path to a JSON file of ephemeral prefill messages injected at API-call time |
+| `APOLLO_TIMEZONE` | IANA timezone override (for example `America/New_York`) |
 
 ## Tool APIs
 
@@ -95,7 +95,7 @@ All variables go in `~/.hermes/.env`. You can also set them with `hermes config 
 | `TERMINAL_CONTAINER_MEMORY` | Memory in MB (default: 5120) |
 | `TERMINAL_CONTAINER_DISK` | Disk in MB (default: 51200) |
 | `TERMINAL_CONTAINER_PERSISTENT` | Persist container filesystem across sessions (default: `true`) |
-| `TERMINAL_SANDBOX_DIR` | Host directory for workspaces and overlays (default: `~/.hermes/sandboxes/`) |
+| `TERMINAL_SANDBOX_DIR` | Host directory for workspaces and overlays (default: `~/.apollo/sandboxes/`) |
 
 ## Messaging
 
@@ -148,15 +148,15 @@ All variables go in `~/.hermes/.env`. You can also set them with `hermes config 
 
 | Variable | Description |
 |----------|-------------|
-| `HERMES_MAX_ITERATIONS` | Max tool-calling iterations per conversation (default: 60) |
-| `HERMES_TOOL_PROGRESS` | Deprecated compatibility variable for tool progress display. Prefer `display.tool_progress` in `config.yaml`. |
-| `HERMES_TOOL_PROGRESS_MODE` | Deprecated compatibility variable for tool progress mode. Prefer `display.tool_progress` in `config.yaml`. |
-| `HERMES_HUMAN_DELAY_MODE` | Response pacing: `off`/`natural`/`custom` |
-| `HERMES_HUMAN_DELAY_MIN_MS` | Custom delay range minimum (ms) |
-| `HERMES_HUMAN_DELAY_MAX_MS` | Custom delay range maximum (ms) |
-| `HERMES_QUIET` | Suppress non-essential output (`true`/`false`) |
-| `HERMES_API_TIMEOUT` | LLM API call timeout in seconds (default: `900`) |
-| `HERMES_EXEC_ASK` | Enable execution approval prompts in gateway mode (`true`/`false`) |
+| `APOLLO_MAX_ITERATIONS` | Max tool-calling iterations per conversation (default: 60) |
+| `APOLLO_TOOL_PROGRESS` | Deprecated compatibility variable for tool progress display. Prefer `display.tool_progress` in `config.yaml`. |
+| `APOLLO_TOOL_PROGRESS_MODE` | Deprecated compatibility variable for tool progress mode. Prefer `display.tool_progress` in `config.yaml`. |
+| `APOLLO_HUMAN_DELAY_MODE` | Response pacing: `off`/`natural`/`custom` |
+| `APOLLO_HUMAN_DELAY_MIN_MS` | Custom delay range minimum (ms) |
+| `APOLLO_HUMAN_DELAY_MAX_MS` | Custom delay range maximum (ms) |
+| `APOLLO_QUIET` | Suppress non-essential output (`true`/`false`) |
+| `APOLLO_API_TIMEOUT` | LLM API call timeout in seconds (default: `900`) |
+| `APOLLO_EXEC_ASK` | Enable execution approval prompts in gateway mode (`true`/`false`) |
 
 ## Session Settings
 
@@ -175,7 +175,7 @@ All variables go in `~/.hermes/.env`. You can also set them with `hermes config 
 
 ## Provider Routing (config.yaml only)
 
-These go in `~/.hermes/config.yaml` under the `provider_routing` section:
+These go in `~/.apollo/config.yaml` under the `provider_routing` section:
 
 | Key | Description |
 |-----|-------------|
@@ -187,5 +187,5 @@ These go in `~/.hermes/config.yaml` under the `provider_routing` section:
 | `data_collection` | `"allow"` (default) or `"deny"` to exclude data-storing providers |
 
 :::tip
-Use `hermes config set` to set environment variables — it automatically saves them to the right file (`.env` for secrets, `config.yaml` for everything else).
+Use `apollo config set` to set environment variables — it automatically saves them to the right file (`.env` for secrets, `config.yaml` for everything else).
 :::

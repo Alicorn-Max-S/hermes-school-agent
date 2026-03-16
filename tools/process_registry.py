@@ -42,18 +42,18 @@ import time
 import uuid
 
 _IS_WINDOWS = platform.system() == "Windows"
-from tools.environments.local import _find_shell, _HERMES_PROVIDER_ENV_BLOCKLIST
+from tools.environments.local import _find_shell, _APOLLO_PROVIDER_ENV_BLOCKLIST
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from hermes_cli.config import get_hermes_home
+from apollo_cli.config import get_apollo_home
 
 logger = logging.getLogger(__name__)
 
 
 # Checkpoint file for crash recovery (gateway only)
-CHECKPOINT_PATH = get_hermes_home() / "processes.json"
+CHECKPOINT_PATH = get_apollo_home() / "processes.json"
 
 # Limits
 MAX_OUTPUT_CHARS = 200_000      # 200KB rolling output buffer
@@ -156,7 +156,7 @@ class ProcessRegistry:
                     from ptyprocess import PtyProcess as _PtyProcessCls
                 user_shell = _find_shell()
                 pty_env = {k: v for k, v in os.environ.items()
-                           if k not in _HERMES_PROVIDER_ENV_BLOCKLIST}
+                           if k not in _APOLLO_PROVIDER_ENV_BLOCKLIST}
                 pty_env.update(env_vars or {})
                 pty_env["PYTHONUNBUFFERED"] = "1"
                 pty_proc = _PtyProcessCls.spawn(
@@ -199,7 +199,7 @@ class ProcessRegistry:
         # during background execution (libraries like tqdm/datasets buffer when
         # stdout is a pipe, hiding output from process(action="poll")).
         bg_env = {k: v for k, v in os.environ.items()
-                  if k not in _HERMES_PROVIDER_ENV_BLOCKLIST}
+                  if k not in _APOLLO_PROVIDER_ENV_BLOCKLIST}
         bg_env.update(env_vars or {})
         bg_env["PYTHONUNBUFFERED"] = "1"
         proc = subprocess.Popen(
@@ -266,8 +266,8 @@ class ProcessRegistry:
         )
 
         # Run the command in the sandbox with output capture
-        log_path = f"/tmp/hermes_bg_{session.id}.log"
-        pid_path = f"/tmp/hermes_bg_{session.id}.pid"
+        log_path = f"/tmp/apollo_bg_{session.id}.log"
+        pid_path = f"/tmp/apollo_bg_{session.id}.pid"
         quoted_command = shlex.quote(command)
         bg_command = (
             f"nohup bash -c {quoted_command} > {log_path} 2>&1 & "

@@ -5,9 +5,9 @@ version: 1.0.0
 author: Nous Research
 license: MIT
 metadata:
-  hermes:
+  apollo:
     tags: [Google, Contacts, People]
-    homepage: https://github.com/NousResearch/hermes-agent
+    homepage: https://github.com/NousResearch/apollo-agent
     related_skills: [google-auth, gmail]
     school: true
     school_category: "Google Workspace"
@@ -22,7 +22,7 @@ List contacts from the user's Google account — names, email addresses, and pho
 Requires Google OAuth2 setup via the `google-auth` skill:
 
 ```bash
-GSETUP="python ~/.hermes/skills/productivity/google-auth/scripts/setup.py"
+GSETUP="python ~/.apollo/skills/productivity/google-auth/scripts/setup.py"
 $GSETUP --check
 ```
 
@@ -31,7 +31,7 @@ If not authenticated, load `google-auth`: `skill_view("google-auth")`
 ## Usage
 
 ```bash
-GAPI="python ~/.hermes/skills/productivity/google-auth/scripts/google_api.py"
+GAPI="python ~/.apollo/skills/productivity/google-auth/scripts/google_api.py"
 
 # List contacts (default 50)
 $GAPI contacts list

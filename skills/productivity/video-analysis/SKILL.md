@@ -5,7 +5,7 @@ version: 1.0.0
 author: Nous Research
 license: MIT
 metadata:
-  hermes:
+  apollo:
     tags: [Video, Analysis, Frames, Transcription, Vision]
     related_skills: [file-analysis, image-analysis, audio-analysis]
     school: true
@@ -62,7 +62,7 @@ clarify("How should I analyze this video?",
 
 Extract frames (FREE, local):
 ```bash
-python3 ~/.hermes/skills/productivity/video-analysis/scripts/extract_frames.py "FILE_PATH" /tmp/video_frames/ --count 3
+python3 ~/.apollo/skills/productivity/video-analysis/scripts/extract_frames.py "FILE_PATH" /tmp/video_frames/ --count 3
 ```
 
 The script extracts 3 frames at ~10%, ~50%, and ~90% of the video duration.
@@ -77,7 +77,7 @@ Repeat for each frame. Combine the analyses into a coherent summary of the video
 
 ### For more keyframes (10 frames):
 ```bash
-python3 ~/.hermes/skills/productivity/video-analysis/scripts/extract_frames.py "FILE_PATH" /tmp/video_frames/ --count 10
+python3 ~/.apollo/skills/productivity/video-analysis/scripts/extract_frames.py "FILE_PATH" /tmp/video_frames/ --count 10
 ```
 
 ### For full video to AI (omni model):
@@ -127,7 +127,7 @@ If `vision_analyze` fails on keyframes:
 
 **6a. Try conversion first** — re-extract frames at lower resolution:
 ```bash
-python3 ~/.hermes/skills/productivity/video-analysis/scripts/extract_frames.py "FILE_PATH" /tmp/video_frames_retry/ --count 1
+python3 ~/.apollo/skills/productivity/video-analysis/scripts/extract_frames.py "FILE_PATH" /tmp/video_frames_retry/ --count 1
 ```
 
 **6b. Check memory for successful models:**

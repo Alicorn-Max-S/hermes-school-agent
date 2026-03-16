@@ -127,7 +127,7 @@ class TelegramAdapter(BasePlatformAdapter):
             return
         message = (
             "Another Telegram bot poller is already using this token. "
-            "Hermes stopped Telegram polling to avoid endless retry spam. "
+            "Apollo stopped Telegram polling to avoid endless retry spam. "
             "Make sure only one gateway instance is running for this bot token."
         )
         logger.error("[%s] %s Original error: %s", self.name, message, error)
@@ -164,7 +164,7 @@ class TelegramAdapter(BasePlatformAdapter):
             if not acquired:
                 owner_pid = existing.get("pid") if isinstance(existing, dict) else None
                 message = (
-                    "Another local Hermes gateway is already using this Telegram bot token"
+                    "Another local Apollo gateway is already using this Telegram bot token"
                     + (f" (PID {owner_pid})." if owner_pid else ".")
                     + " Stop the other gateway before starting a second Telegram poller."
                 )
@@ -233,7 +233,7 @@ class TelegramAdapter(BasePlatformAdapter):
                     BotCommand("usage", "Show token usage for this session"),
                     BotCommand("provider", "Show available providers"),
                     BotCommand("insights", "Show usage insights and analytics"),
-                    BotCommand("update", "Update Hermes to the latest version"),
+                    BotCommand("update", "Update Apollo to the latest version"),
                     BotCommand("reload_mcp", "Reload MCP servers from config"),
                     BotCommand("voice", "Toggle voice reply mode"),
                     BotCommand("help", "Show available commands"),

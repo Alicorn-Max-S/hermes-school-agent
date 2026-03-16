@@ -20,9 +20,9 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
-HERMES_HOME = Path(os.getenv("HERMES_HOME", Path.home() / ".hermes"))
-CONFIG_PATH = HERMES_HOME / "reward_config.json"
-HISTORY_PATH = HERMES_HOME / "reward_history.json"
+APOLLO_HOME = Path(os.getenv("APOLLO_HOME", Path.home() / ".apollo"))
+CONFIG_PATH = APOLLO_HOME / "reward_config.json"
+HISTORY_PATH = APOLLO_HOME / "reward_history.json"
 
 PREDICTION_THRESHOLD = 10
 
@@ -39,7 +39,7 @@ def load_config():
 
 def save_config(config):
     """Save reward configuration."""
-    HERMES_HOME.mkdir(parents=True, exist_ok=True)
+    APOLLO_HOME.mkdir(parents=True, exist_ok=True)
     CONFIG_PATH.write_text(json.dumps(config, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
@@ -55,7 +55,7 @@ def load_history():
 
 def save_history(history):
     """Save task/reward history."""
-    HERMES_HOME.mkdir(parents=True, exist_ok=True)
+    APOLLO_HOME.mkdir(parents=True, exist_ok=True)
     HISTORY_PATH.write_text(json.dumps(history, indent=2, ensure_ascii=False), encoding="utf-8")
 
 

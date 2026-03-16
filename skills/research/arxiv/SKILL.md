@@ -2,10 +2,10 @@
 name: arxiv
 description: "Search and retrieve academic papers from arXiv — find papers by keyword, author, category, or ID. No API key needed. Trigger on mentions of research papers, academic articles, arXiv, preprints, scientific literature, or citations."
 version: 1.0.0
-author: Hermes Agent
+author: Apollo Agent
 license: MIT
 metadata:
-  hermes:
+  apollo:
     tags: [Research, Arxiv, Papers, Academic, Science, API]
     related_skills: [ocr-and-documents]
     school: true

@@ -1,10 +1,10 @@
 """Tests for provider env var blocklist in LocalEnvironment.
 
-Verifies that Hermes-internal provider env vars (OPENAI_BASE_URL, etc.)
+Verifies that Apollo-internal provider env vars (OPENAI_BASE_URL, etc.)
 are stripped from subprocess environments so external CLIs are not
 silently misrouted.
 
-See: https://github.com/NousResearch/hermes-agent/issues/1002
+See: https://github.com/NousResearch/apollo-agent/issues/1002
 """
 
 import os
@@ -13,8 +13,8 @@ from unittest.mock import MagicMock, patch
 
 from tools.environments.local import (
     LocalEnvironment,
-    _HERMES_PROVIDER_ENV_BLOCKLIST,
-    _HERMES_PROVIDER_ENV_FORCE_PREFIX,
+    _APOLLO_PROVIDER_ENV_BLOCKLIST,
+    _APOLLO_PROVIDER_ENV_FORCE_PREFIX,
 )
 
 
@@ -57,7 +57,7 @@ def _run_with_env(extra_os_env=None, self_env=None):
 
 
 class TestProviderEnvBlocklist:
-    """Provider env vars loaded from ~/.hermes/.env must not leak."""
+    """Provider env vars loaded from ~/.apollo/.env must not leak."""
 
     def test_blocked_vars_are_stripped(self):
         """OPENAI_BASE_URL and other provider vars must not appear in subprocess env."""
@@ -113,24 +113,24 @@ class TestProviderEnvBlocklist:
 
 
 class TestForceEnvOptIn:
-    """Callers can opt in to passing a blocked var via _HERMES_FORCE_ prefix."""
+    """Callers can opt in to passing a blocked var via _APOLLO_FORCE_ prefix."""
 
     def test_force_prefix_passes_blocked_var(self):
-        """_HERMES_FORCE_OPENAI_API_KEY in self.env should inject OPENAI_API_KEY."""
+        """_APOLLO_FORCE_OPENAI_API_KEY in self.env should inject OPENAI_API_KEY."""
         result_env = _run_with_env(self_env={
-            f"{_HERMES_PROVIDER_ENV_FORCE_PREFIX}OPENAI_API_KEY": "sk-explicit",
+            f"{_APOLLO_PROVIDER_ENV_FORCE_PREFIX}OPENAI_API_KEY": "sk-explicit",
         })
 
         assert "OPENAI_API_KEY" in result_env
         assert result_env["OPENAI_API_KEY"] == "sk-explicit"
         # The force-prefixed key itself must not appear
-        assert f"{_HERMES_PROVIDER_ENV_FORCE_PREFIX}OPENAI_API_KEY" not in result_env
+        assert f"{_APOLLO_PROVIDER_ENV_FORCE_PREFIX}OPENAI_API_KEY" not in result_env
 
     def test_force_prefix_overrides_os_environ_block(self):
         """Force-prefix in self.env wins even when os.environ has the blocked var."""
         result_env = _run_with_env(
             extra_os_env={"OPENAI_BASE_URL": "http://leaked/v1"},
-            self_env={f"{_HERMES_PROVIDER_ENV_FORCE_PREFIX}OPENAI_BASE_URL": "http://intended/v1"},
+            self_env={f"{_APOLLO_PROVIDER_ENV_FORCE_PREFIX}OPENAI_BASE_URL": "http://intended/v1"},
         )
 
         assert result_env["OPENAI_BASE_URL"] == "http://intended/v1"
@@ -148,20 +148,20 @@ class TestBlocklistCoverage:
             "ANTHROPIC_API_KEY",
             "LLM_MODEL",
         }
-        assert must_block.issubset(_HERMES_PROVIDER_ENV_BLOCKLIST)
+        assert must_block.issubset(_APOLLO_PROVIDER_ENV_BLOCKLIST)
 
     def test_registry_vars_are_in_blocklist(self):
         """Every api_key_env_var and base_url_env_var from PROVIDER_REGISTRY
         must appear in the blocklist — ensures no drift."""
-        from hermes_cli.auth import PROVIDER_REGISTRY
+        from apollo_cli.auth import PROVIDER_REGISTRY
 
         for pconfig in PROVIDER_REGISTRY.values():
             for var in pconfig.api_key_env_vars:
-                assert var in _HERMES_PROVIDER_ENV_BLOCKLIST, (
+                assert var in _APOLLO_PROVIDER_ENV_BLOCKLIST, (
                     f"Registry var {var} (provider={pconfig.id}) missing from blocklist"
                 )
             if pconfig.base_url_env_var:
-                assert pconfig.base_url_env_var in _HERMES_PROVIDER_ENV_BLOCKLIST, (
+                assert pconfig.base_url_env_var in _APOLLO_PROVIDER_ENV_BLOCKLIST, (
                     f"Registry base_url_env_var {pconfig.base_url_env_var} "
                     f"(provider={pconfig.id}) missing from blocklist"
                 )
@@ -170,4 +170,4 @@ class TestBlocklistCoverage:
         """Non-registry auth vars (ANTHROPIC_TOKEN, CLAUDE_CODE_OAUTH_TOKEN)
         must also be in the blocklist."""
         extras = {"ANTHROPIC_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN"}
-        assert extras.issubset(_HERMES_PROVIDER_ENV_BLOCKLIST)
+        assert extras.issubset(_APOLLO_PROVIDER_ENV_BLOCKLIST)

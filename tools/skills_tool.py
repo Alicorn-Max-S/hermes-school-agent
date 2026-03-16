@@ -40,7 +40,7 @@ SKILL.md Format (YAML Frontmatter, agentskills.io compatible):
       commands: [curl, jq]        #   Command checks remain advisory only.
     compatibility: Requires X     # Optional (agentskills.io)
     metadata:                     # Optional, arbitrary key-value (agentskills.io)
-      hermes:
+      apollo:
         tags: [fine-tuning, llm]
         related_skills: [peft, lora]
     ---
@@ -76,17 +76,17 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional, Set, Tuple
 
 import yaml
-from hermes_cli.config import load_env, _ENV_VAR_NAME_RE
+from apollo_cli.config import load_env, _ENV_VAR_NAME_RE
 from tools.registry import registry
 
 logger = logging.getLogger(__name__)
 
 
-# All skills live in ~/.hermes/skills/ (seeded from bundled skills/ on install).
+# All skills live in ~/.apollo/skills/ (seeded from bundled skills/ on install).
 # This is the single source of truth -- agent edits, hub installs, and bundled
 # skills all coexist here without polluting the git repo.
-HERMES_HOME = Path(os.getenv("HERMES_HOME", Path.home() / ".hermes"))
-SKILLS_DIR = HERMES_HOME / "skills"
+APOLLO_HOME = Path(os.getenv("APOLLO_HOME", Path.home() / ".apollo"))
+SKILLS_DIR = APOLLO_HOME / "skills"
 
 # Anthropic-recommended limits for progressive disclosure efficiency
 MAX_NAME_LENGTH = 64
@@ -346,9 +346,9 @@ def _capture_required_environment_variables(
 
 
 def _is_gateway_surface() -> bool:
-    if os.getenv("HERMES_GATEWAY_SESSION"):
+    if os.getenv("APOLLO_GATEWAY_SESSION"):
         return True
-    return bool(os.getenv("HERMES_SESSION_PLATFORM"))
+    return bool(os.getenv("APOLLO_SESSION_PLATFORM"))
 
 
 def _get_terminal_backend_name() -> str:
@@ -394,7 +394,7 @@ def _gateway_setup_hint() -> str:
 
         return GATEWAY_SECRET_CAPTURE_UNSUPPORTED_MESSAGE
     except Exception:
-        return "Secure secret entry is not available. Load this skill in the local CLI to be prompted, or add the key to ~/.hermes/.env manually."
+        return "Secure secret entry is not available. Load this skill in the local CLI to be prompted, or add the key to ~/.apollo/.env manually."
 
 
 def _build_setup_note(
@@ -457,7 +457,7 @@ def _get_category_from_path(skill_path: Path) -> Optional[str]:
     """
     Extract category from skill path based on directory structure.
 
-    For paths like: ~/.hermes/skills/mlops/axolotl/SKILL.md -> "mlops"
+    For paths like: ~/.apollo/skills/mlops/axolotl/SKILL.md -> "mlops"
     """
     try:
         rel_path = skill_path.relative_to(SKILLS_DIR)
@@ -516,15 +516,15 @@ def _parse_tags(tags_value) -> List[str]:
 def _get_disabled_skill_names() -> Set[str]:
     """Load disabled skill names from config (once per call).
 
-    Resolves platform from ``HERMES_PLATFORM`` env var, falls back to
+    Resolves platform from ``APOLLO_PLATFORM`` env var, falls back to
     the global disabled list.
     """
     import os
     try:
-        from hermes_cli.config import load_config
+        from apollo_cli.config import load_config
         config = load_config()
         skills_cfg = config.get("skills", {})
-        resolved_platform = os.getenv("HERMES_PLATFORM")
+        resolved_platform = os.getenv("APOLLO_PLATFORM")
         if resolved_platform:
             platform_disabled = skills_cfg.get("platform_disabled", {}).get(resolved_platform)
             if platform_disabled is not None:
@@ -538,10 +538,10 @@ def _is_skill_disabled(name: str, platform: str = None) -> bool:
     """Check if a skill is disabled in config."""
     import os
     try:
-        from hermes_cli.config import load_config
+        from apollo_cli.config import load_config
         config = load_config()
         skills_cfg = config.get("skills", {})
-        resolved_platform = platform or os.getenv("HERMES_PLATFORM")
+        resolved_platform = platform or os.getenv("APOLLO_PLATFORM")
         if resolved_platform:
             platform_disabled = skills_cfg.get("platform_disabled", {}).get(resolved_platform)
             if platform_disabled is not None:
@@ -552,11 +552,11 @@ def _is_skill_disabled(name: str, platform: str = None) -> bool:
 
 
 def _find_all_skills(*, skip_disabled: bool = False) -> List[Dict[str, Any]]:
-    """Recursively find all skills in ~/.hermes/skills/.
+    """Recursively find all skills in ~/.apollo/skills/.
 
     Args:
         skip_disabled: If True, return ALL skills regardless of disabled
-            state (used by ``hermes skills`` config UI). Default False
+            state (used by ``apollo skills`` config UI). Default False
             filters out disabled skills.
 
     Returns:
@@ -755,7 +755,7 @@ def skills_list(category: str = None, task_id: str = None) -> str:
                     "success": True,
                     "skills": [],
                     "categories": [],
-                    "message": "No skills found. Skills directory created at ~/.hermes/skills/",
+                    "message": "No skills found. Skills directory created at ~/.apollo/skills/",
                 },
                 ensure_ascii=False,
             )
@@ -1049,15 +1049,15 @@ def skill_view(name: str, file_path: str = None, task_id: str = None) -> str:
                     )
 
         # Read tags/related_skills with backward compat:
-        # Check metadata.hermes.* first (agentskills.io convention), fall back to top-level
-        hermes_meta = {}
+        # Check metadata.apollo.* first (agentskills.io convention), fall back to top-level
+        apollo_meta = {}
         metadata = frontmatter.get("metadata")
         if isinstance(metadata, dict):
-            hermes_meta = metadata.get("hermes", {}) or {}
+            apollo_meta = metadata.get("apollo", {}) or {}
 
-        tags = _parse_tags(hermes_meta.get("tags") or frontmatter.get("tags", ""))
+        tags = _parse_tags(apollo_meta.get("tags") or frontmatter.get("tags", ""))
         related_skills = _parse_tags(
-            hermes_meta.get("related_skills") or frontmatter.get("related_skills", "")
+            apollo_meta.get("related_skills") or frontmatter.get("related_skills", "")
         )
 
         # Build linked files structure for clear discovery

@@ -7,7 +7,7 @@ license: MIT
 prerequisites:
   env_vars: [TODOIST_API_TOKEN]
 metadata:
-  hermes:
+  apollo:
     tags: [Todoist, Tasks, Productivity, Scheduling, Time Management, Calendar]
     school: true
     school_category: "Homework & Assignments"
@@ -26,7 +26,7 @@ Create, manage, and intelligently schedule Todoist tasks. Automatically estimate
 1. Open [Todoist web app](https://app.todoist.com)
 2. Go to **Settings → Integrations → Developer**
 3. Copy your **API token**
-4. Add to `~/.hermes/.env`:
+4. Add to `~/.apollo/.env`:
 
 ```
 TODOIST_API_TOKEN=your_token_here
@@ -41,7 +41,7 @@ Before proceeding, verify that TODOIST_API_TOKEN is set. Use terminal to run: `e
 ## Usage
 
 ```bash
-TODOIST="python ~/.hermes/skills/productivity/todoist/scripts/todoist_api.py"
+TODOIST="python ~/.apollo/skills/productivity/todoist/scripts/todoist_api.py"
 
 # List all active tasks
 $TODOIST list_tasks
@@ -223,7 +223,7 @@ Wait for the user to confirm or request changes before proceeding.
 
 2. **Also check Google Calendar** (if the `google-calendar` skill is set up):
    ```bash
-   GAPI="python ~/.hermes/skills/productivity/google-auth/scripts/google_api.py"
+   GAPI="python ~/.apollo/skills/productivity/google-auth/scripts/google_api.py"
    $GAPI calendar list --start 2026-03-16T00:00:00Z --end 2026-03-16T23:59:59Z
    ```
    This captures meetings and calendar events not tracked in Todoist. Treat calendar events as busy time when looking for gaps.

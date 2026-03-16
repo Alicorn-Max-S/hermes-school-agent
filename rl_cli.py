@@ -27,11 +27,11 @@ from pathlib import Path
 import fire
 import yaml
 
-# Load .env from ~/.hermes/.env first, then project root as dev fallback
+# Load .env from ~/.apollo/.env first, then project root as dev fallback
 from dotenv import load_dotenv
 
-_hermes_home = Path(os.getenv("HERMES_HOME", Path.home() / ".hermes"))
-_user_env = _hermes_home / ".env"
+_apollo_home = Path(os.getenv("APOLLO_HOME", Path.home() / ".apollo"))
+_user_env = _apollo_home / ".env"
 _project_env = Path(__file__).parent / '.env'
 
 if _user_env.exists():
@@ -52,12 +52,12 @@ elif _project_env.exists():
 tinker_atropos_dir = Path(__file__).parent / 'tinker-atropos'
 if tinker_atropos_dir.exists():
     os.environ['TERMINAL_CWD'] = str(tinker_atropos_dir)
-    os.environ['HERMES_QUIET'] = '1'  # Disable temp subdirectory creation
+    os.environ['APOLLO_QUIET'] = '1'  # Disable temp subdirectory creation
     print(f"📂 Terminal working directory: {tinker_atropos_dir}")
 else:
-    # Fall back to hermes-agent directory if submodule not found
+    # Fall back to apollo-agent directory if submodule not found
     os.environ['TERMINAL_CWD'] = str(Path(__file__).parent)
-    os.environ['HERMES_QUIET'] = '1'
+    os.environ['APOLLO_QUIET'] = '1'
     print(f"⚠️  tinker-atropos submodule not found, using: {Path(__file__).parent}")
 
 # Import agent and tools
@@ -70,20 +70,20 @@ from tools.rl_training_tool import check_rl_api_keys, get_missing_keys
 # Config Loading
 # ============================================================================
 
-from hermes_constants import OPENROUTER_BASE_URL
+from apollo_constants import OPENROUTER_BASE_URL
 
 DEFAULT_MODEL = "anthropic/claude-opus-4.5"
 DEFAULT_BASE_URL = OPENROUTER_BASE_URL
 
 
-def load_hermes_config() -> dict:
+def load_apollo_config() -> dict:
     """
-    Load configuration from ~/.hermes/config.yaml.
+    Load configuration from ~/.apollo/config.yaml.
     
     Returns:
         dict: Configuration with model, base_url, etc.
     """
-    config_path = _hermes_home / 'config.yaml'
+    config_path = _apollo_home / 'config.yaml'
     
     config = {
         "model": DEFAULT_MODEL,
@@ -259,7 +259,7 @@ def main(
     
     Args:
         task: The training task/goal (e.g., "Train a model on GSM8k for math")
-        model: Model to use for the agent (reads from ~/.hermes/config.yaml if not provided)
+        model: Model to use for the agent (reads from ~/.apollo/config.yaml if not provided)
         api_key: OpenRouter API key (uses OPENROUTER_API_KEY env var if not provided)
         base_url: API base URL (reads from config or defaults to OpenRouter)
         max_iterations: Maximum agent iterations (default: 200 for long workflows)
@@ -282,8 +282,8 @@ def main(
         # Check server status
         python rl_cli.py --check-server
     """
-    # Load config from ~/.hermes/config.yaml
-    config = load_hermes_config()
+    # Load config from ~/.apollo/config.yaml
+    config = load_apollo_config()
     
     # Use config values if not explicitly provided
     if model is None:
@@ -307,7 +307,7 @@ def main(
             missing = get_missing_keys()
             if missing:
                 print(f"\n⚠️  Missing API keys: {', '.join(missing)}")
-                print("   Add them to ~/.hermes/.env")
+                print("   Add them to ~/.apollo/.env")
             else:
                 print("✅ API keys configured")
         else:

@@ -1,4 +1,4 @@
-from hermes_cli import runtime_provider as rp
+from apollo_cli import runtime_provider as rp
 
 
 def test_resolve_runtime_provider_codex(monkeypatch):
@@ -143,7 +143,7 @@ def test_custom_endpoint_prefers_openai_key(monkeypatch):
 def test_custom_endpoint_auto_provider_prefers_openai_key(monkeypatch):
     """Auto provider with non-OpenRouter base_url should prefer OPENAI_API_KEY.
 
-    Same as #560 but via 'hermes model' flow which sets provider to 'auto'.
+    Same as #560 but via 'apollo model' flow which sets provider to 'auto'.
     """
     monkeypatch.setattr(rp, "resolve_provider", lambda *a, **k: "openrouter")
     monkeypatch.setattr(rp, "_get_model_config", lambda: {})
@@ -279,7 +279,7 @@ def test_explicit_openrouter_skips_openai_base_url(monkeypatch):
 
 
 def test_resolve_requested_provider_precedence(monkeypatch):
-    monkeypatch.setenv("HERMES_INFERENCE_PROVIDER", "nous")
+    monkeypatch.setenv("APOLLO_INFERENCE_PROVIDER", "nous")
     monkeypatch.setattr(rp, "_get_model_config", lambda: {"provider": "openai-codex"})
     assert rp.resolve_requested_provider("openrouter") == "openrouter"
     assert rp.resolve_requested_provider() == "openai-codex"
@@ -287,5 +287,5 @@ def test_resolve_requested_provider_precedence(monkeypatch):
     monkeypatch.setattr(rp, "_get_model_config", lambda: {})
     assert rp.resolve_requested_provider() == "nous"
 
-    monkeypatch.delenv("HERMES_INFERENCE_PROVIDER", raising=False)
+    monkeypatch.delenv("APOLLO_INFERENCE_PROVIDER", raising=False)
     assert rp.resolve_requested_provider() == "auto"

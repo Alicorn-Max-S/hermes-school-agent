@@ -5,7 +5,7 @@ version: 1.0.0
 author: Nous Research
 license: MIT
 metadata:
-  hermes:
+  apollo:
     tags: [Reward, School, Motivation, Google Sheets, Task]
     related_skills: [google-auth]
     school: true
@@ -23,7 +23,7 @@ Track rewards for completing school tasks. Logs to Google Sheets and learns to p
 Requires Google OAuth2 setup via the `google-auth` skill:
 
 ```bash
-GSETUP="python ~/.hermes/skills/productivity/google-auth/scripts/setup.py"
+GSETUP="python ~/.apollo/skills/productivity/google-auth/scripts/setup.py"
 $GSETUP --check
 ```
 
@@ -32,7 +32,7 @@ If not authenticated, load `google-auth`: `skill_view("google-auth")`
 ## Helper Script
 
 ```bash
-REWARD="python ~/.hermes/skills/productivity/reward/scripts/reward_store.py"
+REWARD="python ~/.apollo/skills/productivity/reward/scripts/reward_store.py"
 ```
 
 ## First-Time Setup
@@ -120,7 +120,7 @@ $REWARD history --add --task "Task name" --description "Description" --class "Su
 
 Append to Google Sheets:
 ```bash
-GAPI="python ~/.hermes/skills/productivity/google-auth/scripts/google_api.py"
+GAPI="python ~/.apollo/skills/productivity/google-auth/scripts/google_api.py"
 $GAPI sheets append SHEET_ID "Sheet1!A:F" --values '[["2026-03-16T10:30:00", "Task name", "Description", "Subject", "5.00", "money"]]'
 ```
 

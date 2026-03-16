@@ -1,7 +1,7 @@
 ---
 sidebar_position: 1
 title: "CLI Commands Reference"
-description: "Authoritative reference for Hermes terminal commands and command families"
+description: "Authoritative reference for Apollo terminal commands and command families"
 ---
 
 # CLI Commands Reference
@@ -13,7 +13,7 @@ For in-chat slash commands, see [Slash Commands Reference](./slash-commands.md).
 ## Global entrypoint
 
 ```bash
-hermes [global-options] <command> [subcommand/options]
+apollo [global-options] <command> [subcommand/options]
 ```
 
 ### Global options
@@ -31,32 +31,32 @@ hermes [global-options] <command> [subcommand/options]
 
 | Command | Purpose |
 |---------|---------|
-| `hermes chat` | Interactive or one-shot chat with the agent. |
-| `hermes model` | Interactively choose the default provider and model. |
-| `hermes gateway` | Run or manage the messaging gateway service. |
-| `hermes setup` | Interactive setup wizard for all or part of the configuration. |
-| `hermes whatsapp` | Configure and pair the WhatsApp bridge. |
-| `hermes login` / `logout` | Authenticate with OAuth-backed providers. |
-| `hermes status` | Show agent, auth, and platform status. |
-| `hermes cron` | Inspect and tick the cron scheduler. |
-| `hermes doctor` | Diagnose config and dependency issues. |
-| `hermes config` | Show, edit, migrate, and query configuration files. |
-| `hermes pairing` | Approve or revoke messaging pairing codes. |
-| `hermes skills` | Browse, install, publish, audit, and configure skills. |
-| `hermes honcho` | Manage Honcho cross-session memory integration. |
-| `hermes acp` | Run Hermes as an ACP server for editor integration. |
-| `hermes tools` | Configure enabled tools per platform. |
-| `hermes sessions` | Browse, export, prune, rename, and delete sessions. |
-| `hermes insights` | Show token/cost/activity analytics. |
-| `hermes claw` | OpenClaw migration helpers. |
-| `hermes version` | Show version information. |
-| `hermes update` | Pull latest code and reinstall dependencies. |
-| `hermes uninstall` | Remove Hermes from the system. |
+| `apollo chat` | Interactive or one-shot chat with the agent. |
+| `apollo model` | Interactively choose the default provider and model. |
+| `apollo gateway` | Run or manage the messaging gateway service. |
+| `apollo setup` | Interactive setup wizard for all or part of the configuration. |
+| `apollo whatsapp` | Configure and pair the WhatsApp bridge. |
+| `apollo login` / `logout` | Authenticate with OAuth-backed providers. |
+| `apollo status` | Show agent, auth, and platform status. |
+| `apollo cron` | Inspect and tick the cron scheduler. |
+| `apollo doctor` | Diagnose config and dependency issues. |
+| `apollo config` | Show, edit, migrate, and query configuration files. |
+| `apollo pairing` | Approve or revoke messaging pairing codes. |
+| `apollo skills` | Browse, install, publish, audit, and configure skills. |
+| `apollo honcho` | Manage Honcho cross-session memory integration. |
+| `apollo acp` | Run Apollo as an ACP server for editor integration. |
+| `apollo tools` | Configure enabled tools per platform. |
+| `apollo sessions` | Browse, export, prune, rename, and delete sessions. |
+| `apollo insights` | Show token/cost/activity analytics. |
+| `apollo claw` | OpenClaw migration helpers. |
+| `apollo version` | Show version information. |
+| `apollo update` | Pull latest code and reinstall dependencies. |
+| `apollo uninstall` | Remove Apollo from the system. |
 
-## `hermes chat`
+## `apollo chat`
 
 ```bash
-hermes chat [options]
+apollo chat [options]
 ```
 
 Common options:
@@ -78,20 +78,20 @@ Common options:
 Examples:
 
 ```bash
-hermes
-hermes chat -q "Summarize the latest PRs"
-hermes chat --provider openrouter --model anthropic/claude-sonnet-4.6
-hermes chat --toolsets web,terminal,skills
-hermes chat --quiet -q "Return only JSON"
-hermes chat --worktree -q "Review this repo and open a PR"
+apollo
+apollo chat -q "Summarize the latest PRs"
+apollo chat --provider openrouter --model anthropic/claude-sonnet-4.6
+apollo chat --toolsets web,terminal,skills
+apollo chat --quiet -q "Return only JSON"
+apollo chat --worktree -q "Review this repo and open a PR"
 ```
 
-## `hermes model`
+## `apollo model`
 
 Interactive provider + model selector.
 
 ```bash
-hermes model
+apollo model
 ```
 
 Use this when you want to:
@@ -100,10 +100,10 @@ Use this when you want to:
 - pick from provider-specific model lists
 - save the new default into config
 
-## `hermes gateway`
+## `apollo gateway`
 
 ```bash
-hermes gateway <subcommand>
+apollo gateway <subcommand>
 ```
 
 Subcommands:
@@ -119,10 +119,10 @@ Subcommands:
 | `uninstall` | Remove the installed service. |
 | `setup` | Interactive messaging-platform setup. |
 
-## `hermes setup`
+## `apollo setup`
 
 ```bash
-hermes setup [model|terminal|gateway|tools|agent] [--non-interactive] [--reset]
+apollo setup [model|terminal|gateway|tools|agent] [--non-interactive] [--reset]
 ```
 
 Use the full wizard or jump into one section:
@@ -142,19 +142,19 @@ Options:
 | `--non-interactive` | Use defaults / environment values without prompts. |
 | `--reset` | Reset configuration to defaults before setup. |
 
-## `hermes whatsapp`
+## `apollo whatsapp`
 
 ```bash
-hermes whatsapp
+apollo whatsapp
 ```
 
 Runs the WhatsApp pairing/setup flow, including mode selection and QR-code pairing.
 
-## `hermes login` / `hermes logout`
+## `apollo login` / `apollo logout`
 
 ```bash
-hermes login [--provider nous|openai-codex] [--portal-url ...] [--inference-url ...]
-hermes logout [--provider nous|openai-codex]
+apollo login [--provider nous|openai-codex] [--portal-url ...] [--inference-url ...]
+apollo logout [--provider nous|openai-codex]
 ```
 
 `login` supports:
@@ -167,10 +167,10 @@ Useful options for `login`:
 - `--ca-bundle <pem>`
 - `--insecure`
 
-## `hermes status`
+## `apollo status`
 
 ```bash
-hermes status [--all] [--deep]
+apollo status [--all] [--deep]
 ```
 
 | Option | Description |
@@ -178,10 +178,10 @@ hermes status [--all] [--deep]
 | `--all` | Show all details in a shareable redacted format. |
 | `--deep` | Run deeper checks that may take longer. |
 
-## `hermes cron`
+## `apollo cron`
 
 ```bash
-hermes cron <list|status|tick>
+apollo cron <list|status|tick>
 ```
 
 | Subcommand | Description |
@@ -190,20 +190,20 @@ hermes cron <list|status|tick>
 | `status` | Check whether the cron scheduler is running. |
 | `tick` | Run due jobs once and exit. |
 
-## `hermes doctor`
+## `apollo doctor`
 
 ```bash
-hermes doctor [--fix]
+apollo doctor [--fix]
 ```
 
 | Option | Description |
 |--------|-------------|
 | `--fix` | Attempt automatic repairs where possible. |
 
-## `hermes config`
+## `apollo config`
 
 ```bash
-hermes config <subcommand>
+apollo config <subcommand>
 ```
 
 Subcommands:
@@ -218,10 +218,10 @@ Subcommands:
 | `check` | Check for missing or stale config. |
 | `migrate` | Add newly introduced options interactively. |
 
-## `hermes pairing`
+## `apollo pairing`
 
 ```bash
-hermes pairing <list|approve|revoke|clear-pending>
+apollo pairing <list|approve|revoke|clear-pending>
 ```
 
 | Subcommand | Description |
@@ -231,10 +231,10 @@ hermes pairing <list|approve|revoke|clear-pending>
 | `revoke <platform> <user-id>` | Revoke a user's access. |
 | `clear-pending` | Clear pending pairing codes. |
 
-## `hermes skills`
+## `apollo skills`
 
 ```bash
-hermes skills <subcommand>
+apollo skills <subcommand>
 ```
 
 Subcommands:
@@ -258,29 +258,29 @@ Subcommands:
 Common examples:
 
 ```bash
-hermes skills browse
-hermes skills browse --source official
-hermes skills search react --source skills-sh
-hermes skills search https://mintlify.com/docs --source well-known
-hermes skills inspect official/security/1password
-hermes skills inspect skills-sh/vercel-labs/json-render/json-render-react
-hermes skills install official/migration/openclaw-migration
-hermes skills install skills-sh/anthropics/skills/pdf --force
-hermes skills check
-hermes skills update
-hermes skills config
+apollo skills browse
+apollo skills browse --source official
+apollo skills search react --source skills-sh
+apollo skills search https://mintlify.com/docs --source well-known
+apollo skills inspect official/security/1password
+apollo skills inspect skills-sh/vercel-labs/json-render/json-render-react
+apollo skills install official/migration/openclaw-migration
+apollo skills install skills-sh/anthropics/skills/pdf --force
+apollo skills check
+apollo skills update
+apollo skills config
 ```
 
 Notes:
 - `--force` can override non-dangerous policy blocks for third-party/community skills.
 - `--force` does not override a `dangerous` scan verdict.
 - `--source skills-sh` searches the public `skills.sh` directory.
-- `--source well-known` lets you point Hermes at a site exposing `/.well-known/skills/index.json`.
+- `--source well-known` lets you point Apollo at a site exposing `/.well-known/skills/index.json`.
 
-## `hermes honcho`
+## `apollo honcho`
 
 ```bash
-hermes honcho <subcommand>
+apollo honcho <subcommand>
 ```
 
 Subcommands:
@@ -295,20 +295,20 @@ Subcommands:
 | `mode` | Show or set memory mode: `hybrid`, `honcho`, or `local`. |
 | `tokens` | Show or set token budgets for context and dialectic. |
 | `identity` | Seed or show the AI peer identity representation. |
-| `migrate` | Migration guide from openclaw-honcho to Hermes Honcho. |
+| `migrate` | Migration guide from openclaw-honcho to Apollo Honcho. |
 
-## `hermes acp`
+## `apollo acp`
 
 ```bash
-hermes acp
+apollo acp
 ```
 
-Starts Hermes as an ACP (Agent Client Protocol) stdio server for editor integration.
+Starts Apollo as an ACP (Agent Client Protocol) stdio server for editor integration.
 
 Related entrypoints:
 
 ```bash
-hermes-acp
+apollo-acp
 python -m acp_adapter
 ```
 
@@ -320,10 +320,10 @@ pip install -e '.[acp]'
 
 See [ACP Editor Integration](../user-guide/features/acp.md) and [ACP Internals](../developer-guide/acp-internals.md).
 
-## `hermes tools`
+## `apollo tools`
 
 ```bash
-hermes tools [--summary]
+apollo tools [--summary]
 ```
 
 | Option | Description |
@@ -332,10 +332,10 @@ hermes tools [--summary]
 
 Without `--summary`, this launches the interactive per-platform tool configuration UI.
 
-## `hermes sessions`
+## `apollo sessions`
 
 ```bash
-hermes sessions <subcommand>
+apollo sessions <subcommand>
 ```
 
 Subcommands:
@@ -350,10 +350,10 @@ Subcommands:
 | `stats` | Show session-store statistics. |
 | `rename <session-id> <title>` | Set or change a session title. |
 
-## `hermes insights`
+## `apollo insights`
 
 ```bash
-hermes insights [--days N] [--source platform]
+apollo insights [--days N] [--source platform]
 ```
 
 | Option | Description |
@@ -361,21 +361,21 @@ hermes insights [--days N] [--source platform]
 | `--days <n>` | Analyze the last `n` days (default: 30). |
 | `--source <platform>` | Filter by source such as `cli`, `telegram`, or `discord`. |
 
-## `hermes claw`
+## `apollo claw`
 
 ```bash
-hermes claw migrate
+apollo claw migrate
 ```
 
-Used to migrate settings, memories, skills, and keys from OpenClaw to Hermes.
+Used to migrate settings, memories, skills, and keys from OpenClaw to Apollo.
 
 ## Maintenance commands
 
 | Command | Description |
 |---------|-------------|
-| `hermes version` | Print version information. |
-| `hermes update` | Pull latest changes and reinstall dependencies. |
-| `hermes uninstall [--full] [--yes]` | Remove Hermes, optionally deleting all config/data. |
+| `apollo version` | Print version information. |
+| `apollo update` | Pull latest changes and reinstall dependencies. |
+| `apollo uninstall [--full] [--yes]` | Remove Apollo, optionally deleting all config/data. |
 
 ## See also
 

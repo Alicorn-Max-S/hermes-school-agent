@@ -2,14 +2,14 @@
 name: obsidian
 description: "Read, search, create, and edit notes in an Obsidian vault. Supports wikilinks, tags, and markdown. Trigger on mentions of Obsidian, vault, notes, knowledge management, or personal wiki."
 metadata:
-  hermes:
+  apollo:
     school: true
     school_category: "Notes & Organization"
 ---
 
 # Obsidian Vault
 
-**Location:** Set via `OBSIDIAN_VAULT_PATH` environment variable (e.g. in `~/.hermes/.env`).
+**Location:** Set via `OBSIDIAN_VAULT_PATH` environment variable (e.g. in `~/.apollo/.env`).
 
 If unset, defaults to `~/Documents/Obsidian Vault`.
 

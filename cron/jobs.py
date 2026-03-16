@@ -1,8 +1,8 @@
 """
 Cron job storage and management.
 
-Jobs are stored in ~/.hermes/cron/jobs.json
-Output is saved to ~/.hermes/cron/output/{job_id}/{timestamp}.md
+Jobs are stored in ~/.apollo/cron/jobs.json
+Output is saved to ~/.apollo/cron/output/{job_id}/{timestamp}.md
 """
 
 import json
@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Dict, List, Any
 
-from hermes_time import now as _hermes_now
+from apollo_time import now as _apollo_now
 
 try:
     from croniter import croniter
@@ -26,8 +26,8 @@ except ImportError:
 # Configuration
 # =============================================================================
 
-HERMES_DIR = Path(os.getenv("HERMES_HOME", Path.home() / ".hermes"))
-CRON_DIR = HERMES_DIR / "cron"
+APOLLO_DIR = Path(os.getenv("APOLLO_HOME", Path.home() / ".apollo"))
+CRON_DIR = APOLLO_DIR / "cron"
 JOBS_FILE = CRON_DIR / "jobs.json"
 OUTPUT_DIR = CRON_DIR / "output"
 
@@ -149,7 +149,7 @@ def parse_schedule(schedule: str) -> Dict[str, Any]:
     # Duration like "30m", "2h", "1d" → one-shot from now
     try:
         minutes = parse_duration(schedule)
-        run_at = _hermes_now() + timedelta(minutes=minutes)
+        run_at = _apollo_now() + timedelta(minutes=minutes)
         return {
             "kind": "once",
             "run_at": run_at.isoformat(),
@@ -168,18 +168,18 @@ def parse_schedule(schedule: str) -> Dict[str, Any]:
 
 
 def _ensure_aware(dt: datetime) -> datetime:
-    """Return a timezone-aware datetime in Hermes configured timezone.
+    """Return a timezone-aware datetime in Apollo configured timezone.
 
     Backward compatibility:
     - Older stored timestamps may be naive.
     - Naive values are interpreted as *system-local wall time* (the timezone
       `datetime.now()` used when they were created), then converted to the
-      configured Hermes timezone.
+      configured Apollo timezone.
 
     This preserves relative ordering for legacy naive timestamps across
     timezone changes and avoids false not-due results.
     """
-    target_tz = _hermes_now().tzinfo
+    target_tz = _apollo_now().tzinfo
     if dt.tzinfo is None:
         local_tz = datetime.now().astimezone().tzinfo
         return dt.replace(tzinfo=local_tz).astimezone(target_tz)
@@ -192,7 +192,7 @@ def compute_next_run(schedule: Dict[str, Any], last_run_at: Optional[str] = None
 
     Returns ISO timestamp string, or None if no more runs.
     """
-    now = _hermes_now()
+    now = _apollo_now()
 
     if schedule["kind"] == "once":
         run_at = _ensure_aware(datetime.fromisoformat(schedule["run_at"]))
@@ -244,7 +244,7 @@ def save_jobs(jobs: List[Dict[str, Any]]):
     fd, tmp_path = tempfile.mkstemp(dir=str(JOBS_FILE.parent), suffix='.tmp', prefix='.jobs_')
     try:
         with os.fdopen(fd, 'w', encoding='utf-8') as f:
-            json.dump({"jobs": jobs, "updated_at": _hermes_now().isoformat()}, f, indent=2)
+            json.dump({"jobs": jobs, "updated_at": _apollo_now().isoformat()}, f, indent=2)
             f.flush()
             os.fsync(f.fileno())
         os.replace(tmp_path, JOBS_FILE)
@@ -290,7 +290,7 @@ def create_job(
         deliver = "origin" if origin else "local"
     
     job_id = uuid.uuid4().hex[:12]
-    now = _hermes_now().isoformat()
+    now = _apollo_now().isoformat()
     
     job = {
         "id": job_id,
@@ -369,7 +369,7 @@ def mark_job_run(job_id: str, success: bool, error: Optional[str] = None):
     jobs = load_jobs()
     for i, job in enumerate(jobs):
         if job["id"] == job_id:
-            now = _hermes_now().isoformat()
+            now = _apollo_now().isoformat()
             job["last_run_at"] = now
             job["last_status"] = "ok" if success else "error"
             job["last_error"] = error if not success else None
@@ -402,7 +402,7 @@ def mark_job_run(job_id: str, success: bool, error: Optional[str] = None):
 
 def get_due_jobs() -> List[Dict[str, Any]]:
     """Get all jobs that are due to run now."""
-    now = _hermes_now()
+    now = _apollo_now()
     jobs = load_jobs()
     due = []
     
@@ -428,7 +428,7 @@ def save_job_output(job_id: str, output: str):
     job_output_dir.mkdir(parents=True, exist_ok=True)
     _secure_dir(job_output_dir)
     
-    timestamp = _hermes_now().strftime("%Y-%m-%d_%H-%M-%S")
+    timestamp = _apollo_now().strftime("%Y-%m-%d_%H-%M-%S")
     output_file = job_output_dir / f"{timestamp}.md"
     
     fd, tmp_path = tempfile.mkstemp(dir=str(job_output_dir), suffix='.tmp', prefix='.output_')

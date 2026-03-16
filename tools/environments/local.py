@@ -14,16 +14,16 @@ from tools.environments.base import BaseEnvironment
 
 # Unique marker to isolate real command output from shell init/exit noise.
 # printf (no trailing newline) keeps the boundaries clean for splitting.
-_OUTPUT_FENCE = "__HERMES_FENCE_a9f7b3__"
+_OUTPUT_FENCE = "__APOLLO_FENCE_a9f7b3__"
 
-# Hermes-internal env vars that should NOT leak into terminal subprocesses.
-# These are loaded from ~/.hermes/.env for Hermes' own LLM/provider calls
+# Apollo-internal env vars that should NOT leak into terminal subprocesses.
+# These are loaded from ~/.apollo/.env for Apollo' own LLM/provider calls
 # but can break external CLIs (e.g. codex) that also honor them.
-# See: https://github.com/NousResearch/hermes-agent/issues/1002
+# See: https://github.com/NousResearch/apollo-agent/issues/1002
 #
 # Built dynamically from the provider registry so new providers are
 # automatically covered without manual blocklist maintenance.
-_HERMES_PROVIDER_ENV_FORCE_PREFIX = "_HERMES_FORCE_"
+_APOLLO_PROVIDER_ENV_FORCE_PREFIX = "_APOLLO_FORCE_"
 
 
 def _build_provider_env_blocklist() -> frozenset:
@@ -36,7 +36,7 @@ def _build_provider_env_blocklist() -> frozenset:
     blocked: set[str] = set()
 
     try:
-        from hermes_cli.auth import PROVIDER_REGISTRY
+        from apollo_cli.auth import PROVIDER_REGISTRY
         for pconfig in PROVIDER_REGISTRY.values():
             blocked.update(pconfig.api_key_env_vars)
             if pconfig.base_url_env_var:
@@ -44,7 +44,7 @@ def _build_provider_env_blocklist() -> frozenset:
     except ImportError:
         pass
 
-    # Vars not in the registry but still Hermes-internal / conflict-prone
+    # Vars not in the registry but still Apollo-internal / conflict-prone
     blocked.update({
         "OPENAI_BASE_URL",
         "OPENAI_API_KEY",
@@ -60,7 +60,7 @@ def _build_provider_env_blocklist() -> frozenset:
     return frozenset(blocked)
 
 
-_HERMES_PROVIDER_ENV_BLOCKLIST = _build_provider_env_blocklist()
+_APOLLO_PROVIDER_ENV_BLOCKLIST = _build_provider_env_blocklist()
 
 
 def _find_bash() -> str:
@@ -81,7 +81,7 @@ def _find_bash() -> str:
 
     # Windows: look for Git Bash (installed with Git for Windows).
     # Allow override via env var (same pattern as Claude Code).
-    custom = os.environ.get("HERMES_GIT_BASH_PATH")
+    custom = os.environ.get("APOLLO_GIT_BASH_PATH")
     if custom and os.path.isfile(custom):
         return custom
 
@@ -100,9 +100,9 @@ def _find_bash() -> str:
             return candidate
 
     raise RuntimeError(
-        "Git Bash not found. Hermes Agent requires Git for Windows on Windows.\n"
+        "Git Bash not found. Apollo Agent requires Git for Windows on Windows.\n"
         "Install it from: https://git-scm.com/download/win\n"
-        "Or set HERMES_GIT_BASH_PATH to your bash.exe location."
+        "Or set APOLLO_GIT_BASH_PATH to your bash.exe location."
     )
 
 
@@ -231,24 +231,24 @@ class LocalEnvironment(BaseEnvironment):
             fenced_cmd = (
                 f"printf '{_OUTPUT_FENCE}';"
                 f" {exec_command};"
-                f" __hermes_rc=$?;"
+                f" __apollo_rc=$?;"
                 f" printf '{_OUTPUT_FENCE}';"
-                f" exit $__hermes_rc"
+                f" exit $__apollo_rc"
             )
             # Ensure PATH always includes standard dirs — systemd services
             # and some terminal multiplexers inherit a minimal PATH.
             _SANE_PATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-            # Strip Hermes-internal provider vars so external CLIs
+            # Strip Apollo-internal provider vars so external CLIs
             # (e.g. codex) are not silently misrouted.  Callers that
             # truly need a blocked var can opt in by prefixing the key
-            # with _HERMES_FORCE_ in self.env (e.g. _HERMES_FORCE_OPENAI_API_KEY).
+            # with _APOLLO_FORCE_ in self.env (e.g. _APOLLO_FORCE_OPENAI_API_KEY).
             merged = dict(os.environ | self.env)
             run_env = {}
             for k, v in merged.items():
-                if k.startswith(_HERMES_PROVIDER_ENV_FORCE_PREFIX):
-                    real_key = k[len(_HERMES_PROVIDER_ENV_FORCE_PREFIX):]
+                if k.startswith(_APOLLO_PROVIDER_ENV_FORCE_PREFIX):
+                    real_key = k[len(_APOLLO_PROVIDER_ENV_FORCE_PREFIX):]
                     run_env[real_key] = v
-                elif k not in _HERMES_PROVIDER_ENV_BLOCKLIST:
+                elif k not in _APOLLO_PROVIDER_ENV_BLOCKLIST:
                     run_env[k] = v
             existing_path = run_env.get("PATH", "")
             if "/usr/bin" not in existing_path.split(":"):

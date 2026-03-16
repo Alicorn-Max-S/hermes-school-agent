@@ -5,7 +5,7 @@ version: 1.0.0
 author: Nous Research
 license: MIT
 metadata:
-  hermes:
+  apollo:
     tags: [Documents, PDF, Word, Excel, PowerPoint, OCR, Extraction]
     related_skills: [file-analysis, ocr-and-documents, powerpoint, image-analysis]
     school: true
@@ -48,12 +48,12 @@ Route based on file extension:
 
 Use the pymupdf script from the `ocr-and-documents` skill:
 ```bash
-python3 ~/.hermes/skills/productivity/ocr-and-documents/scripts/extract_pymupdf.py "FILE_PATH"
+python3 ~/.apollo/skills/productivity/ocr-and-documents/scripts/extract_pymupdf.py "FILE_PATH"
 ```
 
 Or with markdown output:
 ```bash
-python3 ~/.hermes/skills/productivity/ocr-and-documents/scripts/extract_pymupdf.py "FILE_PATH" --markdown
+python3 ~/.apollo/skills/productivity/ocr-and-documents/scripts/extract_pymupdf.py "FILE_PATH" --markdown
 ```
 
 If this returns meaningful text → done! Present the content.
@@ -62,7 +62,7 @@ If this returns meaningful text → done! Present the content.
 
 Try marker-pdf for OCR (FREE, local, but ~3-5GB install):
 ```bash
-python3 ~/.hermes/skills/productivity/ocr-and-documents/scripts/extract_marker.py "FILE_PATH"
+python3 ~/.apollo/skills/productivity/ocr-and-documents/scripts/extract_marker.py "FILE_PATH"
 ```
 
 If marker-pdf is not installed and space is available:
@@ -74,7 +74,7 @@ pip install marker-pdf
 
 Convert pages to PNG (FREE, local):
 ```bash
-python3 ~/.hermes/skills/productivity/document-analysis/scripts/pdf_to_images.py "FILE_PATH" /tmp/pdf_pages/ --pages 0-4
+python3 ~/.apollo/skills/productivity/document-analysis/scripts/pdf_to_images.py "FILE_PATH" /tmp/pdf_pages/ --pages 0-4
 ```
 
 Then analyze each page image with `vision_analyze`:
@@ -89,7 +89,7 @@ If `vision_analyze` fails → use the **Vision Model Fallback** (Step 9).
 ## Step 3: DOCX Extraction (FREE)
 
 ```bash
-python3 ~/.hermes/skills/productivity/document-analysis/scripts/extract_docx.py "FILE_PATH" --format markdown
+python3 ~/.apollo/skills/productivity/document-analysis/scripts/extract_docx.py "FILE_PATH" --format markdown
 ```
 
 If python-docx is not installed:
@@ -126,7 +126,7 @@ If all fail → **Vision Model Fallback** (Step 9).
 ## Step 5: Excel Extraction (FREE)
 
 ```bash
-python3 ~/.hermes/skills/productivity/document-analysis/scripts/extract_xlsx.py "FILE_PATH" --format summary
+python3 ~/.apollo/skills/productivity/document-analysis/scripts/extract_xlsx.py "FILE_PATH" --format summary
 ```
 
 Options:
@@ -151,7 +151,7 @@ If all fail → **Vision Model Fallback** (Step 9).
 ## Step 6: PPTX Extraction (FREE)
 
 ```bash
-python3 ~/.hermes/skills/productivity/document-analysis/scripts/extract_pptx.py "FILE_PATH"
+python3 ~/.apollo/skills/productivity/document-analysis/scripts/extract_pptx.py "FILE_PATH"
 ```
 
 If python-pptx is not installed:

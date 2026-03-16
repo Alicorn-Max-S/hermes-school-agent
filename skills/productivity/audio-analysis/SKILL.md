@@ -5,7 +5,7 @@ version: 1.0.0
 author: Nous Research
 license: MIT
 metadata:
-  hermes:
+  apollo:
     tags: [Audio, Transcription, Whisper, Speech, Music, Analysis]
     related_skills: [file-analysis, video-analysis]
     school: true

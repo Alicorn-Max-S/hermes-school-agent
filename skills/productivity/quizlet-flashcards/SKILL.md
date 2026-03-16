@@ -5,7 +5,7 @@ version: 1.0.0
 author: community
 license: MIT
 metadata:
-  hermes:
+  apollo:
     tags: [Study, Flashcards, Quizlet, Education, School, Vocabulary, Review]
     related_skills: [study, file-analysis, document-analysis, text-analysis, canvas-lms, gmail]
     school: true
@@ -41,7 +41,7 @@ Quizlet's mobile app does not support reliable flashcard importing. Direct the u
 ## Scripts
 
 ```bash
-FLASHCARDS="python ~/.hermes/skills/productivity/quizlet-flashcards/scripts/format_flashcards.py"
+FLASHCARDS="python ~/.apollo/skills/productivity/quizlet-flashcards/scripts/format_flashcards.py"
 ```
 
 ## Procedure
@@ -87,7 +87,7 @@ The script guarantees literal tab characters between front and back on every lin
 Use the gmail skill to send the file contents to the user. Load gmail if not already loaded: `skill_view("gmail")`
 
 ```bash
-GAPI="python ~/.hermes/skills/productivity/google-auth/scripts/google_api.py"
+GAPI="python ~/.apollo/skills/productivity/google-auth/scripts/google_api.py"
 
 # Read the file content and send it
 CONTENT=$(cat /tmp/flashcards.txt)
@@ -206,7 +206,7 @@ Before sending flashcards, verify:
 ### Study Skill → Quizlet Export
 When a user has been studying with the study skill and wants to create Quizlet cards from their weak areas:
 ```bash
-STUDY="python ~/.hermes/skills/productivity/study/scripts/study_db.py"
+STUDY="python ~/.apollo/skills/productivity/study/scripts/study_db.py"
 $STUDY get_weak_areas --class "CLASS_NAME"
 $STUDY get_history --class "CLASS_NAME" --incorrect-only --limit 30
 ```

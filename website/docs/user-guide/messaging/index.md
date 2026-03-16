@@ -1,20 +1,20 @@
 ---
 sidebar_position: 1
 title: "Messaging Gateway"
-description: "Chat with Hermes from Telegram, Discord, Slack, WhatsApp, Signal, Email, Home Assistant, or your browser — architecture and setup overview"
+description: "Chat with Apollo from Telegram, Discord, Slack, WhatsApp, Signal, Email, Home Assistant, or your browser — architecture and setup overview"
 ---
 
 # Messaging Gateway
 
-Chat with Hermes from Telegram, Discord, Slack, WhatsApp, Signal, Email, Home Assistant, or your browser. The gateway is a single background process that connects to all your configured platforms, handles sessions, runs cron jobs, and delivers voice messages.
+Chat with Apollo from Telegram, Discord, Slack, WhatsApp, Signal, Email, Home Assistant, or your browser. The gateway is a single background process that connects to all your configured platforms, handles sessions, runs cron jobs, and delivers voice messages.
 
-For the full voice feature set — including CLI microphone mode, spoken replies in messaging, and Discord voice-channel conversations — see [Voice Mode](/docs/user-guide/features/voice-mode) and [Use Voice Mode with Hermes](/docs/guides/use-voice-mode-with-hermes).
+For the full voice feature set — including CLI microphone mode, spoken replies in messaging, and Discord voice-channel conversations — see [Voice Mode](/docs/user-guide/features/voice-mode) and [Use Voice Mode with Apollo](/docs/guides/use-voice-mode-with-apollo).
 
 ## Architecture
 
 ```text
 ┌───────────────────────────────────────────────────────────────────────────────┐
-│                              Hermes Gateway                                   │
+│                              Apollo Gateway                                   │
 ├───────────────────────────────────────────────────────────────────────────────┤
 │                                                                               │
 │  ┌──────────┐ ┌─────────┐ ┌──────────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌────┐       │
@@ -44,7 +44,7 @@ Each platform adapter receives messages, routes them through a per-chat session 
 The easiest way to configure messaging platforms is the interactive wizard:
 
 ```bash
-hermes gateway setup        # Interactive setup for all messaging platforms
+apollo gateway setup        # Interactive setup for all messaging platforms
 ```
 
 This walks you through configuring each platform with arrow-key selection, shows which platforms are already configured, and offers to start/restart the gateway when done.
@@ -52,12 +52,12 @@ This walks you through configuring each platform with arrow-key selection, shows
 ## Gateway Commands
 
 ```bash
-hermes gateway              # Run in foreground
-hermes gateway setup        # Configure messaging platforms interactively
-hermes gateway install      # Install as systemd service (Linux) / launchd (macOS)
-hermes gateway start        # Start the service
-hermes gateway stop         # Stop the service
-hermes gateway status       # Check service status
+apollo gateway              # Run in foreground
+apollo gateway setup        # Configure messaging platforms interactively
+apollo gateway install      # Install as systemd service (Linux) / launchd (macOS)
+apollo gateway start        # Start the service
+apollo gateway stop         # Stop the service
+apollo gateway status       # Check service status
 ```
 
 ## Chat Commands (Inside Messaging)
@@ -83,7 +83,7 @@ hermes gateway status       # Check service status
 | `/rollback [number]` | List or restore filesystem checkpoints |
 | `/background <prompt>` | Run a prompt in a separate background session |
 | `/reload-mcp` | Reload MCP servers from config |
-| `/update` | Update Hermes Agent to the latest version |
+| `/update` | Update Apollo Agent to the latest version |
 | `/help` | Show available commands |
 | `/<skill-name>` | Invoke any installed skill |
 
@@ -103,7 +103,7 @@ Sessions reset based on configurable policies:
 | Idle | 1440 min | Reset after N minutes of inactivity |
 | Both | (combined) | Whichever triggers first |
 
-Configure per-platform overrides in `~/.hermes/gateway.json`:
+Configure per-platform overrides in `~/.apollo/gateway.json`:
 
 ```json
 {
@@ -139,11 +139,11 @@ Instead of manually configuring user IDs, unknown users receive a one-time pairi
 ```bash
 # The user sees: "Pairing code: XKGH5N7P"
 # You approve them with:
-hermes pairing approve telegram XKGH5N7P
+apollo pairing approve telegram XKGH5N7P
 
 # Other pairing commands:
-hermes pairing list          # View pending + approved users
-hermes pairing revoke telegram 123456789  # Remove access
+apollo pairing list          # View pending + approved users
+apollo pairing revoke telegram 123456789  # Remove access
 ```
 
 Pairing codes expire after 1 hour, are rate-limited, and use cryptographic randomness.
@@ -159,7 +159,7 @@ Send any message while the agent is working to interrupt it. Key behaviors:
 
 ## Tool Progress Notifications
 
-Control how much tool activity is displayed in `~/.hermes/config.yaml`:
+Control how much tool activity is displayed in `~/.apollo/config.yaml`:
 
 ```yaml
 display:
@@ -180,11 +180,11 @@ When enabled, the bot sends status messages as it works:
 ### Linux (systemd)
 
 ```bash
-hermes gateway install               # Install as user service
-systemctl --user start hermes-gateway
-systemctl --user stop hermes-gateway
-systemctl --user status hermes-gateway
-journalctl --user -u hermes-gateway -f
+apollo gateway install               # Install as user service
+systemctl --user start apollo-gateway
+systemctl --user stop apollo-gateway
+systemctl --user status apollo-gateway
+journalctl --user -u apollo-gateway -f
 
 # Enable lingering (keeps running after logout)
 sudo loginctl enable-linger $USER
@@ -193,10 +193,10 @@ sudo loginctl enable-linger $USER
 ### macOS (launchd)
 
 ```bash
-hermes gateway install
-launchctl start ai.hermes.gateway
-launchctl stop ai.hermes.gateway
-tail -f ~/.hermes/logs/gateway.log
+apollo gateway install
+launchctl start ai.apollo.gateway
+launchctl stop ai.apollo.gateway
+tail -f ~/.apollo/logs/gateway.log
 ```
 
 ## Platform-Specific Toolsets
@@ -205,14 +205,14 @@ Each platform has its own toolset:
 
 | Platform | Toolset | Capabilities |
 |----------|---------|--------------|
-| CLI | `hermes-cli` | Full access |
-| Telegram | `hermes-telegram` | Full tools including terminal |
-| Discord | `hermes-discord` | Full tools including terminal |
-| WhatsApp | `hermes-whatsapp` | Full tools including terminal |
-| Slack | `hermes-slack` | Full tools including terminal |
-| Signal | `hermes-signal` | Full tools including terminal |
-| Email | `hermes-email` | Full tools including terminal |
-| Home Assistant | `hermes-homeassistant` | Full tools + HA device control (ha_list_entities, ha_get_state, ha_call_service, ha_list_services) |
+| CLI | `apollo-cli` | Full access |
+| Telegram | `apollo-telegram` | Full tools including terminal |
+| Discord | `apollo-discord` | Full tools including terminal |
+| WhatsApp | `apollo-whatsapp` | Full tools including terminal |
+| Slack | `apollo-slack` | Full tools including terminal |
+| Signal | `apollo-signal` | Full tools including terminal |
+| Email | `apollo-email` | Full tools including terminal |
+| Home Assistant | `apollo-homeassistant` | Full tools + HA device control (ha_list_entities, ha_get_state, ha_call_service, ha_list_services) |
 
 ## Next Steps
 

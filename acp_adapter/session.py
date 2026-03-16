@@ -1,4 +1,4 @@
-"""ACP session manager — maps ACP sessions to Hermes AIAgent instances."""
+"""ACP session manager — maps ACP sessions to Apollo AIAgent instances."""
 from __future__ import annotations
 
 import copy
@@ -35,7 +35,7 @@ def _clear_task_cwd(task_id: str) -> None:
 
 @dataclass
 class SessionState:
-    """Tracks per-session state for an ACP-managed Hermes agent."""
+    """Tracks per-session state for an ACP-managed Apollo agent."""
 
     session_id: str
     agent: Any  # AIAgent instance
@@ -46,14 +46,14 @@ class SessionState:
 
 
 class SessionManager:
-    """Thread-safe manager for ACP sessions backed by Hermes AIAgent instances."""
+    """Thread-safe manager for ACP sessions backed by Apollo AIAgent instances."""
 
     def __init__(self, agent_factory=None):
         """
         Args:
             agent_factory: Optional callable that creates an AIAgent-like object.
                            Used by tests. When omitted, a real AIAgent is created
-                           using the current Hermes runtime provider configuration.
+                           using the current Apollo runtime provider configuration.
         """
         self._sessions: Dict[str, SessionState] = {}
         self._lock = Lock()
@@ -165,8 +165,8 @@ class SessionManager:
             return self._agent_factory()
 
         from run_agent import AIAgent
-        from hermes_cli.config import load_config
-        from hermes_cli.runtime_provider import resolve_runtime_provider
+        from apollo_cli.config import load_config
+        from apollo_cli.runtime_provider import resolve_runtime_provider
 
         config = load_config()
         model_cfg = config.get("model")
@@ -180,7 +180,7 @@ class SessionManager:
 
         kwargs = {
             "platform": "acp",
-            "enabled_toolsets": ["hermes-acp"],
+            "enabled_toolsets": ["apollo-acp"],
             "quiet_mode": True,
             "session_id": session_id,
             "model": model or default_model,

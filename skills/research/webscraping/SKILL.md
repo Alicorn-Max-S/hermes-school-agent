@@ -2,10 +2,10 @@
 name: webscraping
 description: Extract content from web pages using a cost-efficient tiered approach — free tools first (curl, Python requests, BeautifulSoup, trafilatura), escalating to Firecrawl only when necessary.
 version: 1.0.0
-author: Hermes Agent
+author: Apollo Agent
 license: MIT
 metadata:
-  hermes:
+  apollo:
     tags: [webscraping, scraping, extraction, free, firecrawl, research, web]
     related_skills: [duckduckgo-search, arxiv, domain-intel]
     fallback_for_toolsets: []
@@ -139,7 +139,7 @@ print(text)
 
 ```bash
 # Fetch raw HTML
-curl -sL -A "Mozilla/5.0 (compatible; HermesBot/1.0)" "https://example.com/article" -o /tmp/page.html
+curl -sL -A "Mozilla/5.0 (compatible; ApolloBot/1.0)" "https://example.com/article" -o /tmp/page.html
 
 # Quick text extraction with Python stdlib
 python3 -c "
@@ -308,7 +308,7 @@ Example:
 
 ### Firecrawl via built-in tools (recommended)
 
-The Hermes agent provides three built-in tools that wrap Firecrawl with LLM-powered summarization:
+The Apollo agent provides three built-in tools that wrap Firecrawl with LLM-powered summarization:
 
 | Tool | Use Case | Example |
 |------|----------|---------|

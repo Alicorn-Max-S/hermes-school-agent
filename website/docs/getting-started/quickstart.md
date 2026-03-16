@@ -1,20 +1,20 @@
 ---
 sidebar_position: 1
 title: "Quickstart"
-description: "Your first conversation with Hermes Agent — from install to chatting in 2 minutes"
+description: "Your first conversation with Apollo Agent — from install to chatting in 2 minutes"
 ---
 
 # Quickstart
 
-This guide walks you through installing Hermes Agent, setting up a provider, and having your first conversation. By the end, you'll know the key features and how to explore further.
+This guide walks you through installing Apollo Agent, setting up a provider, and having your first conversation. By the end, you'll know the key features and how to explore further.
 
-## 1. Install Hermes Agent
+## 1. Install Apollo Agent
 
 Run the one-line installer:
 
 ```bash
 # Linux / macOS / WSL2
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/NousResearch/apollo-agent/main/scripts/install.sh | bash
 ```
 
 :::tip Windows Users
@@ -32,17 +32,17 @@ source ~/.bashrc   # or source ~/.zshrc
 The installer configures your LLM provider automatically. To change it later, use one of these commands:
 
 ```bash
-hermes model       # Choose your LLM provider and model
-hermes tools       # Configure which tools are enabled
-hermes setup       # Or configure everything at once
+apollo model       # Choose your LLM provider and model
+apollo tools       # Configure which tools are enabled
+apollo setup       # Or configure everything at once
 ```
 
-`hermes model` walks you through selecting an inference provider:
+`apollo model` walks you through selecting an inference provider:
 
 | Provider | What it is | How to set up |
 |----------|-----------|---------------|
-| **Nous Portal** | Subscription-based, zero-config | OAuth login via `hermes model` |
-| **OpenAI Codex** | ChatGPT OAuth, uses Codex models | Device code auth via `hermes model` |
+| **Nous Portal** | Subscription-based, zero-config | OAuth login via `apollo model` |
+| **OpenAI Codex** | ChatGPT OAuth, uses Codex models | Device code auth via `apollo model` |
 | **Anthropic** | Claude models directly (Pro/Max or API key) | API key or Claude Code setup-token |
 | **OpenRouter** | Multi-provider routing across many models | Enter your API key |
 | **Z.AI** | GLM / Zhipu-hosted models | Set `GLM_API_KEY` / `ZAI_API_KEY` |
@@ -52,13 +52,13 @@ hermes setup       # Or configure everything at once
 | **Custom Endpoint** | VLLM, SGLang, or any OpenAI-compatible API | Set base URL + API key |
 
 :::tip
-You can switch providers at any time with `hermes model` — no code changes, no lock-in.
+You can switch providers at any time with `apollo model` — no code changes, no lock-in.
 :::
 
 ## 3. Start Chatting
 
 ```bash
-hermes
+apollo
 ```
 
 That's it! You'll see a welcome banner with your model, available tools, and skills. Type a message and press Enter.
@@ -101,11 +101,11 @@ If the agent is taking too long, just type a new message and press Enter — it 
 
 ### Resume a session
 
-When you exit, hermes prints a resume command:
+When you exit, apollo prints a resume command:
 
 ```bash
-hermes --continue    # Resume the most recent session
-hermes -c            # Short form
+apollo --continue    # Resume the most recent session
+apollo -c            # Short form
 ```
 
 ## 5. Explore Further
@@ -117,16 +117,16 @@ Here are some things to try next:
 For safety, run the agent in a Docker container or on a remote server:
 
 ```bash
-hermes config set terminal.backend docker    # Docker isolation
-hermes config set terminal.backend ssh       # Remote server
+apollo config set terminal.backend docker    # Docker isolation
+apollo config set terminal.backend ssh       # Remote server
 ```
 
 ### Connect messaging platforms
 
-Chat with Hermes from your phone or other surfaces via Telegram, Discord, Slack, WhatsApp, Signal, Email, or Home Assistant:
+Chat with Apollo from your phone or other surfaces via Telegram, Discord, Slack, WhatsApp, Signal, Email, or Home Assistant:
 
 ```bash
-hermes gateway setup    # Interactive platform configuration
+apollo gateway setup    # Interactive platform configuration
 ```
 
 ### Schedule automated tasks
@@ -140,12 +140,12 @@ The agent will set up a cron job that runs automatically via the gateway.
 ### Browse and install skills
 
 ```bash
-hermes skills search kubernetes
-hermes skills search react --source skills-sh
-hermes skills search https://mintlify.com/docs --source well-known
-hermes skills install openai/skills/k8s
-hermes skills install official/security/1password
-hermes skills install skills-sh/vercel-labs/json-render/json-render-react --force
+apollo skills search kubernetes
+apollo skills search react --source skills-sh
+apollo skills search https://mintlify.com/docs --source well-known
+apollo skills install openai/skills/k8s
+apollo skills install official/security/1password
+apollo skills install skills-sh/vercel-labs/json-render/json-render-react --force
 ```
 
 Tips:
@@ -155,13 +155,13 @@ Tips:
 
 Or use the `/skills` slash command inside chat.
 
-### Use Hermes inside an editor via ACP
+### Use Apollo inside an editor via ACP
 
-Hermes can also run as an ACP server for ACP-compatible editors like VS Code, Zed, and JetBrains:
+Apollo can also run as an ACP server for ACP-compatible editors like VS Code, Zed, and JetBrains:
 
 ```bash
 pip install -e '.[acp]'
-hermes acp
+apollo acp
 ```
 
 See [ACP Editor Integration](../user-guide/features/acp.md) for setup details.
@@ -171,7 +171,7 @@ See [ACP Editor Integration](../user-guide/features/acp.md) for setup details.
 Connect to external tools via the Model Context Protocol:
 
 ```yaml
-# Add to ~/.hermes/config.yaml
+# Add to ~/.apollo/config.yaml
 mcp_servers:
   github:
     command: npx
@@ -186,14 +186,14 @@ mcp_servers:
 
 | Command | Description |
 |---------|-------------|
-| `hermes` | Start chatting |
-| `hermes model` | Choose your LLM provider and model |
-| `hermes tools` | Configure which tools are enabled per platform |
-| `hermes setup` | Full setup wizard (configures everything at once) |
-| `hermes doctor` | Diagnose issues |
-| `hermes update` | Update to latest version |
-| `hermes gateway` | Start the messaging gateway |
-| `hermes --continue` | Resume last session |
+| `apollo` | Start chatting |
+| `apollo model` | Choose your LLM provider and model |
+| `apollo tools` | Configure which tools are enabled per platform |
+| `apollo setup` | Full setup wizard (configures everything at once) |
+| `apollo doctor` | Diagnose issues |
+| `apollo update` | Update to latest version |
+| `apollo gateway` | Start the messaging gateway |
+| `apollo --continue` | Resume last session |
 
 ## Next Steps
 

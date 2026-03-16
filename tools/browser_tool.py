@@ -112,7 +112,7 @@ def _socket_safe_tmpdir() -> str:
     """Return a short temp directory path suitable for Unix domain sockets.
 
     macOS sets ``TMPDIR`` to ``/var/folders/xx/.../T/`` (~51 chars).  When we
-    append ``agent-browser-hermes_…`` the resulting socket path exceeds the
+    append ``agent-browser-apollo_…`` the resulting socket path exceeds the
     104-byte macOS limit for ``AF_UNIX`` addresses, causing agent-browser to
     fail with "Failed to create socket directory" or silent screenshot failures.
 
@@ -581,7 +581,7 @@ def _create_browserbase_session(task_id: str) -> Dict[str, str]:
         raise RuntimeError(f"Failed to create Browserbase session: {response.status_code} {response.text}")
     
     session_data = response.json()
-    session_name = f"hermes_{task_id}_{uuid.uuid4().hex[:8]}"
+    session_name = f"apollo_{task_id}_{uuid.uuid4().hex[:8]}"
     
     # Update features based on what actually succeeded
     if enable_proxies and not proxies_fallback:
@@ -619,7 +619,7 @@ def _create_local_session(task_id: str) -> Dict[str, str]:
 
 
 # Persistent browser profiles — cookies, IndexedDB, cache survive across restarts
-BROWSER_PROFILES_DIR = Path(os.getenv("HERMES_HOME", Path.home() / ".hermes")) / "browser-profiles"
+BROWSER_PROFILES_DIR = Path(os.getenv("APOLLO_HOME", Path.home() / ".apollo")) / "browser-profiles"
 
 
 def _create_persistent_session(profile_name: str) -> Dict[str, str]:
@@ -852,13 +852,13 @@ def _run_browser_command(
         
         browser_env = {**os.environ}
 
-        # Ensure PATH includes Hermes-managed Node first, then standard system dirs.
-        hermes_home = Path(os.environ.get("HERMES_HOME", Path.home() / ".hermes"))
-        hermes_node_bin = str(hermes_home / "node" / "bin")
+        # Ensure PATH includes Apollo-managed Node first, then standard system dirs.
+        apollo_home = Path(os.environ.get("APOLLO_HOME", Path.home() / ".apollo"))
+        apollo_node_bin = str(apollo_home / "node" / "bin")
 
         existing_path = browser_env.get("PATH", "")
         path_parts = [p for p in existing_path.split(":") if p]
-        candidate_dirs = [hermes_node_bin] + [p for p in _SANE_PATH.split(":") if p]
+        candidate_dirs = [apollo_node_bin] + [p for p in _SANE_PATH.split(":") if p]
 
         for part in reversed(candidate_dirs):
             if os.path.isdir(part) and part not in path_parts:
@@ -1375,8 +1375,8 @@ def _maybe_start_recording(task_id: str):
     if task_id in _recording_sessions:
         return
     try:
-        hermes_home = Path(os.environ.get("HERMES_HOME", Path.home() / ".hermes"))
-        config_path = hermes_home / "config.yaml"
+        apollo_home = Path(os.environ.get("APOLLO_HOME", Path.home() / ".apollo"))
+        config_path = apollo_home / "config.yaml"
         record_enabled = False
         if config_path.exists():
             import yaml
@@ -1387,7 +1387,7 @@ def _maybe_start_recording(task_id: str):
         if not record_enabled:
             return
         
-        recordings_dir = hermes_home / "browser_recordings"
+        recordings_dir = apollo_home / "browser_recordings"
         recordings_dir.mkdir(parents=True, exist_ok=True)
         _cleanup_old_recordings(max_age_hours=72)
         
@@ -1501,8 +1501,8 @@ def browser_vision(question: str, annotate: bool = False, task_id: Optional[str]
     effective_task_id = task_id or "default"
     
     # Save screenshot to persistent location so it can be shared with users
-    hermes_home = Path(os.environ.get("HERMES_HOME", Path.home() / ".hermes"))
-    screenshots_dir = hermes_home / "browser_screenshots"
+    apollo_home = Path(os.environ.get("APOLLO_HOME", Path.home() / ".apollo"))
+    screenshots_dir = apollo_home / "browser_screenshots"
     screenshot_path = screenshots_dir / f"browser_screenshot_{uuid_mod.uuid4().hex}.png"
     
     try:
@@ -1637,8 +1637,8 @@ def _cleanup_old_recordings(max_age_hours=72):
     """Remove browser recordings older than max_age_hours to prevent disk bloat."""
     import time
     try:
-        hermes_home = Path(os.environ.get("HERMES_HOME", Path.home() / ".hermes"))
-        recordings_dir = hermes_home / "browser_recordings"
+        apollo_home = Path(os.environ.get("APOLLO_HOME", Path.home() / ".apollo"))
+        recordings_dir = apollo_home / "browser_recordings"
         if not recordings_dir.exists():
             return
         cutoff = time.time() - (max_age_hours * 3600)

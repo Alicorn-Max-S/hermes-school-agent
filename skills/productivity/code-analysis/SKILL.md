@@ -5,7 +5,7 @@ version: 1.0.0
 author: Nous Research
 license: MIT
 metadata:
-  hermes:
+  apollo:
     tags: [Code, Analysis, Programming, Review, Debug]
     related_skills: [file-analysis, text-analysis]
     school: true

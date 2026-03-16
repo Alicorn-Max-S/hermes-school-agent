@@ -1,12 +1,12 @@
 ---
 sidebar_position: 4
 title: "Provider Runtime Resolution"
-description: "How Hermes resolves providers, credentials, API modes, and auxiliary models at runtime"
+description: "How Apollo resolves providers, credentials, API modes, and auxiliary models at runtime"
 ---
 
 # Provider Runtime Resolution
 
-Hermes has a shared provider runtime resolver used across:
+Apollo has a shared provider runtime resolver used across:
 
 - CLI
 - gateway
@@ -16,8 +16,8 @@ Hermes has a shared provider runtime resolver used across:
 
 Primary implementation:
 
-- `hermes_cli/runtime_provider.py`
-- `hermes_cli/auth.py`
+- `apollo_cli/runtime_provider.py`
+- `apollo_cli/auth.py`
 - `agent/auxiliary_client.py`
 
 ## Resolution precedence
@@ -56,9 +56,9 @@ The runtime resolver returns data such as:
 
 ## Why this matters
 
-This resolver is the main reason Hermes can share auth/runtime logic between:
+This resolver is the main reason Apollo can share auth/runtime logic between:
 
-- `hermes chat`
+- `apollo chat`
 - gateway message handling
 - cron jobs running in fresh sessions
 - ACP editor sessions
@@ -66,7 +66,7 @@ This resolver is the main reason Hermes can share auth/runtime logic between:
 
 ## OpenRouter vs custom OpenAI-compatible base URLs
 
-Hermes contains logic to avoid leaking the wrong API key to a custom endpoint when both `OPENROUTER_API_KEY` and `OPENAI_API_KEY` exist.
+Apollo contains logic to avoid leaking the wrong API key to a custom endpoint when both `OPENROUTER_API_KEY` and `OPENAI_API_KEY` exist.
 
 That distinction is especially important for:
 
@@ -78,7 +78,7 @@ That distinction is especially important for:
 
 Anthropic is not just "via OpenRouter" anymore.
 
-When provider resolution selects `anthropic`, Hermes uses:
+When provider resolution selects `anthropic`, Apollo uses:
 
 - `api_mode = anthropic_messages`
 - the native Anthropic Messages API
@@ -107,7 +107,7 @@ can use their own provider/model routing rather than the main conversational mod
 
 ## Fallback models
 
-Hermes also supports a configured fallback model/provider, allowing runtime failover in supported error paths.
+Apollo also supports a configured fallback model/provider, allowing runtime failover in supported error paths.
 
 ## Related docs
 

@@ -5,7 +5,7 @@ version: 1.0.0
 author: Nous Research
 license: MIT
 metadata:
-  hermes:
+  apollo:
     tags: [Files, Analysis, PDF, Images, Documents, CSV, Code, Vision, OCR, Audio, Video]
     related_skills: [image-analysis, document-analysis, code-analysis, text-analysis, audio-analysis, video-analysis, ocr-and-documents]
     school: true
@@ -21,7 +21,7 @@ Analyze any file by auto-detecting its type and routing to the specialized analy
 ## Step 1: Detect File Type
 
 ```bash
-python3 ~/.hermes/skills/productivity/file-analysis/scripts/detect_filetype.py "FILE_PATH_OR_URL"
+python3 ~/.apollo/skills/productivity/file-analysis/scripts/detect_filetype.py "FILE_PATH_OR_URL"
 ```
 
 Returns JSON with `category`, `extension`, `mime_type`, `size_bytes`, `size_human`.

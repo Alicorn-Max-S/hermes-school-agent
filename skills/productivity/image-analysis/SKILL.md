@@ -5,7 +5,7 @@ version: 1.0.0
 author: Nous Research
 license: MIT
 metadata:
-  hermes:
+  apollo:
     tags: [Images, Vision, Analysis, PNG, JPG, Screenshot, OCR]
     related_skills: [file-analysis, document-analysis]
     school: true
@@ -44,7 +44,7 @@ If `vision_analyze` succeeds → present the analysis to the user. Done!
 
 **Convert first** (FREE, local, using Pillow):
 ```bash
-python3 ~/.hermes/skills/productivity/image-analysis/scripts/convert_image.py "INPUT_PATH" "OUTPUT_PATH.png"
+python3 ~/.apollo/skills/productivity/image-analysis/scripts/convert_image.py "INPUT_PATH" "OUTPUT_PATH.png"
 ```
 
 - If conversion succeeds → run `vision_analyze` on the converted PNG

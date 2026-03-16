@@ -37,18 +37,18 @@ The agent will use the `schedule_cronjob` tool to set it up.
 **Cron execution is handled by the gateway daemon.** The gateway ticks the scheduler every 60 seconds, running any due jobs in isolated agent sessions:
 
 ```bash
-hermes gateway install     # Install as system service (recommended)
-hermes gateway             # Or run in foreground
+apollo gateway install     # Install as system service (recommended)
+apollo gateway             # Or run in foreground
 
-hermes cron list           # View scheduled jobs
-hermes cron status         # Check if gateway is running
+apollo cron list           # View scheduled jobs
+apollo cron status         # Check if gateway is running
 ```
 
 ### The Gateway Scheduler
 
 The scheduler runs as a background thread inside the gateway process. On each tick (every 60 seconds):
 
-1. It loads all jobs from `~/.hermes/cron/jobs.json`
+1. It loads all jobs from `~/.apollo/cron/jobs.json`
 2. Checks each enabled job's `next_run_at` against the current time
 3. For each due job, spawns a fresh `AIAgent` session with the job's prompt
 4. The agent runs to completion with full tool access
@@ -56,7 +56,7 @@ The scheduler runs as a background thread inside the gateway process. On each ti
 6. The job's run count is incremented and next run time computed
 7. Jobs that hit their repeat limit are auto-removed
 
-A **file-based lock** (`~/.hermes/cron/.tick.lock`) prevents duplicate execution if multiple processes overlap (e.g., gateway + manual tick).
+A **file-based lock** (`~/.apollo/cron/.tick.lock`) prevents duplicate execution if multiple processes overlap (e.g., gateway + manual tick).
 
 :::info
 Even if no messaging platforms are configured, the gateway stays running for cron. A file lock prevents duplicate execution if multiple processes overlap.
@@ -69,15 +69,15 @@ When scheduling jobs, you specify where the output goes:
 | Option | Description | Example |
 |--------|-------------|---------|
 | `"origin"` | Back to where the job was created | Default on messaging platforms |
-| `"local"` | Save to local files only (`~/.hermes/cron/output/`) | Default on CLI |
+| `"local"` | Save to local files only (`~/.apollo/cron/output/`) | Default on CLI |
 | `"telegram"` | Telegram home channel | Uses `TELEGRAM_HOME_CHANNEL` env var |
 | `"discord"` | Discord home channel | Uses `DISCORD_HOME_CHANNEL` env var |
 | `"telegram:123456"` | Specific Telegram chat by ID | For directing output to a specific chat |
 | `"discord:987654"` | Specific Discord channel by ID | For directing output to a specific channel |
 
-**How `"origin"` works:** When a job is created from a messaging platform, Hermes records the source platform and chat ID. When the job runs and deliver is `"origin"`, the output is sent back to that exact platform and chat. If origin info isn't available (e.g., job created from CLI), delivery falls back to local.
+**How `"origin"` works:** When a job is created from a messaging platform, Apollo records the source platform and chat ID. When the job runs and deliver is `"origin"`, the output is sent back to that exact platform and chat. If origin info isn't available (e.g., job created from CLI), delivery falls back to local.
 
-**How platform names work:** When you specify a bare platform name like `"telegram"`, Hermes first checks if the job's origin matches that platform and uses the origin chat ID. Otherwise, it falls back to the platform's home channel configured via environment variable (e.g., `TELEGRAM_HOME_CHANNEL`).
+**How platform names work:** When you specify a bare platform name like `"telegram"`, Apollo first checks if the job's origin matches that platform and uses the origin chat ID. Otherwise, it falls back to the platform's home channel configured via environment variable (e.g., `TELEGRAM_HOME_CHANNEL`).
 
 The agent's final response is automatically delivered — you do **not** need to include `send_message` in the cron prompt.
 
@@ -234,8 +234,8 @@ schedule_cronjob(
 
 ```bash
 # CLI commands
-hermes cron list           # View all scheduled jobs
-hermes cron status         # Check if the scheduler is running
+apollo cron list           # View all scheduled jobs
+apollo cron status         # Check if the scheduler is running
 
 # Slash commands (inside chat)
 /cron list
@@ -248,7 +248,7 @@ The agent can also manage jobs conversationally:
 
 ## Job Storage
 
-Jobs are stored as JSON in `~/.hermes/cron/jobs.json`. Output from job runs is saved to `~/.hermes/cron/output/{job_id}/{timestamp}.md`.
+Jobs are stored as JSON in `~/.apollo/cron/jobs.json`. Output from job runs is saved to `~/.apollo/cron/output/{job_id}/{timestamp}.md`.
 
 The storage uses atomic file writes (temp file + rename) to prevent corruption from concurrent access.
 

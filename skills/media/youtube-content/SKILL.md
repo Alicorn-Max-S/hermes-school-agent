@@ -2,7 +2,7 @@
 name: youtube-content
 description: "Fetch YouTube video transcripts and transform them into structured content — summaries, chapter breakdowns, study notes, blog posts, and threads. Trigger on mentions of YouTube, video summaries, transcripts, lecture notes, or video content extraction."
 metadata:
-  hermes:
+  apollo:
     school: true
     school_category: "Media"
 ---

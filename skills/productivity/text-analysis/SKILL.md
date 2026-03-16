@@ -5,7 +5,7 @@ version: 1.0.0
 author: Nous Research
 license: MIT
 metadata:
-  hermes:
+  apollo:
     tags: [Text, CSV, JSON, XML, YAML, Markdown, Data, Log, Analysis]
     related_skills: [file-analysis, code-analysis, document-analysis]
     school: true

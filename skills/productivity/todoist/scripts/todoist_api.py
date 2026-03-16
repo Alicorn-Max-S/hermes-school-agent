@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Todoist API CLI for Hermes Agent.
+"""Todoist API CLI for Apollo Agent.
 
 A thin CLI wrapper around the Todoist API v1 (unified API).
 Authenticates using a personal API token from environment variables.
@@ -29,13 +29,13 @@ import requests
 BASE_URL = "https://api.todoist.com/api/v1"
 
 
-def _load_hermes_env_value(key: str) -> str:
-    """Load a value from ~/.hermes/.env if not already in os.environ."""
+def _load_apollo_env_value(key: str) -> str:
+    """Load a value from ~/.apollo/.env if not already in os.environ."""
     val = os.environ.get(key, "")
     if val:
         return val
     env_path = os.path.join(
-        os.environ.get("HERMES_HOME", os.path.join(os.path.expanduser("~"), ".hermes")),
+        os.environ.get("APOLLO_HOME", os.path.join(os.path.expanduser("~"), ".apollo")),
         ".env",
     )
     try:
@@ -51,7 +51,7 @@ def _load_hermes_env_value(key: str) -> str:
     return ""
 
 
-TODOIST_API_TOKEN = _load_hermes_env_value("TODOIST_API_TOKEN")
+TODOIST_API_TOKEN = _load_apollo_env_value("TODOIST_API_TOKEN")
 
 
 def _check_config():
@@ -59,7 +59,7 @@ def _check_config():
     if not TODOIST_API_TOKEN:
         print(
             "Missing required environment variable: TODOIST_API_TOKEN\n"
-            "Set it in ~/.hermes/.env or export it in your shell.\n"
+            "Set it in ~/.apollo/.env or export it in your shell.\n"
             "See the todoist skill SKILL.md for setup instructions.",
             file=sys.stderr,
         )
@@ -517,7 +517,7 @@ def get_scheduled(args):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Todoist API CLI for Hermes Agent"
+        description="Todoist API CLI for Apollo Agent"
     )
     sub = parser.add_subparsers(dest="command", required=True)
 

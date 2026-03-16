@@ -68,9 +68,9 @@ _EXOTIC_EXTENSIONS = frozenset({
 
 
 def _prompt_vision_model(failed_model: str = "") -> Optional[str]:
-    """Prompt user to pick a vision model using the hermes-model style picker.
+    """Prompt user to pick a vision model using the apollo-model style picker.
 
-    Reuses ``_prompt_model_selection`` from ``hermes_cli/auth.py`` with
+    Reuses ``_prompt_model_selection`` from ``apollo_cli/auth.py`` with
     the current provider's model catalog.  Returns a model ID or
     ``None`` when the user chooses to skip.
     """
@@ -78,10 +78,10 @@ def _prompt_vision_model(failed_model: str = "") -> Optional[str]:
     print("  Not all models support image input. Pick a model to use for vision:\n")
 
     try:
-        from hermes_cli.auth import _prompt_model_selection, get_active_provider
-        from hermes_cli.models import provider_model_ids, provider_label, model_ids
+        from apollo_cli.auth import _prompt_model_selection, get_active_provider
+        from apollo_cli.models import provider_model_ids, provider_label, model_ids
     except ImportError:
-        logger.warning("hermes_cli not available for model selection")
+        logger.warning("apollo_cli not available for model selection")
         return None
 
     current_provider = get_active_provider() or "openrouter"

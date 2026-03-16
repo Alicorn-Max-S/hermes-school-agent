@@ -2,10 +2,10 @@
 name: ocr-and-documents
 description: Extract text from PDFs and scanned documents. Use webscrape for remote URLs, pymupdf for local text-based PDFs, marker-pdf for OCR/scanned docs. For DOCX use python-docx, for PPTX see the powerpoint skill.
 version: 2.3.0
-author: Hermes Agent
+author: Apollo Agent
 license: MIT
 metadata:
-  hermes:
+  apollo:
     tags: [PDF, Documents, Research, Arxiv, Text-Extraction, OCR]
     related_skills: [powerpoint]
     school: true
@@ -130,7 +130,7 @@ If text extraction returns empty/garbled content (scanned PDF, image-only pages)
 
 **Convert PDF pages to images, then use vision AI:**
 ```bash
-python3 ~/.hermes/skills/productivity/document-analysis/scripts/pdf_to_images.py "document.pdf" /tmp/pdf_pages/ --pages 0-4
+python3 ~/.apollo/skills/productivity/document-analysis/scripts/pdf_to_images.py "document.pdf" /tmp/pdf_pages/ --pages 0-4
 ```
 
 Then analyze each page with vision:

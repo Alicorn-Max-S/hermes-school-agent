@@ -2,7 +2,7 @@
 name: school
 description: Curated skills for high school students — homework, research, presentations, file analysis, and more. Start here.
 metadata:
-  hermes:
+  apollo:
     tags: [school, students, homework, research, education, learning]
 ---
 
@@ -48,7 +48,7 @@ A curated set of skills for high school students. Use `skill_view("<skill-name>"
 
 ## Coding & Projects
 - **claude-code** — AI coding assistant
-- **hermes-agent** — Spawn sub-agents for complex tasks
+- **apollo-agent** — Spawn sub-agents for complex tasks
 - **systematic-debugging** — Step-by-step debugging methodology
 - **test-driven-development** — TDD approach for coding projects
 

@@ -9,7 +9,7 @@ Enables only terminal + file toolsets. Uses Modal terminal backend with
 OpenRouter (Claude) by default.
 
 Training tasks (3):
-    1. Create ~/greeting.txt with "Hello from Hermes Agent"
+    1. Create ~/greeting.txt with "Hello from Apollo Agent"
     2. Create ~/count.txt with numbers 1-5, one per line
     3. Create ~/answer.txt with the result of 123 + 456
 
@@ -45,7 +45,7 @@ from atroposlib.envs.server_handling.server_manager import APIServerConfig
 from atroposlib.type_definitions import Item
 
 from environments.agent_loop import AgentResult
-from environments.hermes_base_env import HermesAgentBaseEnv, HermesAgentEnvConfig
+from environments.apollo_base_env import ApolloAgentBaseEnv, ApolloAgentEnvConfig
 from environments.tool_context import ToolContext
 
 logger = logging.getLogger(__name__)
@@ -57,9 +57,9 @@ logger = logging.getLogger(__name__)
 
 TRAIN_TASKS = [
     {
-        "prompt": "Create a file at ~/greeting.txt containing exactly the text: Hello from Hermes Agent",
+        "prompt": "Create a file at ~/greeting.txt containing exactly the text: Hello from Apollo Agent",
         "verify_path": "~/greeting.txt",
-        "expected_content": "Hello from Hermes Agent",
+        "expected_content": "Hello from Apollo Agent",
     },
     {
         "prompt": "Create a file at ~/count.txt containing the numbers 1 through 5, one per line",
@@ -82,13 +82,13 @@ EVAL_TASKS = [
 ]
 
 
-class TerminalTestEnvConfig(HermesAgentEnvConfig):
+class TerminalTestEnvConfig(ApolloAgentEnvConfig):
     """Config with defaults suitable for terminal testing."""
 
     pass  # Inherits all fields, overrides defaults in config_init
 
 
-class TerminalTestEnv(HermesAgentBaseEnv):
+class TerminalTestEnv(ApolloAgentBaseEnv):
     """
     Simple test environment with inline file-creation tasks.
 
@@ -112,7 +112,7 @@ class TerminalTestEnv(HermesAgentBaseEnv):
         Default configuration for the terminal test environment.
 
         Uses Modal terminal backend for cloud isolation and OpenRouter with
-        Claude for inference. API keys loaded from ~/hermes-agent/.env.
+        Claude for inference. API keys loaded from ~/apollo-agent/.env.
         """
         env_config = TerminalTestEnvConfig(
             # Terminal + file tools only

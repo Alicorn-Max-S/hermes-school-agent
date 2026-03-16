@@ -1,7 +1,7 @@
 ---
 sidebar_position: 3
 title: "FAQ & Troubleshooting"
-description: "Frequently asked questions and solutions to common issues with Hermes Agent"
+description: "Frequently asked questions and solutions to common issues with Apollo Agent"
 ---
 
 # FAQ & Troubleshooting
@@ -12,9 +12,9 @@ Quick answers and fixes for the most common questions and issues.
 
 ## Frequently Asked Questions
 
-### What LLM providers work with Hermes?
+### What LLM providers work with Apollo?
 
-Hermes Agent works with any OpenAI-compatible API. Supported providers include:
+Apollo Agent works with any OpenAI-compatible API. Supported providers include:
 
 - **[OpenRouter](https://openrouter.ai/)** — access hundreds of models through one API key (recommended for flexibility)
 - **Nous Portal** — Nous Research's own inference endpoint
@@ -26,39 +26,39 @@ Hermes Agent works with any OpenAI-compatible API. Supported providers include:
 - **MiniMax** — global and China endpoints
 - **Local models** — via [Ollama](https://ollama.com/), [vLLM](https://docs.vllm.ai/), [llama.cpp](https://github.com/ggerganov/llama.cpp), [SGLang](https://github.com/sgl-project/sglang), or any OpenAI-compatible server
 
-Set your provider with `hermes model` or by editing `~/.hermes/.env`. See the [Environment Variables](./environment-variables.md) reference for all provider keys.
+Set your provider with `apollo model` or by editing `~/.apollo/.env`. See the [Environment Variables](./environment-variables.md) reference for all provider keys.
 
 ### Does it work on Windows?
 
-**Not natively.** Hermes Agent requires a Unix-like environment. On Windows, install [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) and run Hermes from inside it. The standard install command works perfectly in WSL2:
+**Not natively.** Apollo Agent requires a Unix-like environment. On Windows, install [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) and run Apollo from inside it. The standard install command works perfectly in WSL2:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/NousResearch/apollo-agent/main/scripts/install.sh | bash
 ```
 
 ### Is my data sent anywhere?
 
-API calls go **only to the LLM provider you configure** (e.g., OpenRouter, your local Ollama instance). Hermes Agent does not collect telemetry, usage data, or analytics. Your conversations, memory, and skills are stored locally in `~/.hermes/`.
+API calls go **only to the LLM provider you configure** (e.g., OpenRouter, your local Ollama instance). Apollo Agent does not collect telemetry, usage data, or analytics. Your conversations, memory, and skills are stored locally in `~/.apollo/`.
 
 ### Can I use it offline / with local models?
 
-Yes. Point Hermes at any local OpenAI-compatible server:
+Yes. Point Apollo at any local OpenAI-compatible server:
 
 ```bash
-hermes config set OPENAI_BASE_URL http://localhost:11434/v1  # Ollama
-hermes config set OPENAI_API_KEY ollama                       # Any non-empty value
-hermes config set HERMES_MODEL llama3.1
+apollo config set OPENAI_BASE_URL http://localhost:11434/v1  # Ollama
+apollo config set OPENAI_API_KEY ollama                       # Any non-empty value
+apollo config set APOLLO_MODEL llama3.1
 ```
 
 This works with Ollama, vLLM, llama.cpp server, SGLang, LocalAI, and others. See the [Configuration guide](../user-guide/configuration.md) for details.
 
 ### How much does it cost?
 
-Hermes Agent itself is **free and open-source** (MIT license). You pay only for the LLM API usage from your chosen provider. Local models are completely free to run.
+Apollo Agent itself is **free and open-source** (MIT license). You pay only for the LLM API usage from your chosen provider. Local models are completely free to run.
 
 ### Can multiple people use one instance?
 
-Yes. The [messaging gateway](../user-guide/messaging/index.md) lets multiple users interact with the same Hermes Agent instance via Telegram, Discord, Slack, WhatsApp, or Home Assistant. Access is controlled through allowlists (specific user IDs) and DM pairing (first user to message claims access).
+Yes. The [messaging gateway](../user-guide/messaging/index.md) lets multiple users interact with the same Apollo Agent instance via Telegram, Discord, Slack, WhatsApp, or Home Assistant. Access is controlled through allowlists (specific user IDs) and DM pairing (first user to message claims access).
 
 ### What's the difference between memory and skills?
 
@@ -69,10 +69,10 @@ Both persist across sessions. See [Memory](../user-guide/features/memory.md) and
 
 ### Can I use it in my own Python project?
 
-Yes. Import the `AIAgent` class and use Hermes programmatically:
+Yes. Import the `AIAgent` class and use Apollo programmatically:
 
 ```python
-from hermes.agent import AIAgent
+from apollo.agent import AIAgent
 
 agent = AIAgent(model="openrouter/nous/hermes-3-llama-3.1-70b")
 response = await agent.chat("Explain quantum computing briefly")
@@ -86,7 +86,7 @@ See the [Python Library guide](../user-guide/features/code-execution.md) for ful
 
 ### Installation Issues
 
-#### `hermes: command not found` after installation
+#### `apollo: command not found` after installation
 
 **Cause:** Your shell hasn't reloaded the updated PATH.
 
@@ -101,8 +101,8 @@ source ~/.zshrc     # zsh
 
 If it still doesn't work, verify the install location:
 ```bash
-which hermes
-ls ~/.local/bin/hermes
+which apollo
+ls ~/.local/bin/apollo
 ```
 
 :::tip
@@ -111,7 +111,7 @@ The installer adds `~/.local/bin` to your PATH. If you use a non-standard shell 
 
 #### Python version too old
 
-**Cause:** Hermes requires Python 3.11 or newer.
+**Cause:** Apollo requires Python 3.11 or newer.
 
 **Solution:**
 ```bash
@@ -142,9 +142,9 @@ source ~/.bashrc
 ```bash
 # Don't use sudo with the installer — it installs to ~/.local/bin
 # If you previously installed with sudo, clean up:
-sudo rm /usr/local/bin/hermes
+sudo rm /usr/local/bin/apollo
 # Then re-run the standard installer
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/NousResearch/apollo-agent/main/scripts/install.sh | bash
 ```
 
 ---
@@ -158,17 +158,17 @@ curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scri
 **Solution:**
 ```bash
 # Check which keys are set
-hermes config get OPENROUTER_API_KEY
+apollo config get OPENROUTER_API_KEY
 
 # Re-configure your provider
-hermes model
+apollo model
 
 # Or set directly
-hermes config set OPENROUTER_API_KEY sk-or-v1-xxxxxxxxxxxx
+apollo config set OPENROUTER_API_KEY sk-or-v1-xxxxxxxxxxxx
 ```
 
 :::warning
-Make sure the key matches the provider. An OpenAI key won't work with OpenRouter and vice versa. Check `~/.hermes/.env` for conflicting entries.
+Make sure the key matches the provider. An OpenAI key won't work with OpenRouter and vice versa. Check `~/.apollo/.env` for conflicting entries.
 :::
 
 #### Model not available / model not found
@@ -178,13 +178,13 @@ Make sure the key matches the provider. An OpenAI key won't work with OpenRouter
 **Solution:**
 ```bash
 # List available models for your provider
-hermes models
+apollo models
 
 # Set a valid model
-hermes config set HERMES_MODEL openrouter/nous/hermes-3-llama-3.1-70b
+apollo config set APOLLO_MODEL openrouter/nous/hermes-3-llama-3.1-70b
 
 # Or specify per-session
-hermes chat --model openrouter/meta-llama/llama-3.1-70b-instruct
+apollo chat --model openrouter/meta-llama/llama-3.1-70b-instruct
 ```
 
 #### Rate limiting (429 errors)
@@ -194,7 +194,7 @@ hermes chat --model openrouter/meta-llama/llama-3.1-70b-instruct
 **Solution:** Wait a moment and retry. For sustained usage, consider:
 - Upgrading your provider plan
 - Switching to a different model or provider
-- Using `hermes chat --provider <alternative>` to route to a different backend
+- Using `apollo chat --provider <alternative>` to route to a different backend
 
 #### Context length exceeded
 
@@ -206,10 +206,10 @@ hermes chat --model openrouter/meta-llama/llama-3.1-70b-instruct
 /compress
 
 # Or start a fresh session
-hermes chat
+apollo chat
 
 # Use a model with a larger context window
-hermes chat --model openrouter/google/gemini-2.0-flash-001
+apollo chat --model openrouter/google/gemini-2.0-flash-001
 ```
 
 ---
@@ -218,14 +218,14 @@ hermes chat --model openrouter/google/gemini-2.0-flash-001
 
 #### Command blocked as dangerous
 
-**Cause:** Hermes detected a potentially destructive command (e.g., `rm -rf`, `DROP TABLE`). This is a safety feature.
+**Cause:** Apollo detected a potentially destructive command (e.g., `rm -rf`, `DROP TABLE`). This is a safety feature.
 
 **Solution:** When prompted, review the command and type `y` to approve it. You can also:
 - Ask the agent to use a safer alternative
 - See the full list of dangerous patterns in the [Security docs](../user-guide/security.md)
 
 :::tip
-This is working as intended — Hermes never silently runs destructive commands. The approval prompt shows you exactly what will execute.
+This is working as intended — Apollo never silently runs destructive commands. The approval prompt shows you exactly what will execute.
 :::
 
 #### `sudo` not working via messaging gateway
@@ -235,7 +235,7 @@ This is working as intended — Hermes never silently runs destructive commands.
 **Solution:**
 - Avoid `sudo` in messaging — ask the agent to find alternatives
 - If you must use `sudo`, configure passwordless sudo for specific commands in `/etc/sudoers`
-- Or switch to the terminal interface for administrative tasks: `hermes chat`
+- Or switch to the terminal interface for administrative tasks: `apollo chat`
 
 #### Docker backend not connecting
 
@@ -265,13 +265,13 @@ docker run hello-world
 **Solution:**
 ```bash
 # Check if the gateway is running
-hermes gateway status
+apollo gateway status
 
 # Start the gateway
-hermes gateway start
+apollo gateway start
 
 # Check logs for errors
-hermes gateway logs
+apollo gateway logs
 ```
 
 #### Messages not delivering
@@ -279,8 +279,8 @@ hermes gateway logs
 **Cause:** Network issues, bot token expired, or platform webhook misconfiguration.
 
 **Solution:**
-- Verify your bot token is valid with `hermes gateway setup`
-- Check gateway logs: `hermes gateway logs`
+- Verify your bot token is valid with `apollo gateway setup`
+- Check gateway logs: `apollo gateway logs`
 - For webhook-based platforms (Slack, WhatsApp), ensure your server is publicly accessible
 
 #### Allowlist confusion — who can talk to the bot?
@@ -295,7 +295,7 @@ hermes gateway logs
 | **DM pairing** | First user to message in DM claims exclusive access |
 | **Open** | Anyone can interact (not recommended for production) |
 
-Configure in `~/.hermes/config.yaml` under your gateway's settings. See the [Messaging docs](../user-guide/messaging/index.md).
+Configure in `~/.apollo/config.yaml` under your gateway's settings. See the [Messaging docs](../user-guide/messaging/index.md).
 
 #### Gateway won't start
 
@@ -304,13 +304,13 @@ Configure in `~/.hermes/config.yaml` under your gateway's settings. See the [Mes
 **Solution:**
 ```bash
 # Install messaging dependencies
-pip install hermes-agent[telegram]   # or [discord], [slack], [whatsapp]
+pip install apollo-agent[telegram]   # or [discord], [slack], [whatsapp]
 
 # Check for port conflicts
 lsof -i :8080
 
 # Verify configuration
-hermes config show
+apollo config show
 ```
 
 ---
@@ -322,8 +322,8 @@ hermes config show
 **Cause:** Large model, distant API server, or heavy system prompt with many tools.
 
 **Solution:**
-- Try a faster/smaller model: `hermes chat --model openrouter/meta-llama/llama-3.1-8b-instruct`
-- Reduce active toolsets: `hermes chat -t "terminal"`
+- Try a faster/smaller model: `apollo chat --model openrouter/meta-llama/llama-3.1-8b-instruct`
+- Reduce active toolsets: `apollo chat -t "terminal"`
 - Check your network latency to the provider
 - For local models, ensure you have enough GPU VRAM
 
@@ -354,10 +354,10 @@ Use `/compress` regularly during long sessions. It summarizes the conversation h
 /compress
 
 # Start a new session with a reference to the old one
-hermes chat
+apollo chat
 
 # Resume a specific session later if needed
-hermes chat --continue
+apollo chat --continue
 ```
 
 ---
@@ -371,7 +371,7 @@ hermes chat --continue
 **Solution:**
 ```bash
 # Ensure MCP dependencies are installed
-pip install hermes-agent[mcp]
+pip install apollo-agent[mcp]
 
 # For npm-based servers, ensure Node.js is available
 node --version
@@ -381,7 +381,7 @@ npx --version
 npx -y @modelcontextprotocol/server-filesystem /tmp
 ```
 
-Verify your `~/.hermes/config.yaml` MCP configuration:
+Verify your `~/.apollo/config.yaml` MCP configuration:
 ```yaml
 mcp_servers:
   filesystem:
@@ -402,15 +402,15 @@ mcp_servers:
 
 ```bash
 # Verify MCP servers are configured
-hermes config show | grep -A 12 mcp_servers
+apollo config show | grep -A 12 mcp_servers
 
-# Restart Hermes or reload MCP after config changes
-hermes chat
+# Restart Apollo or reload MCP after config changes
+apollo chat
 ```
 
 See also:
 - [MCP (Model Context Protocol)](/docs/user-guide/features/mcp)
-- [Use MCP with Hermes](/docs/guides/use-mcp-with-hermes)
+- [Use MCP with Apollo](/docs/guides/use-mcp-with-apollo)
 - [MCP Config Reference](/docs/reference/mcp-config-reference)
 
 #### MCP timeout errors
@@ -423,7 +423,7 @@ See also:
 - For remote HTTP MCP servers, check network connectivity
 
 :::warning
-If an MCP server crashes mid-request, Hermes will report a timeout. Check the server's own logs (not just Hermes logs) to diagnose the root cause.
+If an MCP server crashes mid-request, Apollo will report a timeout. Check the server's own logs (not just Apollo logs) to diagnose the root cause.
 :::
 
 ---
@@ -432,6 +432,6 @@ If an MCP server crashes mid-request, Hermes will report a timeout. Check the se
 
 If your issue isn't covered here:
 
-1. **Search existing issues:** [GitHub Issues](https://github.com/NousResearch/hermes-agent/issues)
+1. **Search existing issues:** [GitHub Issues](https://github.com/NousResearch/apollo-agent/issues)
 2. **Ask the community:** [Nous Research Discord](https://discord.gg/nousresearch)
-3. **File a bug report:** Include your OS, Python version (`python3 --version`), Hermes version (`hermes --version`), and the full error message
+3. **File a bug report:** Include your OS, Python version (`python3 --version`), Apollo version (`apollo --version`), and the full error message

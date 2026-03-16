@@ -1,6 +1,6 @@
-"""CLI entry point for the hermes-agent ACP adapter.
+"""CLI entry point for the apollo-agent ACP adapter.
 
-Loads environment variables from ``~/.hermes/.env``, configures logging
+Loads environment variables from ``~/.apollo/.env``, configures logging
 to write to stderr (so stdout is reserved for ACP JSON-RPC transport),
 and starts the ACP agent server.
 
@@ -8,9 +8,9 @@ Usage::
 
     python -m acp_adapter.entry
     # or
-    hermes acp
+    apollo acp
     # or
-    hermes-acp
+    apollo-acp
 """
 
 import asyncio
@@ -41,11 +41,11 @@ def _setup_logging() -> None:
 
 
 def _load_env() -> None:
-    """Load .env from HERMES_HOME (default ``~/.hermes``)."""
+    """Load .env from APOLLO_HOME (default ``~/.apollo``)."""
     from dotenv import load_dotenv
 
-    hermes_home = Path(os.getenv("HERMES_HOME", Path.home() / ".hermes"))
-    env_file = hermes_home / ".env"
+    apollo_home = Path(os.getenv("APOLLO_HOME", Path.home() / ".apollo"))
+    env_file = apollo_home / ".env"
     if env_file.exists():
         try:
             load_dotenv(dotenv_path=env_file, encoding="utf-8")
@@ -64,7 +64,7 @@ def main() -> None:
     _load_env()
 
     logger = logging.getLogger(__name__)
-    logger.info("Starting hermes-agent ACP adapter")
+    logger.info("Starting apollo-agent ACP adapter")
 
     # Ensure the project root is on sys.path so ``from run_agent import AIAgent`` works
     project_root = str(Path(__file__).resolve().parent.parent)
@@ -72,9 +72,9 @@ def main() -> None:
         sys.path.insert(0, project_root)
 
     import acp
-    from .server import HermesACPAgent
+    from .server import ApolloACPAgent
 
-    agent = HermesACPAgent()
+    agent = ApolloACPAgent()
     try:
         asyncio.run(acp.run_agent(agent))
     except KeyboardInterrupt:
