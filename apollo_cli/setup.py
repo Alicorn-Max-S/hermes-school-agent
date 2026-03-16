@@ -791,7 +791,7 @@ def setup_model_provider(config: dict):
         keep_label = None  # No provider configured — don't show "Keep current"
 
     provider_choices = [
-        "Login with Nous Portal (Alicorn-Max-S subscription — OAuth)",
+        "Login with Nous Portal (Nous Research subscription — OAuth)",
         "Login with OpenAI Codex",
         "OpenRouter API key (100+ models, pay-per-use)",
         "Custom OpenAI-compatible endpoint (self-hosted / VLLM / etc.)",
@@ -826,7 +826,7 @@ def setup_model_provider(config: dict):
         print()
         print_header("Nous Portal Login")
         print_info("This will open your browser to authenticate with Nous Portal.")
-        print_info("You'll need a Alicorn-Max-S account with an active subscription.")
+        print_info("You'll need a Nous Research account with an active subscription.")
         print()
 
         try:

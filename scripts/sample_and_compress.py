@@ -30,9 +30,9 @@ load_dotenv()
 # Default datasets to sample from
 DEFAULT_DATASETS = [
     "NousResearch/swe-terminus-agent-glm-kimi-minimax",
-    "Alicorn-Max-S/apollo-agent-megascience-sft1",
-    "Alicorn-Max-S/apollo-agent-Thinking-GLM-4.7-SFT2",
-    "Alicorn-Max-S/apollo-agent-Thinking-GLM-4.7-SFT1",
+    "NousResearch/apollo-agent-megascience-sft1",
+    "NousResearch/apollo-agent-Thinking-GLM-4.7-SFT2",
+    "NousResearch/apollo-agent-Thinking-GLM-4.7-SFT1",
     "NousResearch/terminal-tasks-glm-apollo-agent"
 ]
 
