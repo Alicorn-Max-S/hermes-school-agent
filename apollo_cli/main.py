@@ -773,7 +773,7 @@ def cmd_model(args):
     # Step 1: Provider selection — put active provider first with marker
     providers = [
         ("openrouter", "OpenRouter (100+ models, pay-per-use)"),
-        ("nous", "Nous Portal (Alicorn-Max-S subscription)"),
+        ("nous", "Nous Portal (Nous Research subscription)"),
         ("openai-codex", "OpenAI Codex"),
         ("anthropic", "Anthropic (Claude models — API key or Claude Code)"),
         ("zai", "Z.AI / GLM (Zhipu AI direct API)"),
