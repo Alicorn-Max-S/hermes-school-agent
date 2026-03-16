@@ -11,6 +11,7 @@ metadata:
     tags: [Todoist, Tasks, Productivity, Scheduling, Time Management, Calendar]
     school: true
     school_category: "Homework & Assignments"
+    related_skills: [google-calendar, school, canvas-lms]
 ---
 
 # Todoist — Intelligent Task Management & Scheduling
@@ -153,7 +154,36 @@ $TODOIST get_scheduled 2026-03-16 --working-hours "10:00-18:00"
 
 Extract from the user's request: content, description, and any explicitly provided duration, priority, deadline, or labels.
 
-### Step 2: Estimate Missing Fields
+### Step 2: Resolve Relative Time References
+
+If the user references a calendar event by name to anchor the task's timing (e.g., "after track", "before dinner", "between math and English", "when practice ends"), you MUST look up that event on Google Calendar before proceeding.
+
+1. **Query Google Calendar** for the relevant date:
+   ```bash
+   GAPI="python ~/.apollo/skills/productivity/google-auth/scripts/google_api.py"
+   $GAPI calendar list --start 2026-03-16T00:00:00Z --end 2026-03-16T23:59:59Z
+   ```
+
+2. **Search the results** for an event whose `summary` matches the referenced name (case-insensitive, partial match). For example, "track" should match "Track Practice", "Track & Field", etc.
+
+3. **Extract the anchor time**:
+   - "after X" → use the event's `end` time as the earliest start time for the new task
+   - "before X" → use the event's `start` time as the latest end time (schedule the task to finish before it)
+   - "between X and Y" → find both events and schedule within the gap between them
+
+4. **If the event is NOT found** on the calendar for that date:
+   - Ask the user: "I couldn't find '[event name]' on your calendar for [date]. What time does it end?" (or start, depending on the reference)
+   - Do NOT guess or silently skip — the whole point is to anchor to the real time
+
+5. **If multiple matching events are found** (e.g., "Math" matching "Math Class" and "Math Tutoring"):
+   - Pick the one on the target date. If there are still multiple, ask the user which one they mean.
+
+6. **If Google Calendar is not set up**:
+   - Ask the user directly: "What time does [event] end/start? (I don't have Google Calendar access to look it up)"
+
+Use the resolved time as a hard constraint in Step 5 (Find a Time Slot) — the task must start after/before the anchor time, not just fit into any available gap.
+
+### Step 3: Estimate Missing Fields
 
 For any field NOT explicitly provided by the user, estimate it:
 
@@ -199,7 +229,7 @@ If no matching label exists, **create a new one** — don't skip labeling just b
 
 **Deadline** — Only set if the user explicitly mentions a deadline ("due Friday", "by end of week", "submit by March 20"). Do NOT set a deadline if none is mentioned.
 
-### Step 3: Confirm Guessed Fields
+### Step 4: Confirm Guessed Fields
 
 If you estimated ANY field (duration, priority, labels, or deadline) rather than the user explicitly providing it, you MUST present a summary and ask for confirmation before creating:
 
@@ -217,7 +247,7 @@ Want me to adjust anything before creating this task?
 
 Wait for the user to confirm or request changes before proceeding.
 
-### Step 4: Find a Time Slot
+### Step 5: Find a Time Slot
 
 1. Run `$TODOIST get_scheduled DATE` for the target date to see existing tasks and available gaps.
 
@@ -232,14 +262,16 @@ Wait for the user to confirm or request changes before proceeding.
 
 4. Find a gap in `available_gaps` that fits the duration. Prefer earlier gaps (morning) for deep work and later gaps for lighter tasks.
 
-5. If no gap is large enough on the requested date:
+5. If Step 2 resolved a time anchor (e.g., "after track ends at 4:30 PM"), only consider gaps that respect the anchor — gaps starting at or after the anchor time for "after" references, or ending at or before the anchor time for "before" references. The anchor is a hard constraint, not a preference.
+
+6. If no gap is large enough on the requested date:
    - Inform the user: "No available gap on DATE for a Xmin task."
    - Suggest the next date with availability.
    - Ask if they want to override and schedule anyway.
 
-6. If Google Calendar is not set up (`google-calendar` skill), schedule using Todoist tasks only — do not error.
+7. If Google Calendar is not set up (`google-calendar` skill), schedule using Todoist tasks only — do not error.
 
-### Step 5: Create the Task
+### Step 6: Create the Task
 
 Create the task with ALL fields set:
 ```bash

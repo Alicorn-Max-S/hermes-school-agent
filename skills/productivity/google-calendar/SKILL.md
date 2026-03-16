@@ -8,7 +8,7 @@ metadata:
   apollo:
     tags: [Google, Calendar, Scheduling, Events, Todoist]
     homepage: https://github.com/NousResearch/apollo-agent
-    related_skills: [todoist, google-auth]
+    related_skills: [todoist, google-auth, school]
     school: true
     school_category: "Homework & Assignments"
 ---
@@ -167,6 +167,35 @@ Available gaps: 08:00–09:00 (60m), 10:00–10:30 (30m), 11:30–12:00 (30m),
 ### When Calendar Is Not Set Up
 
 If `$GSETUP --check` fails, schedule using Todoist tasks only — do not error. Mention to the user that setting up `google-calendar` would improve scheduling accuracy.
+
+## Event Lookup for Time References
+
+When other skills (especially Todoist) need to resolve a named event reference like "after track" or "before class", Google Calendar serves as the source of truth for event timing.
+
+### How to Look Up an Event by Name
+
+1. **Query the target date**:
+   ```bash
+   $GAPI calendar list --start 2026-03-16T00:00:00Z --end 2026-03-16T23:59:59Z
+   ```
+
+2. **Match by summary**: Search the returned events for one whose `summary` contains the referenced name (case-insensitive, partial match). Examples:
+   - "track" matches "Track Practice", "Track & Field"
+   - "class" matches "Math Class", "English Class" — if ambiguous, ask the user which one
+   - "school" — look for the last class/event of the school day to determine when school ends
+
+3. **Return the relevant time**:
+   - For "after X": return the event's `end` time
+   - For "before X": return the event's `start` time
+   - For "during X": return both `start` and `end`
+
+### Handling Edge Cases
+
+- **Event not found**: The event may not be on the calendar (e.g., informal activities). Do not guess — ask the user: "I couldn't find '[name]' on your calendar for [date]. What time does it start/end?"
+- **Recurring events**: The query is date-bounded, so it naturally returns the instance for the requested date. No special handling needed.
+- **Ambiguous matches**: If multiple events partially match (e.g., "math" matches both "Math Class" and "Math Tutoring"), present the options and ask the user which one they mean.
+- **Generic references**: "after school" is not a specific event name. Look for the last event of the school day (latest `end` time among school-related events). If unclear, ask: "What time does school end?"
+- **Multi-day search**: If the user says "after track on Thursday" but today is Monday, query Thursday's date specifically.
 
 ## Rules
 

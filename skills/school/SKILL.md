@@ -4,6 +4,7 @@ description: Curated skills for high school students — homework, research, pre
 metadata:
   apollo:
     tags: [school, students, homework, research, education, learning]
+    related_skills: [todoist, google-calendar, canvas-lms, study]
 ---
 
 # School Skills
@@ -13,6 +14,7 @@ A curated set of skills for high school students. Use `skill_view("<skill-name>"
 ## Homework & Assignments
 - **canvas-lms** — Access Canvas LMS: view courses, assignments, grades, submit work
 - **todoist** — Track homework and deadlines with intelligent scheduling
+- **google-calendar** — Google Calendar events and scheduling — class times, practices, appointments. Automatically consulted when scheduling Todoist tasks to prevent overlap and to resolve time references (e.g., "after track", "before class")
 - **reward** — Track and log rewards for completing school tasks, with Google Sheets integration
 - **notion** — Organize notes and projects
 - **obsidian** — Markdown note-taking vault
@@ -41,7 +43,6 @@ A curated set of skills for high school students. Use `skill_view("<skill-name>"
 - **powerpoint** — Create and edit PowerPoint presentations
 - **nano-pdf** — Edit and create PDFs
 - **excalidraw** — Create diagrams and visual aids
-- **google-calendar** — Google Calendar events and scheduling
 - **gmail** — Gmail email management
 - **google-drive** — Read Google Drive files (Docs, Sheets, PDFs)
 - **google-drive-write** — Edit Google Sheets and Drive files
@@ -71,6 +72,7 @@ When using school skills, follow these automatic workflows:
 - **A document contains images or charts** → Use `vision_analyze` to describe them automatically.
 - **Extracted content contains follow-up links relevant to the query** → Fetch up to 3 additional links with `webscrape`.
 - **OCR detects text in an image** → Extract and present the text immediately.
+- **User references a calendar event by name for scheduling** (e.g., "after track", "before class", "between lunch and practice") → Use `skill_view("google-calendar")` and query Google Calendar to find that event's actual start/end time. Use the resolved time as the scheduling anchor before creating any Todoist tasks. If the event is not found, ask the user for the time — never guess.
 - **An arxiv paper is found** → Use `webscrape` to fetch the abstract and key sections automatically.
 - **After extracting study material from a document** → Offer to save it via the study skill for future practice sessions.
 
@@ -83,8 +85,10 @@ When using school skills, follow these automatic workflows:
 - **After analyzing CSV/data with text-analysis** → "Would you like me to run this in Jupyter for deeper analysis or graphing?"
 - **After a study session ends** → "Would you like me to schedule your next study session in Todoist?"
 - **After checking Canvas assignments** → "Would you like to study for any of these upcoming assignments?"
+- **User mentions a recurring activity without specifying a time** → "Would you like me to check your Google Calendar to find when [activity] is scheduled?"
 
 ### Planning Best Practices
 - **Todoist** is the go-to tool for all tasks and assignments — homework tracking, deadline management, and study planning. Todoist automatically syncs to Google Calendar, so there is no need to manually create calendar entries for tasks.
 - **Google Calendar** is for events only — classes, meetings, school events, and appointments. Do not use Google Calendar for tasks or assignments.
 - When Canvas shows upcoming assignments, proactively suggest adding them to Todoist for tracking.
+- When a user references an event by name for scheduling ("after track", "before class", "between meetings"), ALWAYS look up that event on Google Calendar first to get the actual time. Never assume or guess when an event starts or ends — query the calendar or ask the user.
