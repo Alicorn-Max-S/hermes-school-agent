@@ -540,6 +540,13 @@ def skill_manage(
     else:
         result = {"success": False, "error": f"Unknown action '{action}'. Use: create, edit, patch, delete, write_file, remove_file"}
 
+    # Invalidate the skills cache after any mutation so subsequent lookups see changes
+    try:
+        from tools.skills_tool import invalidate_skills_cache
+        invalidate_skills_cache()
+    except Exception:
+        pass  # never block on cache invalidation
+
     return json.dumps(result, ensure_ascii=False)
 
 

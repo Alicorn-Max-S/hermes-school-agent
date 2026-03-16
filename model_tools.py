@@ -24,6 +24,7 @@ import json
 import asyncio
 import os
 import logging
+import concurrent.futures
 from typing import Dict, Any, List, Optional, Tuple
 
 from tools.registry import registry
@@ -35,6 +36,12 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 # Async Bridging  (single source of truth -- used by registry.dispatch too)
 # =============================================================================
+
+# Reusable thread pool for async bridging — avoids creating a new executor per call.
+_ASYNC_BRIDGE_POOL = concurrent.futures.ThreadPoolExecutor(
+    max_workers=2, thread_name_prefix="async-bridge"
+)
+
 
 def _run_async(coro):
     """Run an async coroutine from a sync context.
@@ -55,10 +62,14 @@ def _run_async(coro):
         loop = None
 
     if loop and loop.is_running():
-        import concurrent.futures
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-            future = pool.submit(asyncio.run, coro)
+        try:
+            future = _ASYNC_BRIDGE_POOL.submit(asyncio.run, coro)
             return future.result(timeout=300)
+        except RuntimeError:
+            # Fallback: pool was shut down, create a temporary one
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(asyncio.run, coro)
+                return future.result(timeout=300)
     return asyncio.run(coro)
 
 

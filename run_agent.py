@@ -103,6 +103,17 @@ from agent.trajectory import (
 )
 from utils import atomic_json_write
 
+# Pre-import agent-level tool modules to avoid per-call import overhead.
+# We use importlib to get the actual module objects (not the re-exported
+# functions from tools/__init__.py) so that unittest.mock.patch at the
+# source module still works correctly in tests.
+import importlib as _il
+_todo_mod = _il.import_module("tools.todo_tool")
+_session_search_mod = _il.import_module("tools.session_search_tool")
+_memory_mod = _il.import_module("tools.memory_tool")
+_clarify_mod = _il.import_module("tools.clarify_tool")
+_delegate_mod = _il.import_module("tools.delegate_tool")
+
 HONCHO_TOOL_NAMES = {
     "honcho_context",
     "honcho_profile",
@@ -253,7 +264,7 @@ class AIAgent:
         api_mode: str = None,
         model: str = "anthropic/claude-opus-4.6",  # OpenRouter format
         max_iterations: int = 90,  # Default tool-calling iterations (shared with subagents)
-        tool_delay: float = 1.0,
+        tool_delay: float = 0.0,
         enabled_toolsets: List[str] = None,
         disabled_toolsets: List[str] = None,
         save_trajectories: bool = False,
@@ -300,7 +311,7 @@ class AIAgent:
             api_mode (str): API mode override: "chat_completions" or "codex_responses"
             model (str): Model name to use (default: "anthropic/claude-opus-4.6")
             max_iterations (int): Maximum number of tool calling iterations (default: 90)
-            tool_delay (float): Delay between tool calls in seconds (default: 1.0)
+            tool_delay (float): Delay between tool calls in seconds (default: 0.0)
             enabled_toolsets (List[str]): Only enable tools from these toolsets (optional)
             disabled_toolsets (List[str]): Disable tools from these toolsets (optional)
             save_trajectories (bool): Whether to save conversation trajectories to JSONL files (default: False)
@@ -341,6 +352,7 @@ class AIAgent:
         # Consumed by every LLM turn across parent + all subagents.
         self.iteration_budget = iteration_budget or IterationBudget(max_iterations)
         self.tool_delay = tool_delay
+        self._tool_executor: concurrent.futures.ThreadPoolExecutor | None = None
         self.save_trajectories = save_trajectories
         self.verbose_logging = verbose_logging
         self.quiet_mode = quiet_mode
@@ -3427,8 +3439,7 @@ class AIAgent:
         its own inline invocation for backward-compatible display handling.
         """
         if function_name == "todo":
-            from tools.todo_tool import todo_tool as _todo_tool
-            return _todo_tool(
+            return _todo_mod.todo_tool(
                 todos=function_args.get("todos"),
                 merge=function_args.get("merge", False),
                 store=self._todo_store,
@@ -3436,8 +3447,7 @@ class AIAgent:
         elif function_name == "session_search":
             if not self._session_db:
                 return json.dumps({"success": False, "error": "Session database not available."})
-            from tools.session_search_tool import session_search as _session_search
-            return _session_search(
+            return _session_search_mod.session_search(
                 query=function_args.get("query", ""),
                 role_filter=function_args.get("role_filter"),
                 limit=function_args.get("limit", 3),
@@ -3446,8 +3456,7 @@ class AIAgent:
             )
         elif function_name == "memory":
             target = function_args.get("target", "memory")
-            from tools.memory_tool import memory_tool as _memory_tool
-            result = _memory_tool(
+            result = _memory_mod.memory_tool(
                 action=function_args.get("action"),
                 target=target,
                 content=function_args.get("content"),
@@ -3459,15 +3468,13 @@ class AIAgent:
                 self._honcho_save_user_observation(function_args.get("content", ""))
             return result
         elif function_name == "clarify":
-            from tools.clarify_tool import clarify_tool as _clarify_tool
-            return _clarify_tool(
+            return _clarify_mod.clarify_tool(
                 question=function_args.get("question", ""),
                 choices=function_args.get("choices"),
                 callback=self.clarify_callback,
             )
         elif function_name == "delegate_task":
-            from tools.delegate_tool import delegate_task as _delegate_task
-            return _delegate_task(
+            return _delegate_mod.delegate_task(
                 goal=function_args.get("goal"),
                 context=function_args.get("context"),
                 toolsets=function_args.get("toolsets"),
@@ -3599,15 +3606,19 @@ class AIAgent:
             spinner.start()
 
         try:
-            max_workers = min(num_tools, _MAX_TOOL_WORKERS)
-            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-                futures = []
-                for i, (tc, name, args) in enumerate(parsed_calls):
-                    f = executor.submit(_run_tool, i, tc, name, args)
-                    futures.append(f)
+            # Reuse session-scoped executor; lazy-init on first concurrent call
+            if self._tool_executor is None or self._tool_executor._shutdown:
+                self._tool_executor = concurrent.futures.ThreadPoolExecutor(
+                    max_workers=_MAX_TOOL_WORKERS, thread_name_prefix="tool-exec"
+                )
+            executor = self._tool_executor
+            futures = []
+            for i, (tc, name, args) in enumerate(parsed_calls):
+                f = executor.submit(_run_tool, i, tc, name, args)
+                futures.append(f)
 
-                # Wait for all to complete (exceptions are captured inside _run_tool)
-                concurrent.futures.wait(futures)
+            # Wait for all to complete (exceptions are captured inside _run_tool)
+            concurrent.futures.wait(futures)
         finally:
             if spinner:
                 # Build a summary message for the spinner stop
@@ -3741,8 +3752,7 @@ class AIAgent:
             tool_start_time = time.time()
 
             if function_name == "todo":
-                from tools.todo_tool import todo_tool as _todo_tool
-                function_result = _todo_tool(
+                function_result = _todo_mod.todo_tool(
                     todos=function_args.get("todos"),
                     merge=function_args.get("merge", False),
                     store=self._todo_store,
@@ -3754,8 +3764,7 @@ class AIAgent:
                 if not self._session_db:
                     function_result = json.dumps({"success": False, "error": "Session database not available."})
                 else:
-                    from tools.session_search_tool import session_search as _session_search
-                    function_result = _session_search(
+                    function_result = _session_search_mod.session_search(
                         query=function_args.get("query", ""),
                         role_filter=function_args.get("role_filter"),
                         limit=function_args.get("limit", 3),
@@ -3767,8 +3776,7 @@ class AIAgent:
                     self._vprint(f"  {_get_cute_tool_message_impl('session_search', function_args, tool_duration, result=function_result)}")
             elif function_name == "memory":
                 target = function_args.get("target", "memory")
-                from tools.memory_tool import memory_tool as _memory_tool
-                function_result = _memory_tool(
+                function_result = _memory_mod.memory_tool(
                     action=function_args.get("action"),
                     target=target,
                     content=function_args.get("content"),
@@ -3782,8 +3790,7 @@ class AIAgent:
                 if self.quiet_mode:
                     self._vprint(f"  {_get_cute_tool_message_impl('memory', function_args, tool_duration, result=function_result)}")
             elif function_name == "clarify":
-                from tools.clarify_tool import clarify_tool as _clarify_tool
-                function_result = _clarify_tool(
+                function_result = _clarify_mod.clarify_tool(
                     question=function_args.get("question", ""),
                     choices=function_args.get("choices"),
                     callback=self.clarify_callback,
@@ -3792,7 +3799,6 @@ class AIAgent:
                 if self.quiet_mode:
                     self._vprint(f"  {_get_cute_tool_message_impl('clarify', function_args, tool_duration, result=function_result)}")
             elif function_name == "delegate_task":
-                from tools.delegate_tool import delegate_task as _delegate_task
                 tasks_arg = function_args.get("tasks")
                 if tasks_arg and isinstance(tasks_arg, list):
                     spinner_label = f"🔀 delegating {len(tasks_arg)} tasks"
@@ -3807,7 +3813,7 @@ class AIAgent:
                 self._delegate_spinner = spinner
                 _delegate_result = None
                 try:
-                    function_result = _delegate_task(
+                    function_result = _delegate_mod.delegate_task(
                         goal=function_args.get("goal"),
                         context=function_args.get("context"),
                         toolsets=function_args.get("toolsets"),
