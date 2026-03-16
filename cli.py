@@ -812,36 +812,62 @@ def _build_compact_banner() -> str:
     )
 
 
-def _get_available_skills() -> Dict[str, List[str]]:
+def _get_available_skills():
     """
-    Scan ~/.hermes/skills/ and return skills grouped by category.
-    
+    Scan ~/.hermes/skills/ and return skills split into school and non-school.
+
     Returns:
-        Dict mapping category name to list of skill names
+        Tuple of (school_skills_by_category, other_skills_by_category)
+        where each is a dict mapping category name to list of skill names.
+        School skills are keyed by school_category metadata;
+        other skills are keyed by filesystem directory.
     """
     import os
-    
+
     hermes_home = Path(os.getenv("HERMES_HOME", Path.home() / ".hermes"))
     skills_dir = hermes_home / "skills"
-    skills_by_category = {}
-    
+    school_skills = {}
+    other_skills = {}
+
     if not skills_dir.exists():
-        return skills_by_category
-    
+        return school_skills, other_skills
+
+    try:
+        from tools.skills_tool import _parse_frontmatter
+    except Exception:
+        _parse_frontmatter = None
+
     for skill_file in skills_dir.rglob("SKILL.md"):
         rel_path = skill_file.relative_to(skills_dir)
         parts = rel_path.parts
-        
+
         if len(parts) >= 2:
-            category = parts[0]
+            fs_category = parts[0]
             skill_name = parts[-2]
         else:
-            category = "general"
+            fs_category = "general"
             skill_name = skill_file.parent.name
-        
-        skills_by_category.setdefault(category, []).append(skill_name)
-    
-    return skills_by_category
+
+        # Try to parse frontmatter for school metadata
+        is_school = False
+        school_category = None
+        if _parse_frontmatter:
+            try:
+                raw = skill_file.read_text(encoding="utf-8")[:2000]
+                frontmatter, _ = _parse_frontmatter(raw)
+                hermes_meta = frontmatter.get("metadata", {}).get("hermes", {})
+                is_school = hermes_meta.get("school", False)
+                if is_school:
+                    school_category = hermes_meta.get("school_category", "General")
+            except Exception:
+                pass
+
+        if is_school and school_category:
+            school_skills.setdefault(school_category, []).append(skill_name)
+        else:
+            other_skills.setdefault(fs_category, []).append(skill_name)
+
+    return school_skills, other_skills
 
 
 def _format_context_length(tokens: int) -> str:
@@ -945,25 +971,32 @@ def build_welcome_banner(console: Console, model: str, cwd: str, tools: List[dic
             if tool_name not in toolsets_dict[display_name]:
                 toolsets_dict[display_name].append(tool_name)
     
-    # Display tools grouped by toolset (compact format, max 8 groups)
-    sorted_toolsets = sorted(toolsets_dict.keys())
-    display_toolsets = sorted_toolsets[:8]
-    remaining_toolsets = len(sorted_toolsets) - 8
-    
-    for toolset in display_toolsets:
+    # Partition toolsets into school-essential and other
+    from hermes_cli.tools_config import CONFIGURABLE_TOOLSETS, _SCHOOL_ESSENTIAL_COUNT
+    _school_toolset_names = {t[0] for t in CONFIGURABLE_TOOLSETS[:_SCHOOL_ESSENTIAL_COUNT]}
+
+    def _is_school_toolset(ts_name):
+        # Banner toolset names may differ from config names (e.g. "web" vs "web_tools")
+        clean = ts_name.removesuffix("_tools")
+        return clean in _school_toolset_names
+
+    school_ts = sorted([t for t in toolsets_dict if _is_school_toolset(t)])
+    other_ts = sorted([t for t in toolsets_dict if not _is_school_toolset(t)])
+    display_order = (school_ts + other_ts)[:8]
+    remaining_toolsets = len(toolsets_dict) - len(display_order)
+
+    def _render_toolset_line(toolset, dim_all=False):
         tool_names = toolsets_dict[toolset]
-        # Color each tool name - red if disabled, normal if enabled
         colored_names = []
         for name in sorted(tool_names):
             if name in disabled_tools:
                 colored_names.append(f"[red]{name}[/]")
+            elif dim_all:
+                colored_names.append(f"[dim]{name}[/]")
             else:
                 colored_names.append(f"[{_text}]{name}[/]")
-        
         tools_str = ", ".join(colored_names)
-        # Truncate if too long (accounting for markup)
         if len(", ".join(sorted(tool_names))) > 45:
-            # Rebuild with truncation
             short_names = []
             length = 0
             for name in sorted(tool_names):
@@ -972,45 +1005,59 @@ def build_welcome_banner(console: Console, model: str, cwd: str, tools: List[dic
                     break
                 short_names.append(name)
                 length += len(name) + 2
-            # Re-color the truncated list
             colored_names = []
             for name in short_names:
                 if name == "...":
                     colored_names.append("[dim]...[/]")
                 elif name in disabled_tools:
                     colored_names.append(f"[red]{name}[/]")
+                elif dim_all:
+                    colored_names.append(f"[dim]{name}[/]")
                 else:
                     colored_names.append(f"[{_text}]{name}[/]")
             tools_str = ", ".join(colored_names)
-        
-        right_lines.append(f"[dim {_dim}]{toolset}:[/] {tools_str}")
-    
+        label_style = f"dim {_dim}" if dim_all else f"dim {_dim}"
+        right_lines.append(f"[{label_style}]{toolset}:[/] {tools_str}")
+
+    for toolset in display_order:
+        _render_toolset_line(toolset, dim_all=(toolset in other_ts))
+
     if remaining_toolsets > 0:
         right_lines.append(f"[dim {_dim}](and {remaining_toolsets} more toolsets...)[/]")
     
     right_lines.append("")
     
-    # Add skills section
-    right_lines.append(f"[bold {_accent}]Available Skills[/]")
-    skills_by_category = _get_available_skills()
-    total_skills = sum(len(s) for s in skills_by_category.values())
-    
-    if skills_by_category:
-        for category in sorted(skills_by_category.keys()):
-            skill_names = sorted(skills_by_category[category])
-            # Show first 8 skills, then "..." if more
+    # Add skills section — school skills first, then others dimmed
+    school_skills, other_skills = _get_available_skills()
+    total_skills = sum(len(s) for s in school_skills.values()) + sum(len(s) for s in other_skills.values())
+
+    def _fmt_skills(skills_dict, header, bold_header=True, dim_items=False):
+        if not skills_dict:
+            return
+        if bold_header:
+            right_lines.append(f"[bold {_accent}]{header}[/]")
+        else:
+            right_lines.append(f"[dim {_dim}]{header}[/]")
+        for category in sorted(skills_dict.keys()):
+            skill_names = sorted(skills_dict[category])
             if len(skill_names) > 8:
-                display_names = skill_names[:8]
-                skills_str = ", ".join(display_names) + f" +{len(skill_names) - 8} more"
+                skills_str = ", ".join(skill_names[:8]) + f" +{len(skill_names) - 8} more"
             else:
                 skills_str = ", ".join(skill_names)
-            # Truncate if still too long
             if len(skills_str) > 50:
                 skills_str = skills_str[:47] + "..."
-            right_lines.append(f"[dim {_dim}]{category}:[/] [{_text}]{skills_str}[/]")
+            if dim_items:
+                right_lines.append(f"[dim]{category}:[/] [dim]{skills_str}[/]")
+            else:
+                right_lines.append(f"[dim {_dim}]{category}:[/] [{_text}]{skills_str}[/]")
+
+    if school_skills or other_skills:
+        _fmt_skills(school_skills, "School Skills", bold_header=True, dim_items=False)
+        _fmt_skills(other_skills, "Other Skills", bold_header=False, dim_items=True)
     else:
+        right_lines.append(f"[bold {_accent}]Available Skills[/]")
         right_lines.append(f"[dim {_dim}]No skills installed[/]")
-    
+
     right_lines.append("")
     right_lines.append(f"[dim {_dim}]{len(tools)} tools · {total_skills} skills · /help for commands[/]")
     
@@ -2112,13 +2159,34 @@ class HermesCLI:
                 desc = desc[:desc.index(". ") + 1]
             toolsets[toolset].append((name, desc))
         
-        # Display by toolset
-        for toolset in sorted(toolsets.keys()):
-            print(f"  [{toolset}]")
-            for name, desc in toolsets[toolset]:
-                print(f"    * {name:<20} - {desc}")
+        # Partition into school-essential and other toolsets
+        from hermes_cli.tools_config import CONFIGURABLE_TOOLSETS, _SCHOOL_ESSENTIAL_COUNT
+        _school_names = {t[0] for t in CONFIGURABLE_TOOLSETS[:_SCHOOL_ESSENTIAL_COUNT]}
+
+        def _is_school(ts):
+            return ts.removesuffix("_tools") in _school_names
+
+        school_ts = sorted([t for t in toolsets if _is_school(t)])
+        other_ts = sorted([t for t in toolsets if not _is_school(t)])
+
+        if school_ts:
+            print("  ── School Tools ──")
             print()
-        
+            for toolset in school_ts:
+                print(f"  [{toolset}]")
+                for name, desc in toolsets[toolset]:
+                    print(f"    * {name:<20} - {desc}")
+                print()
+
+        if other_ts:
+            print("  ── Additional Tools ──")
+            print()
+            for toolset in other_ts:
+                print(f"  [{toolset}]")
+                for name, desc in toolsets[toolset]:
+                    print(f"    * {name:<20} - {desc}")
+                print()
+
         print(f"  Total: {len(tools)} tools  ヽ(^o^)ノ")
         print()
     
@@ -2136,16 +2204,32 @@ class HermesCLI:
         print("+" + "-" * width + "+")
         print()
         
-        for name in sorted(all_toolsets.keys()):
+        from hermes_cli.tools_config import CONFIGURABLE_TOOLSETS, _SCHOOL_ESSENTIAL_COUNT
+        _school_names = {t[0] for t in CONFIGURABLE_TOOLSETS[:_SCHOOL_ESSENTIAL_COUNT]}
+
+        all_names = sorted(all_toolsets.keys())
+        school_ts = [n for n in all_names if n in _school_names]
+        other_ts = [n for n in all_names if n not in _school_names]
+
+        def _print_toolset(name):
             info = get_toolset_info(name)
             if info:
                 tool_count = info["tool_count"]
                 desc = info["description"]
-                
-                # Mark if currently enabled
                 marker = "(*)" if self.enabled_toolsets and name in self.enabled_toolsets else "   "
                 print(f"  {marker} {name:<18} [{tool_count:>2} tools] - {desc}")
-        
+
+        if school_ts:
+            print("  ── School-Essential ──")
+            for name in school_ts:
+                _print_toolset(name)
+            print()
+
+        if other_ts:
+            print("  ── Additional ──")
+            for name in other_ts:
+                _print_toolset(name)
+
         print()
         print("  (*) = currently enabled")
         print()
@@ -5946,7 +6030,7 @@ def main(
         if config_cli_toolsets and isinstance(config_cli_toolsets, list):
             toolsets_list = config_cli_toolsets
         else:
-            toolsets_list = ["hermes-cli"]
+            toolsets_list = ["hermes-school"]
     
     # Create CLI instance
     cli = HermesCLI(

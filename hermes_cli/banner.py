@@ -99,29 +99,59 @@ COMPACT_BANNER = """
 # Skills scanning
 # =========================================================================
 
-def get_available_skills() -> Dict[str, List[str]]:
-    """Scan ~/.hermes/skills/ and return skills grouped by category."""
+def get_available_skills():
+    """Scan ~/.hermes/skills/ and return skills split into school and non-school.
+
+    Returns:
+        Tuple of (school_skills_by_category, other_skills_by_category)
+        where each is a dict mapping category name to list of skill names.
+        School skills are keyed by school_category metadata;
+        other skills are keyed by filesystem directory.
+    """
     import os
 
     hermes_home = Path(os.getenv("HERMES_HOME", Path.home() / ".hermes"))
     skills_dir = hermes_home / "skills"
-    skills_by_category = {}
+    school_skills = {}
+    other_skills = {}
 
     if not skills_dir.exists():
-        return skills_by_category
+        return school_skills, other_skills
+
+    try:
+        from tools.skills_tool import _parse_frontmatter
+    except Exception:
+        _parse_frontmatter = None
 
     for skill_file in skills_dir.rglob("SKILL.md"):
         rel_path = skill_file.relative_to(skills_dir)
         parts = rel_path.parts
         if len(parts) >= 2:
-            category = parts[0]
+            fs_category = parts[0]
             skill_name = parts[-2]
         else:
-            category = "general"
+            fs_category = "general"
             skill_name = skill_file.parent.name
-        skills_by_category.setdefault(category, []).append(skill_name)
 
-    return skills_by_category
+        is_school = False
+        school_category = None
+        if _parse_frontmatter:
+            try:
+                raw = skill_file.read_text(encoding="utf-8")[:2000]
+                frontmatter, _ = _parse_frontmatter(raw)
+                hermes_meta = frontmatter.get("metadata", {}).get("hermes", {})
+                is_school = hermes_meta.get("school", False)
+                if is_school:
+                    school_category = hermes_meta.get("school_category", "General")
+            except Exception:
+                pass
+
+        if is_school and school_category:
+            school_skills.setdefault(school_category, []).append(skill_name)
+        else:
+            other_skills.setdefault(fs_category, []).append(skill_name)
+
+    return school_skills, other_skills
 
 
 # =========================================================================
@@ -273,19 +303,28 @@ def build_welcome_banner(console: Console, model: str, cwd: str,
             if tool_name not in toolsets_dict[display_name]:
                 toolsets_dict[display_name].append(tool_name)
 
-    sorted_toolsets = sorted(toolsets_dict.keys())
-    display_toolsets = sorted_toolsets[:8]
-    remaining_toolsets = len(sorted_toolsets) - 8
+    # Partition toolsets into school-essential and other
+    from hermes_cli.tools_config import CONFIGURABLE_TOOLSETS, _SCHOOL_ESSENTIAL_COUNT
+    _school_toolset_names = {t[0] for t in CONFIGURABLE_TOOLSETS[:_SCHOOL_ESSENTIAL_COUNT]}
 
-    for toolset in display_toolsets:
+    def _is_school_ts(ts_name):
+        return ts_name.removesuffix("_tools") in _school_toolset_names
+
+    school_ts = sorted([t for t in toolsets_dict if _is_school_ts(t)])
+    other_ts = sorted([t for t in toolsets_dict if not _is_school_ts(t)])
+    display_order = (school_ts + other_ts)[:8]
+    remaining_toolsets = len(toolsets_dict) - len(display_order)
+
+    def _render_ts_line(toolset, dim_all=False):
         tool_names = toolsets_dict[toolset]
         colored_names = []
         for name in sorted(tool_names):
             if name in disabled_tools:
                 colored_names.append(f"[red]{name}[/]")
+            elif dim_all:
+                colored_names.append(f"[dim]{name}[/]")
             else:
                 colored_names.append(f"[{text}]{name}[/]")
-
         tools_str = ", ".join(colored_names)
         if len(", ".join(sorted(tool_names))) > 45:
             short_names = []
@@ -302,11 +341,15 @@ def build_welcome_banner(console: Console, model: str, cwd: str,
                     colored_names.append("[dim]...[/]")
                 elif name in disabled_tools:
                     colored_names.append(f"[red]{name}[/]")
+                elif dim_all:
+                    colored_names.append(f"[dim]{name}[/]")
                 else:
                     colored_names.append(f"[{text}]{name}[/]")
             tools_str = ", ".join(colored_names)
-
         right_lines.append(f"[dim #B8860B]{toolset}:[/] {tools_str}")
+
+    for toolset in display_order:
+        _render_ts_line(toolset, dim_all=(toolset in other_ts))
 
     if remaining_toolsets > 0:
         right_lines.append(f"[dim #B8860B](and {remaining_toolsets} more toolsets...)[/]")
@@ -333,23 +376,36 @@ def build_welcome_banner(console: Console, model: str, cwd: str,
                     f"[red]— failed[/]"
                 )
 
+    # Skills section — school skills first, then others dimmed
     right_lines.append("")
-    right_lines.append(f"[bold {accent}]Available Skills[/]")
-    skills_by_category = get_available_skills()
-    total_skills = sum(len(s) for s in skills_by_category.values())
+    school_skills, other_skills = get_available_skills()
+    total_skills = sum(len(s) for s in school_skills.values()) + sum(len(s) for s in other_skills.values())
 
-    if skills_by_category:
-        for category in sorted(skills_by_category.keys()):
-            skill_names = sorted(skills_by_category[category])
+    def _fmt_skill_section(skills_dict, header, bold_header=True, dim_items=False):
+        if not skills_dict:
+            return
+        if bold_header:
+            right_lines.append(f"[bold {accent}]{header}[/]")
+        else:
+            right_lines.append(f"[dim {dim}]{header}[/]")
+        for category in sorted(skills_dict.keys()):
+            skill_names = sorted(skills_dict[category])
             if len(skill_names) > 8:
-                display_names = skill_names[:8]
-                skills_str = ", ".join(display_names) + f" +{len(skill_names) - 8} more"
+                skills_str = ", ".join(skill_names[:8]) + f" +{len(skill_names) - 8} more"
             else:
                 skills_str = ", ".join(skill_names)
             if len(skills_str) > 50:
                 skills_str = skills_str[:47] + "..."
-            right_lines.append(f"[dim {dim}]{category}:[/] [{text}]{skills_str}[/]")
+            if dim_items:
+                right_lines.append(f"[dim]{category}:[/] [dim]{skills_str}[/]")
+            else:
+                right_lines.append(f"[dim {dim}]{category}:[/] [{text}]{skills_str}[/]")
+
+    if school_skills or other_skills:
+        _fmt_skill_section(school_skills, "School Skills", bold_header=True, dim_items=False)
+        _fmt_skill_section(other_skills, "Other Skills", bold_header=False, dim_items=True)
     else:
+        right_lines.append(f"[bold {accent}]Available Skills[/]")
         right_lines.append(f"[dim {dim}]No skills installed[/]")
 
     right_lines.append("")
