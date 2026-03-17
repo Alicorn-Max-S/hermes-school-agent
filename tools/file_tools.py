@@ -8,6 +8,7 @@ import threading
 from typing import Optional
 from tools.file_operations import ShellFileOperations
 from agent.redact import redact_sensitive_text
+from tools.auto_commit import track_self_modification
 
 logger = logging.getLogger(__name__)
 
@@ -236,6 +237,8 @@ def write_file_tool(path: str, content: str, task_id: str = "default") -> str:
     try:
         file_ops = _get_file_ops(task_id)
         result = file_ops.write_file(path, content)
+        if not result.error:
+            track_self_modification(path)
         return json.dumps(result.to_dict(), ensure_ascii=False)
     except Exception as e:
         logger.error("write_file error: %s: %s", type(e).__name__, e)
@@ -263,6 +266,12 @@ def patch_tool(mode: str = "replace", path: str = None, old_string: str = None,
             return json.dumps({"error": f"Unknown mode: {mode}"})
         
         result_dict = result.to_dict()
+        # Track self-modifications for auto-commit
+        if not result.error and result.success:
+            if mode == "replace" and path:
+                track_self_modification(path)
+            for f in (result.files_modified or []) + (result.files_created or []):
+                track_self_modification(f)
         result_json = json.dumps(result_dict, ensure_ascii=False)
         # Hint when old_string not found — saves iterations where the agent
         # retries with stale content instead of re-reading the file.

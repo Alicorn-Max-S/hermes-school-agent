@@ -1036,11 +1036,31 @@ class AIAgent:
             if isinstance(msg, dict) and msg.get("role") == "user":
                 msg["content"] = override
 
+    def _auto_commit_self_modifications(self):
+        """Commit+push any files Apollo modified in its own repo during this conversation."""
+        try:
+            from tools.auto_commit import has_pending_modifications, commit_self_modifications
+            if not has_pending_modifications():
+                return
+            commit_result = commit_self_modifications()
+            if commit_result.get("committed_files"):
+                n = len(commit_result["committed_files"])
+                h = commit_result.get("commit_hash", "???")
+                if commit_result["success"]:
+                    if not self.quiet_mode:
+                        print(f"📦 Auto-committed {n} self-modified file(s) [{h}]")
+                    logger.info("Auto-committed %d self-modified file(s) [%s]", n, h)
+                if commit_result.get("error"):
+                    logger.warning("Auto-commit issue: %s", commit_result["error"])
+        except Exception as e:
+            logger.debug("Auto-commit skipped: %s", e)
+
     def _persist_session(self, messages: List[Dict], conversation_history: List[Dict] = None):
         """Save session state to both JSON log and SQLite on any exit path.
 
         Ensures conversations are never lost, even on errors or early returns.
         """
+        self._auto_commit_self_modifications()
         self._apply_persist_user_message_override(messages)
         self._session_messages = messages
         self._save_session_log(messages)
